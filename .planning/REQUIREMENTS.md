@@ -127,19 +127,66 @@ Deferred. Tracked nhưng không trong roadmap v1.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| KB-01..06 | TBD | Pending |
-| AGT-01..08 | TBD | Pending |
-| DEP-01..06 | TBD | Pending |
-| WID-01..06 | TBD | Pending |
-| OBS-01..05 | TBD | Pending |
-| DEM-01..03 | TBD | Pending |
-| DOC-01..12 | TBD | Pending |
+| KB-01 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-02 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-03 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-04 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-05 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-06 | Phase 1 — Knowledge Base Foundation | Pending |
+| AGT-01 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-02 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-03 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-04 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-05 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-06 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-07 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| WID-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEM-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEM-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEM-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| OBS-01 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| OBS-02 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| OBS-03 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| OBS-04 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| OBS-05 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| DOC-01 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-02 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-03 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-04 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-05 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-06 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-07 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-08 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-09 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 
 **Coverage:**
 - v1 requirements: **46** total — KB:6, AGT:8, DEP:6, WID:6, OBS:5, DEM:3, DOC:12
-- Mapped to phases: 0 (sẽ điền sau khi roadmap xong)
-- Unmapped: 46 ⚠️ (sẽ về 0 sau roadmap)
+- Mapped to phases: **46/46** ✓
+- Unmapped: **0** ✓
+
+**Per-phase totals:**
+- Phase 1 (KB Foundation): 6 requirements (KB-01..06)
+- Phase 2 (Voice Agent local): 8 requirements (AGT-01..08)
+- Phase 3 (AgentCore + Widget + Demo): 15 requirements (DEP-01..06, WID-01..06, DEM-01..03)
+- Phase 4 (Observability + Cleanup): 5 requirements (OBS-01..05)
+- Phase 5 (Workshop docs): 12 requirements (DOC-01..12)
+- Total: **46** ✓
 
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-05-04 after initial definition*
+*Last updated: 2026-05-04 — traceability mapped to 5-phase roadmap (100% coverage)*
