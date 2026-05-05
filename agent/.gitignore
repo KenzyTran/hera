@@ -1,0 +1,15 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# uv virtual env
+.venv/
+
+# Local environment file (never commit secrets)
+.env
+
+# IDE
+.idea/
+.vscode/
