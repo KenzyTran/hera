@@ -21,13 +21,22 @@ def test_prompt_mentions_lookup_product_tool():
     assert "lookup_product" in SYSTEM_PROMPT
 
 
-def test_prompt_has_no_filler_words_in_examples():
-    """D-17: never use 'absolutely', 'great question', etc.
+def test_filler_words_absent_from_example_responses():
+    """D-17: 'You:' example replies must not contain banned filler.
 
-    These are forbidden as response words but allowed in the rule text. The
-    rule sentence enumerates them verbatim, so the test asserts they appear at
-    most in a 'forbidden words' rule context, never as model output.
+    The rule line that bans these words is allowed to mention them. The
+    actual enforcement target is the example-response block: parse out the
+    'You:' lines and assert no banned filler appears there.
     """
-    # Sanity: the rule line that bans the words is allowed to mention them.
-    assert "absolutely" in SYSTEM_PROMPT.lower()
-    assert "great question" in SYSTEM_PROMPT.lower()
+    banned = ("absolutely", "great question", "let me think")
+    you_lines = [
+        line for line in SYSTEM_PROMPT.splitlines()
+        if line.strip().lower().startswith("you:")
+    ]
+    assert you_lines, "expected at least one 'You:' example line in prompt"
+    for line in you_lines:
+        lowered = line.lower()
+        for word in banned:
+            assert word not in lowered, (
+                f"banned filler {word!r} found in example: {line!r}"
+            )
