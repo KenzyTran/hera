@@ -13,7 +13,7 @@ Hera ships in two parallel tracks under one umbrella: a working AWS-native voice
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans) — completed 2026-05-05
-- [ ] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop
+- [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
 - [ ] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL
 - [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account
 - [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy
@@ -61,7 +61,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 02-03-PLAN.md — Terraform IAM consumer policy: new module infra/modules/kb_consumer_policy/ shipping aws_iam_policy hera-kb-retrieve-prod (single statement, bedrock:Retrieve scoped to KB ARN, zero wildcards, NOT attached per D-22 — Phase 3 attaches). Resolves Phase 1 D-10. RUNBOOK.md extended with Phase 2 uv-only operational section + Resolved deferrals (docker-compose / first-voice-test / cleanup-docker sections owned by Plan 02-02). *(completed 2026-05-05; 7 files / 3 commits; live policy arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod with zero attachments; commits d7f9660, e9fee4d, 2e50b0d)*
 
 **Wave 2** *(02-02 depends on 02-01: needs the agent module + uv.lock to package)*
-- [ ] 02-02-PLAN.md — Container + compose + frontend: multi-arch Dockerfile (linux/arm64 + linux/amd64 via docker buildx, base ghcr.io/astral-sh/uv:python3.12-trixie-slim — research correction #1), docker-compose.yml two-service stack (agent on host 8080, frontend on host 8000) with required-syntax env vars (research correction #3), minimal frontend (index.html + app.js + audio-capture-worklet.js with 16 kHz Int16 capture and 24 kHz playback queue), bin/run-agent-docker.sh launcher. Covers AGT-04, AGT-08.
+- [x] 02-02-PLAN.md — Container + compose + frontend: multi-arch Dockerfile (linux/arm64 + linux/amd64 via docker buildx, base ghcr.io/astral-sh/uv:python3.12-trixie-slim — research correction #1), docker-compose.yml two-service stack (agent on host 8080, frontend on host 8000) with required-syntax env vars (research correction #3), minimal frontend (index.html + app.js + audio-capture-worklet.js with 16 kHz Int16 capture and 24 kHz playback queue), bin/run-agent-docker.sh launcher. Covers AGT-04, AGT-08. *(completed 2026-05-05; 10 files / 6 commits; AGT-04 live gate passed LATENCY_MS=0 < 3000ms against Bedrock Nova 2 Sonic in ap-northeast-1; commits dbc77a7, c8027f8, f8238c8, 80fa3ea, ea3e4b5, a3b6545)*
 
 **Cross-cutting constraints** (truths shared by 2+ plans — every executor must honor):
 - No emojis in any file (CLAUDE.md mandate; appears in all 3 plans).
