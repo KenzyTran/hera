@@ -7,7 +7,7 @@
 
 ### Knowledge Base (KB)
 
-- [ ] **KB-01**: Apple product catalog viết bằng English markdown — gồm 3 SKU (Apple Watch Series 11, iPhone 13 Pro Max, MacBook Pro M4) với spec, giá, stock status
+- [x] **KB-01**: Apple product catalog viết bằng English markdown — gồm 3 SKU (Apple Watch Series 11, iPhone 13 Pro Max, MacBook Pro M4) với spec, giá, stock status *(completed Phase 1 Plan 01-01, 2026-05-05)*
 - [ ] **KB-02**: S3 Vectors bucket + index được tạo bằng Terraform với dimension và distance metric đúng cho Titan Text Embeddings v2 (1024-dim, float32, cosine)
 - [ ] **KB-03**: Bedrock Knowledge Base được tạo với S3 Vectors backend (`s3_vectors_storage_configuration`) qua Terraform `~> 6.27`
 - [ ] **KB-04**: Data source ingestion job chạy thành công, KB query API trả về document đúng cho câu hỏi "iPhone 13 Pro Max stock"
@@ -127,7 +127,7 @@ Deferred. Tracked nhưng không trong roadmap v1.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| KB-01 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-01 | Phase 1 — Knowledge Base Foundation | Done (Plan 01-01) |
 | KB-02 | Phase 1 — Knowledge Base Foundation | Pending |
 | KB-03 | Phase 1 — Knowledge Base Foundation | Pending |
 | KB-04 | Phase 1 — Knowledge Base Foundation | Pending |
