@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 2 of 5 (Pipecat Voice Agent — Local)
-Plan: 0 of 3 in current phase
-Status: Phase 2 planned (3 plans, 2 waves; checker passed iteration 2 with 0 blockers). 02-RESEARCH.md prescribed 7 named patterns + 4 critical corrections (Python 3.12 not 3.11, ARM64 multi-arch buildx, AWSNovaSonicLLMService StaticCredentialsResolver kwargs, FastAPI /ping + /ws on port 8080 per AgentCore HTTP contract). 02-PATTERNS.md mapped 23 files (15 greenfield + 8 in-repo analogs from Phase 1 IaC + verify-kb.sh). All 8 AGT requirements covered (02-01: AGT-01/02/03/05/06/07; 02-02: AGT-04/08; 02-03: closes Phase 1 D-10 by shipping the IAM consumer policy). Ready for `/gsd-execute-phase 2`.
-Last activity: 2026-05-05 — Plan-phase complete: research + pattern map + plan + checker (2 iterations) + revision; AGT-04 latency gate scripted via `bin/smoke-voice.sh` + `bin/_smoke_voice_probe.py` (Plan 02-02 Task 4, autonomous: false, blocks on LATENCY_MS<3000).
+Plan: 1 of 3 in current phase complete (02-01); Wave 1 sibling 02-03 pending; Wave 2 = {02-02} pending
+Status: Plan 02-01 complete — Python Pipecat 1.1.0 voice agent core ships at agent/ with FastAPI /ping + /ws on port 8080, AWSNovaSonicLLMService with explicit static creds, lookup_product tool via asyncio.to_thread, SessionContinuationParams(360s) for AGT-05, no AudioConfig override (defaults satisfy AGT-07), 11 unit tests pass with mocked boto3. Six AGT requirements satisfied (AGT-01, AGT-02, AGT-03, AGT-05, AGT-06, AGT-07). Phase 1 untouched. Next: 02-03 (Terraform IAM consumer policy + RUNBOOK Phase 2 sections — Wave 1 sibling, no file overlap with 02-01) then Wave 2 (02-02 — Dockerfile + docker-compose + frontend + AGT-04 voice-loop smoke probe; autonomous: false).
+Last activity: 2026-05-05 — Plan 02-01 executed in ~5 min (3 commits b606c8e, a55862d, db64e08). All four research corrections enforced verbatim and grep-checked. Plan executed exactly as written with zero deviations.
 
-Progress: [██████████░░░░░░░░░░] 20%
+Progress: [████████████░░░░░░░░] 27%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~23 min
-- Total execution time: ~1.15 hours
+- Total plans completed: 4
+- Average duration: ~19 min
+- Total execution time: ~1.23 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
-| 2. Pipecat Voice Agent (Local) | 0/3 | — | — |
+| 2. Pipecat Voice Agent (Local) | 1/3 | ~5 min | ~5 min |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (~5 min, 3 tasks, 6 files), 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS)
-- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); per-task atomic commits and per-deviation atomic commits keep the blame trail honest
+- Last 5 plans: 01-01 (~5 min, 3 tasks, 6 files), 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with no live-AWS dependency)
+- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); offline plans like 02-01 (mocked boto3 via MagicMock) execute clean in single-digit minutes; per-task atomic commits and per-deviation atomic commits keep the blame trail honest
 
 *Updated after each plan completion*
 
@@ -65,6 +65,16 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 01-03: KB-04 verified end-to-end against live AWS — `aws bedrock-agent-runtime retrieve` for "iPhone 13 Pro Max stock" returns top score `0.8598317801952362` against KB `BKXE19AH89` in `ap-northeast-1`. Closes Phase 1 success criterion #2.
 - Plan 01-03: KB-06 re-index path verified for-real — single-file edit + `aws s3 cp` + `aws bedrock-agent start-ingestion-job` (job `KKLS6LQP9A`) re-indexes incrementally; new content queryable at attempt 1. Catalog reverted; final sync `AWI4TJPQN9` re-aligned KB to repo state. Closes Phase 1 success criterion #5.
 - Plan 01-03: Live KB id is `BKXE19AH89` (NOT `DWQQ6HXRQW` — the original first-apply id was replaced when the metadata_configuration fix landed). Phase 2 consumer role must scope to `kb_arn = arn:aws:bedrock:ap-northeast-1:851725411875:knowledge-base/BKXE19AH89`.
+- Plan 02-01: Python 3.12 pinned in `agent/pyproject.toml` (`requires-python = ">=3.12"`), NOT 3.11 as CONTEXT D-20 originally said. Pipecat's `aws-nova-sonic` extra has marker `python_version>='3.12'`; on 3.11 the extra silently no-ops and `aws_sdk_bedrock_runtime` is missing from the lockfile. Research correction #1.
+- Plan 02-01: AWS credentials passed as explicit kwargs to `AWSNovaSonicLLMService(access_key_id=..., secret_access_key=..., session_token=..., region=...)` from `os.environ`. The service uses `StaticCredentialsResolver` internally — boto3 default chain (`~/.aws`) is NOT enough on its own. Research correction #3 / Pitfall B.
+- Plan 02-01: FastAPI single-app shape exposes both `GET /ping` (returns `{"status":"Healthy",...}`) and `WebSocket /ws` on the same port 8080. Phase 3 AgentCore deploy reuses `hera_agent.main:app` directly — no transport refactor. Research correction #4.
+- Plan 02-01: `lookup_product_handler` dispatches sync boto3 via `await asyncio.to_thread(_kb_retrieve, query)` because boto3 is sync; inline sync inside an async pipeline stutters audio playback. Pitfall F.
+- Plan 02-01: `register_function("lookup_product", handler, cancel_on_interruption=False)` — KB calls take ~400ms; cancelling+re-firing on every barge-in wastes user-perceived latency. Pitfall H.
+- Plan 02-01: `SessionContinuationParams(transition_threshold_seconds=360)` configured explicitly in `pipeline.py` (matches Pipecat default but makes AGT-05 contract grep-discoverable). Pipecat rotates the bidi stream ~120s before the ~480s Sonic stream cap.
+- Plan 02-01: No `AudioConfig(...)` instantiation anywhere — Pipecat defaults already satisfy AGT-07 (16 kHz Int16 in / 24 kHz mono out).
+- Plan 02-01: `tools.py` mirrors `bin/verify-kb.sh` 1:1 — `numberOfResults=3`, threshold from `HERA_KB_SCORE_THRESHOLD` env (default 0.4), `"no relevant product info"` sentinel, top-1-first `Source: <basename>\n<text>` format joined by `\n\n`. D-18.
+- Plan 02-01: Only `try/except` in the codebase is `except WebSocketDisconnect: pass` in `/ws` handler — that is the normal disconnect path, not error suppression. AGENTS.md mandate honored across 6 hera_agent modules.
+- Plan 02-01: Dev dep `websockets` declared explicitly in `agent/pyproject.toml` (already a transitive of Pipecat's `websocket` extra) so Plan 02-02's `bin/_smoke_voice_probe.py` has a stable AGT-04 latency-gate import that survives Pipecat-internal swaps.
 
 ### Pending Todos
 
@@ -85,5 +95,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Phase 2 planned. 3 plans (02-01 Python agent core, 02-02 container+compose+frontend+AGT-04 scripted gate, 02-03 Terraform IAM consumer policy + RUNBOOK). Wave 1 = {02-01, 02-03} parallel, Wave 2 = {02-02}. Plan 02-02 is autonomous=false (live AWS gate via bin/smoke-voice.sh — must be run with HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1). Next is `/gsd-execute-phase 2`.
-Resume file: .planning/phases/02-pipecat-voice-agent-local/02-01-PLAN.md (start with Wave 1)
+Stopped at: Plan 02-01 complete (16 files / 3 commits / 11 tests pass). Wave 1 sibling 02-03 (Terraform IAM consumer policy + RUNBOOK Phase 2 sections — no file overlap with 02-01) is the natural next executor. Wave 2 = 02-02 (container + compose + frontend + AGT-04 voice-loop smoke probe; autonomous=false — live AWS gate via bin/smoke-voice.sh requires HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1).
+Resume file: .planning/phases/02-pipecat-voice-agent-local/02-03-PLAN.md (Wave 1 sibling) or 02-02-PLAN.md after 02-03 completes
