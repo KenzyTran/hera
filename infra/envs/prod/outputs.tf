@@ -17,3 +17,8 @@ output "data_source_id" {
   description = "Bedrock data source ID. Required by aws bedrock-agent start-ingestion-job."
   value       = module.knowledge_base.data_source_id
 }
+
+output "kb_retrieve_policy_arn" {
+  description = "Managed policy ARN for bedrock:Retrieve scoped to the hera KB. Phase 3 attaches this to the AgentCore execution role with aws_iam_role_policy_attachment."
+  value       = module.kb_consumer_policy.policy_arn
+}

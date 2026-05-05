@@ -9,3 +9,9 @@ module "knowledge_base" {
   env         = var.env
   region      = var.region
 }
+
+module "kb_consumer_policy" {
+  source = "../../modules/kb_consumer_policy"
+
+  kb_arn = module.knowledge_base.kb_arn
+}
