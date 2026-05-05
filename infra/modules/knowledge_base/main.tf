@@ -36,6 +36,18 @@ resource "aws_s3vectors_index" "this" {
   data_type       = "float32"
   dimension       = var.embedding_dimension
   distance_metric = "cosine"
+
+  # Bedrock KB writes the chunk text into AMAZON_BEDROCK_TEXT and source
+  # attribution into AMAZON_BEDROCK_METADATA. S3 Vectors caps total filterable
+  # metadata at 2048 bytes per record, so chunks at the configured 300-token
+  # max overflow that limit. Mark both keys non-filterable (we never filter
+  # by them; we only retrieve them) to lift the size cap.
+  metadata_configuration {
+    non_filterable_metadata_keys = [
+      "AMAZON_BEDROCK_TEXT",
+      "AMAZON_BEDROCK_METADATA",
+    ]
+  }
 }
 
 # --- Bedrock Knowledge Base ---
