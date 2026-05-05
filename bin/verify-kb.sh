@@ -30,6 +30,10 @@ Examples:
 EOF
 }
 
+# --- preflight: required tools ---
+command -v aws >/dev/null 2>&1 || { echo "ERROR: aws CLI not found on PATH (RUNBOOK Pre-flight)" >&2; exit 2; }
+command -v jq  >/dev/null 2>&1 || { echo "ERROR: jq not found on PATH (RUNBOOK Pre-flight). Install: winget install jqlang.jq (Windows), brew install jq (macOS), apt-get install jq (Debian/Ubuntu)" >&2; exit 2; }
+
 # --- defaults / args ---
 REGION="${HERA_REGION:-ap-northeast-1}"
 QUERY='{"text":"iPhone 13 Pro Max stock"}'
@@ -87,8 +91,8 @@ for i in $(seq 1 "${MAX_ATTEMPTS}"); do
     fi
     echo "attempt ${i}/${MAX_ATTEMPTS}: KB still responding; expected to be gone"
   else
-    HITS=$(echo "${RESP}" | jq -r '.retrievalResults | length' 2>/dev/null || echo 0)
-    TOP=$(echo "${RESP}" | jq -r '.retrievalResults[0].score // 0' 2>/dev/null || echo 0)
+    HITS=$(echo "${RESP}" | jq -r '.retrievalResults | length')
+    TOP=$(echo "${RESP}" | jq -r '.retrievalResults[0].score // 0')
     echo "attempt ${i}/${MAX_ATTEMPTS}: hits=${HITS} top_score=${TOP}"
 
     if [[ "${HITS}" -gt 0 ]] && awk "BEGIN{exit !(${TOP} >= ${THRESHOLD})}"; then
