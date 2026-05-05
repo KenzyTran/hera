@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 
 Phase: 2 of 5 (Pipecat Voice Agent — Local)
 Plan: 0 of TBD in current phase
-Status: Phase 1 complete and verified (5/5 must-haves passed, live AWS re-proven). Ready to start phase 2 — start with `/gsd-discuss-phase 2` to gather phase context.
-Last activity: 2026-05-05 — Phase 1 verifier signed off (passed, 5/5 must-haves, top score 0.86 against live KB BKXE19AH89). Code review found 2 critical (verify-kb.sh region/STOPPING handling) + 7 warning + 6 info — non-blocking, queued for Phase 1 polish or carried forward.
+Status: Phase 2 context gathered (D-17..D-23 locked: Crisp persona, top-3 + score >= 0.4 KB shape, WSS end-to-end, docker compose 2-service local UX, managed IAM policy for consumer role NOT attached in P2, latency budget split). Ready for `/gsd-plan-phase 2`.
+Last activity: 2026-05-05 — Discuss-phase for Phase 2 captured 4 of 4 gray areas; CONTEXT.md and DISCUSSION-LOG.md committed (e1578e1). Phase 1 closed earlier today.
 
 Progress: [██████████░░░░░░░░░░] 20%
 
@@ -85,5 +85,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Phase 1 closed — verifier passed all 5 must-haves; ROADMAP/REQUIREMENTS marked complete; live KB BKXE19AH89 in ap-northeast-1 stays up for Phase 2 consumption. Next is Phase 2 (Pipecat Voice Agent — Local).
-Resume file: .planning/phases/01-knowledge-base-foundation/01-VERIFICATION.md
+Stopped at: Phase 2 context gathered (4/4 gray areas discussed; D-17..D-23 locked). Live KB BKXE19AH89 in ap-northeast-1 still up. Next is `/gsd-plan-phase 2` (research + plan).
+Resume file: .planning/phases/02-pipecat-voice-agent-local/02-CONTEXT.md
