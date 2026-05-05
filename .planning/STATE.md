@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 2 of 5 (Pipecat Voice Agent — Local)
-Plan: 1 of 3 in current phase complete (02-01); Wave 1 sibling 02-03 pending; Wave 2 = {02-02} pending
-Status: Plan 02-01 complete — Python Pipecat 1.1.0 voice agent core ships at agent/ with FastAPI /ping + /ws on port 8080, AWSNovaSonicLLMService with explicit static creds, lookup_product tool via asyncio.to_thread, SessionContinuationParams(360s) for AGT-05, no AudioConfig override (defaults satisfy AGT-07), 11 unit tests pass with mocked boto3. Six AGT requirements satisfied (AGT-01, AGT-02, AGT-03, AGT-05, AGT-06, AGT-07). Phase 1 untouched. Next: 02-03 (Terraform IAM consumer policy + RUNBOOK Phase 2 sections — Wave 1 sibling, no file overlap with 02-01) then Wave 2 (02-02 — Dockerfile + docker-compose + frontend + AGT-04 voice-loop smoke probe; autonomous: false).
-Last activity: 2026-05-05 — Plan 02-01 executed in ~5 min (3 commits b606c8e, a55862d, db64e08). All four research corrections enforced verbatim and grep-checked. Plan executed exactly as written with zero deviations.
+Plan: 2 of 3 in current phase complete (02-01 + 02-03); Wave 2 = {02-02} pending
+Status: Plan 02-03 complete — Terraform module infra/modules/kb_consumer_policy/ ships aws_iam_policy hera-kb-retrieve-prod (one statement, bedrock:Retrieve scoped to live KB BKXE19AH89, zero wildcards, zero attachments per D-22). Live `terraform apply` created the policy in account 851725411875 / ap-northeast-1 (~5 sec). `aws iam list-entities-for-policy` confirms zero PolicyRoles/Users/Groups. Phase 1 retrieve still returns top score 0.861 — no regression. RUNBOOK gains "Local agent setup (Phase 2) — uv path" + "Resolved deferrals" (closes D-10/D-22); the resolved D-10 bullet is removed from "Next steps (deferred)". Wave 1 done (02-01 + 02-03 sibling pair). Next: Wave 2 (02-02 — Dockerfile + docker-compose + frontend + AGT-04 voice-loop smoke probe; autonomous: false; live AWS gate via bin/smoke-voice.sh).
+Last activity: 2026-05-05 — Plan 02-03 executed in ~7 min (3 commits d7f9660, e9fee4d, 2e50b0d). Plan executed exactly as written; zero auto-fix deviations. One acceptance-criterion off-by-one (`grep -A 3` vs `-A 5` for the Resolved-deferrals bullet position) noted in SUMMARY but content intent satisfied. `bin/verify-kb.sh` exited 2 in this shell because `jq` not on PATH — environment issue, not regression; underlying Bedrock retrieve API call returned top score 0.861 directly.
 
-Progress: [████████████░░░░░░░░] 27%
+Progress: [█████████████░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~19 min
-- Total execution time: ~1.23 hours
+- Total plans completed: 5
+- Average duration: ~17 min
+- Total execution time: ~1.35 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
-| 2. Pipecat Voice Agent (Local) | 1/3 | ~5 min | ~5 min |
+| 2. Pipecat Voice Agent (Local) | 2/3 | ~12 min | ~6 min |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (~5 min, 3 tasks, 6 files), 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with no live-AWS dependency)
-- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); offline plans like 02-01 (mocked boto3 via MagicMock) execute clean in single-digit minutes; per-task atomic commits and per-deviation atomic commits keep the blame trail honest
+- Last 5 plans: 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with no live-AWS dependency), 02-03 (~7 min, 3 tasks, 7 files, 0 auto-fix deviations — IaC plan that DID touch live AWS but the IAM resource was small/scoped enough that one apply landed clean)
+- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); offline plans like 02-01 (mocked boto3 via MagicMock) execute clean in single-digit minutes; per-task atomic commits and per-deviation atomic commits keep the blame trail honest. 02-03 shows that careful research+plan ahead of time can land a live-AWS IaC plan in single-digit minutes too — the difference between 02-03 (~7 min) and 01-03 (~50 min) is that 01-03 hit two true AWS provider quirks (S3 Vectors metadata cap, data-source replace_triggered_by) while 02-03 was creating a single managed policy with no cross-resource gotchas.
 
 *Updated after each plan completion*
 
@@ -75,6 +75,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 02-01: `tools.py` mirrors `bin/verify-kb.sh` 1:1 — `numberOfResults=3`, threshold from `HERA_KB_SCORE_THRESHOLD` env (default 0.4), `"no relevant product info"` sentinel, top-1-first `Source: <basename>\n<text>` format joined by `\n\n`. D-18.
 - Plan 02-01: Only `try/except` in the codebase is `except WebSocketDisconnect: pass` in `/ws` handler — that is the normal disconnect path, not error suppression. AGENTS.md mandate honored across 6 hera_agent modules.
 - Plan 02-01: Dev dep `websockets` declared explicitly in `agent/pyproject.toml` (already a transitive of Pipecat's `websocket` extra) so Plan 02-02's `bin/_smoke_voice_probe.py` has a stable AGT-04 latency-gate import that survives Pipecat-internal swaps.
+- Plan 02-03: New module `infra/modules/kb_consumer_policy/` mirrors `infra/modules/knowledge_base/` four-file shape (versions/variables/main/outputs). Single `aws_iam_policy.kb_retrieve` resource — name `hera-kb-retrieve-prod`, one Allow statement (Action `bedrock:Retrieve`, Resource `var.kb_arn`), zero wildcards (D-13), zero attachments (D-22). Module input `kb_arn` has no default so a wildcard is structurally impossible; only legitimate caller is `module.kb_consumer_policy { kb_arn = module.knowledge_base.kb_arn }`. Live policy ARN: `arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod`.
+- Plan 02-03: jsonencode chosen over `data "aws_iam_policy_document"` for this single-statement policy (matches RESEARCH.md verbatim, simpler than Phase 1's data-source style which exists because Phase 1 has three statements with shared conditions). Both styles satisfy D-13 wildcard-free.
+- Plan 02-03: Phase-N IAM ships, Phase-N+1 attaches (RESEARCH P7). Policy created in Phase 2, attachment to AgentCore exec role deferred to Phase 3 with `aws_iam_role_policy_attachment.role = aws_iam_role.agentcore_exec.name; policy_arn = module.kb_consumer_policy.policy_arn`.
+- Plan 02-03: RUNBOOK split between Plan 02-03 and Plan 02-02 by heading (not by file). 02-03 owns `## Local agent setup (Phase 2) — uv path` + `## Resolved deferrals`; 02-02 owns `## First voice test` + `## Cleanup local Docker resources`. No merge conflict because diffs land at distinct sections.
+- Plan 02-03: `bin/verify-kb.sh` requires `jq` and the script's pre-flight `command -v jq` gate (added in 01-03 commit `f78a39a`) is what produces the install-hint error. Document — operators on a fresh shell must `winget install jqlang.jq` (Windows), `brew install jq` (macOS), or `apt-get install jq` (Debian/Ubuntu) before running the script. Underlying `aws bedrock-agent-runtime retrieve` API call works without `jq`.
 
 ### Pending Todos
 
@@ -90,10 +95,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none — first milestone)* | | | |
+| Repo hygiene | Add `plan.out` to `.gitignore` (post-`terraform plan -out` artifact) | Open | Plan 02-03 |
+| Phase 1 D-10 | Consumer `bedrock:Retrieve` policy for Pipecat | RESOLVED in Plan 02-03 (managed policy `hera-kb-retrieve-prod`) | Plan 01-01 |
 
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Plan 02-01 complete (16 files / 3 commits / 11 tests pass). Wave 1 sibling 02-03 (Terraform IAM consumer policy + RUNBOOK Phase 2 sections — no file overlap with 02-01) is the natural next executor. Wave 2 = 02-02 (container + compose + frontend + AGT-04 voice-loop smoke probe; autonomous=false — live AWS gate via bin/smoke-voice.sh requires HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1).
-Resume file: .planning/phases/02-pipecat-voice-agent-local/02-03-PLAN.md (Wave 1 sibling) or 02-02-PLAN.md after 02-03 completes
+Stopped at: Plan 02-03 complete (7 files / 3 commits / live policy `arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod` with zero attachments). Wave 1 done. Wave 2 = 02-02 (container + compose + frontend + AGT-04 voice-loop smoke probe; autonomous=false — live AWS gate via bin/smoke-voice.sh requires HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1) is the natural next executor.
+Resume file: .planning/phases/02-pipecat-voice-agent-local/02-02-PLAN.md

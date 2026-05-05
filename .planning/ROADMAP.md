@@ -58,7 +58,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1** *(parallel: 02-01 builds Python agent core; 02-03 ships Terraform IAM consumer policy + RUNBOOK extension; no file overlap)*
 - [x] 02-01-PLAN.md — Python agent core: uv project (Python 3.12 + Pipecat 1.1.0), hera_agent package (FastAPI app with /ping + /ws, AWSNovaSonicLLMService with explicit static creds, lookup_product tool via asyncio.to_thread, SessionContinuationParams), unit tests with mocked boto3, bin/run-agent-local.sh launcher. Covers AGT-01, AGT-02, AGT-03, AGT-05, AGT-06, AGT-07. *(completed 2026-05-05; 16 files / 3 commits / 11 tests pass in 2.04s; commits b606c8e, a55862d, db64e08)*
-- [ ] 02-03-PLAN.md — Terraform IAM consumer policy: new module infra/modules/kb_consumer_policy/ shipping aws_iam_policy hera-kb-retrieve-prod (single statement, bedrock:Retrieve scoped to KB ARN, zero wildcards, NOT attached per D-22 — Phase 3 attaches). Resolves Phase 1 D-10. RUNBOOK.md extended with Phase 2 operational sections (Local agent setup, First voice test, Cleanup local Docker resources).
+- [x] 02-03-PLAN.md — Terraform IAM consumer policy: new module infra/modules/kb_consumer_policy/ shipping aws_iam_policy hera-kb-retrieve-prod (single statement, bedrock:Retrieve scoped to KB ARN, zero wildcards, NOT attached per D-22 — Phase 3 attaches). Resolves Phase 1 D-10. RUNBOOK.md extended with Phase 2 uv-only operational section + Resolved deferrals (docker-compose / first-voice-test / cleanup-docker sections owned by Plan 02-02). *(completed 2026-05-05; 7 files / 3 commits; live policy arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod with zero attachments; commits d7f9660, e9fee4d, 2e50b0d)*
 
 **Wave 2** *(02-02 depends on 02-01: needs the agent module + uv.lock to package)*
 - [ ] 02-02-PLAN.md — Container + compose + frontend: multi-arch Dockerfile (linux/arm64 + linux/amd64 via docker buildx, base ghcr.io/astral-sh/uv:python3.12-trixie-slim — research correction #1), docker-compose.yml two-service stack (agent on host 8080, frontend on host 8000) with required-syntax env vars (research correction #3), minimal frontend (index.html + app.js + audio-capture-worklet.js with 16 kHz Int16 capture and 24 kHz playback queue), bin/run-agent-docker.sh launcher. Covers AGT-04, AGT-08.
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
-| 2. Pipecat Voice Agent (Local) | 1/3 | In progress (Wave 1: 02-01 complete, 02-03 pending; Wave 2: 02-02 pending) | - |
+| 2. Pipecat Voice Agent (Local) | 2/3 | In progress (Wave 1: 02-01 + 02-03 complete; Wave 2: 02-02 pending) | - |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
