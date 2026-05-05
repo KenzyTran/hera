@@ -1,0 +1,21 @@
+# Python bytecode and caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# uv virtual env (built fresh inside container)
+.venv/
+
+# Local secrets - must never enter image
+.env
+
+# Tests are not needed at runtime (saves ~50 KB and avoids running them in container)
+tests/
+
+# Editor / git noise
+.idea/
+.vscode/
+.git/
+*.swp
