@@ -12,7 +12,7 @@ Hera ships in two parallel tracks under one umbrella: a working AWS-native voice
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans)
+- [x] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans) — completed 2026-05-05
 - [ ] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop
 - [ ] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL
 - [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account
@@ -101,7 +101,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Knowledge Base Foundation | 3/3 | Plans 01-01, 01-02, 01-03 complete; pending phase verification | - |
+| 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 0/TBD | Not started | - |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |

@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 1 — Knowledge Base Foundation
+**Current focus:** Phase 2 — Pipecat Voice Agent (Local)
 
 ## Current Position
 
-Phase: 1 of 5 (Knowledge Base Foundation)
-Plan: 3 of 3 in current phase
-Status: Plan 01-03 complete; Phase 1 ready for verifier sign-off (3/3 plans done; live KB BKXE19AH89 in ap-northeast-1 indexed and queryable)
-Last activity: 2026-05-05 — Executed Plan 01-03 (verify-and-sync, live AWS): bin/verify-kb.sh shipped (7ec0b2e, hardened f78a39a), RUNBOOK.md TODO(plan-03) markers filled (dad8e67), live terraform apply + ingestion + verify cycle in account 851725411875 / ap-northeast-1; KB-04 verified end-to-end (top score 0.8598 for "iPhone 13 Pro Max stock"); KB-06 re-index path verified; three deviation fixes (9006d48, 28bbcee, f78a39a) hardened the IaC and operator script before final green
+Phase: 2 of 5 (Pipecat Voice Agent — Local)
+Plan: 0 of TBD in current phase
+Status: Phase 1 complete and verified (5/5 must-haves passed, live AWS re-proven). Ready to start phase 2 — start with `/gsd-discuss-phase 2` to gather phase context.
+Last activity: 2026-05-05 — Phase 1 verifier signed off (passed, 5/5 must-haves, top score 0.86 against live KB BKXE19AH89). Code review found 2 critical (verify-kb.sh region/STOPPING handling) + 7 warning + 6 info — non-blocking, queued for Phase 1 polish or carried forward.
 
-Progress: [██████░░░░] 20%
+Progress: [██████████░░░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -85,5 +85,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Completed Plan 01-03 (verify-and-sync, live AWS); all 3 Phase-1 plans done; next is Phase 1 verification (`/gsd-verify-phase 1`) which inspects the SUMMARYs against ROADMAP success criteria and closes the phase checkbox
-Resume file: .planning/phases/01-knowledge-base-foundation/01-03-verify-and-sync-SUMMARY.md
+Stopped at: Phase 1 closed — verifier passed all 5 must-haves; ROADMAP/REQUIREMENTS marked complete; live KB BKXE19AH89 in ap-northeast-1 stays up for Phase 2 consumption. Next is Phase 2 (Pipecat Voice Agent — Local).
+Resume file: .planning/phases/01-knowledge-base-foundation/01-VERIFICATION.md

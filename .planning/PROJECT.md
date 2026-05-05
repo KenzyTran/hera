@@ -19,13 +19,15 @@ Hera là một workshop FCJ (First Cloud Journey) song ngữ vi/en hướng dẫ
 - ✓ GitHub Actions workflow deploy Hugo site lên GitHub Pages — existing
 - ✓ Custom AWS Cloud Clubs branding (logo, layouts/partials) — existing
 
+<!-- Validated in Phase 1 (Knowledge Base Foundation) — 2026-05-05 -->
+- ✓ Bedrock Knowledge Base dùng S3 Vectors + Titan v2 embeddings (1024-dim float32 cosine), chứa Apple product catalog + stock list (Apple Watch S11, iPhone 13 Pro Max, MacBook Pro M4) — KB-01..KB-06; live KB `BKXE19AH89` in `ap-northeast-1`, validated end-to-end with `aws bedrock-agent-runtime retrieve` returning top score 0.86 for "iPhone 13 Pro Max stock"
+
 ### Active
 
 <!-- Phạm vi v1, tất cả là hypothesis cho đến khi ship. -->
 
 **Hệ thống voice chatbot:**
 - [ ] Voice loop end-to-end: browser microphone → AgentCore endpoint (WebSocket hoặc WebRTC) → Pipecat agent code → Nova 2 Sonic (Bedrock bidirectional) → audio response phát lại trong browser
-- [ ] Bedrock Knowledge Base dùng S3 Vectors + Titan v2 embeddings, chứa Apple product catalog + stock list (Apple Watch S11, iPhone 13 Pro Max, MacBook Pro M4)
 - [ ] Sonic gọi tool `lookup_product()` vào Knowledge Base Retrieve API để trả lời câu hỏi sản phẩm
 - [ ] Pipecat 1.1.0 agent code (Python ≥3.11) đóng gói container và deploy vào **Bedrock AgentCore Runtime** ở ap-northeast-1
 - [ ] AgentCore Runtime chịu trách nhiệm session/connection/scaling/observability — KHÔNG tự quản ECS, ALB, VPC custom networking
@@ -134,4 +136,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 after initialization (revised: AgentCore over ECS, no NAT/PrivateLink, instructor demo public URL)*
+*Last updated: 2026-05-05 — Phase 1 (Knowledge Base Foundation) complete. Live KB BKXE19AH89 in ap-northeast-1 indexed and queryable; KB-01..KB-06 validated. Three IaC deviations hardened during live run (S3 Vectors non-filterable metadata, data_source replace lifecycle, verify-kb.sh fail-fast preflight).*
