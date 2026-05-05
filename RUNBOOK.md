@@ -264,6 +264,78 @@ Troubleshooting:
 
 For the docker-compose run path and the browser-driven voice loop, see the `First voice test` and `Cleanup local Docker resources` sections below (added by Plan 02-02).
 
+## First voice test
+
+Two ways to drive the voice loop end-to-end against the live KB and live Sonic:
+
+**Path A - scripted AGT-04 latency gate (no browser):**
+
+```bash
+export HERA_KB_ID=$(terraform -chdir=infra/envs/prod output -raw kb_id)
+bin/smoke-voice.sh
+```
+
+Expected last three lines:
+```
+LATENCY_MS=<n>           # typically 0-2500 ms
+OK: latency 1.XXX s < AGT-04 budget 3.0s
+OK: AGT-04 latency gate passed
+```
+
+This script brings up the docker-compose stack, opens a WebSocket to `ws://localhost:8080/ws`, sends ~1 second of synthetic silence, and times the first inbound binary audio frame from Sonic. Exits non-zero if the measured latency is >= 3.0 seconds. Re-run any time the agent code changes - this is the AGT-04 regression check.
+
+**Path B - browser-driven manual test (with real microphone):**
+
+Bring up the stack:
+
+```bash
+bin/run-agent-docker.sh
+# agent     -> http://localhost:8080
+# frontend  -> http://localhost:8000
+```
+
+Open `http://localhost:8000/` in Chrome or Edge (Firefox has had AudioWorklet quirks in the past - Chromium-based browsers are the smoke-test default). Click "Allow" on the microphone permission prompt, click "Record", and ask:
+
+> Do you have MacBook Pro?
+
+Expected outcome:
+- The transcript pane shows your question within ~1s.
+- Sonic calls the `lookup_product` tool against the Phase 1 KB.
+- A spoken Apple Store-style answer plays through your speakers, naming the in-stock MacBook Pro M4 configurations.
+- The end-to-end latency from end-of-utterance to first audio chunk is under 3 seconds (AGT-04 target - the same number Path A measures programmatically).
+
+If the agent answers but says "no relevant product info":
+- Confirm the live KB is queryable: `bin/verify-kb.sh` exits 0.
+- Confirm `HERA_KB_ID` matches the terraform output: `terraform -chdir=infra/envs/prod output -raw kb_id`.
+- Confirm the score threshold is not too high: try `HERA_KB_SCORE_THRESHOLD=0.2`.
+
+If the WebSocket connects but no audio plays:
+- Open the browser DevTools console; confirm no AudioContext suspension errors. Click anywhere on the page first to satisfy the browser autoplay policy.
+- Confirm the agent container logs show `WS client connected` and a `lookup_product` invocation.
+
+If the agent fails to start with `KeyError: 'AWS_SECRET_ACCESS_KEY'`:
+- The `AWSNovaSonicLLMService` requires explicit static credentials (it does NOT follow the boto3 default credential chain). Mounting `~/.aws` is not enough - the env vars must be set in the shell or `.env`. See `agent/.env.example`.
+
+If long conversations (>8 minutes) cut out:
+- Pipecat's `SessionContinuationParams` (default `transition_threshold_seconds=360`) rotates the Sonic bidi stream ~120s before the cap. The transition should be inaudible. If you observe a real audio dropout, root-cause via agent logs (look for the rotation log line); do NOT add try/except in `pipeline.py`.
+
+## Cleanup local Docker resources
+
+When the workshop session is over (and after Phase 1 cleanup is complete), tear down the local Docker containers and images. Phase 1 cleanup (`terraform destroy` from `infra/envs/prod/`) handles the AWS-side teardown including the Phase 2 IAM policy `hera-kb-retrieve-prod`; this section only handles the local Docker artifacts.
+
+```bash
+# Stop and remove the docker compose containers (keeps images)
+docker compose down
+
+# Remove the agent image (recover ~2 GB)
+docker image rm hera-agent:dev 2>/dev/null || true
+
+# Optional: prune unreferenced layers (recover more space)
+docker image prune -f
+```
+
+The Pipecat agent has no persistent state - D-21 mandates in-memory only - so there is nothing to back up before teardown. The Phase 1 KB and S3 buckets are untouched by these commands.
+
 ## Resolved deferrals
 
 The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
