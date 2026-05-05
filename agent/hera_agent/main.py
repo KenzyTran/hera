@@ -8,7 +8,7 @@ This single-app shape matches the AgentCore HTTP service contract verbatim, so
 Phase 3 deploys without a transport refactor.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -17,13 +17,19 @@ from hera_agent.pipeline import run_pipeline
 
 app = FastAPI(title="hera-agent", version="0.1.0")
 
+# Captured once at module import. The /ping field name promises "when state
+# last changed", which for this stateless agent is process boot time. Using
+# tz-aware UTC so the integer matches operator-side log timestamps regardless
+# of the host's local zone.
+_BOOT_TIME = int(datetime.now(tz=timezone.utc).timestamp())
+
 
 @app.get("/ping")
 async def ping() -> dict:
     """AgentCore Runtime health probe (HTTP 200 -> status=Healthy)."""
     return {
         "status": "Healthy",
-        "time_of_last_update": int(datetime.now().timestamp()),
+        "time_of_last_update": _BOOT_TIME,
     }
 
 
