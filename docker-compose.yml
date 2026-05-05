@@ -34,7 +34,10 @@ services:
       start_period: 10s
 
   frontend:
-    image: nginx:alpine
+    # Pinned to a specific minor tag so a workshop attendee running this
+    # next month gets the same nginx that was verified during Phase 2.
+    # Bump deliberately when needed; do not float on :alpine.
+    image: nginx:1.27-alpine
     ports:
       - "8000:80"
     volumes:
