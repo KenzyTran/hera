@@ -36,6 +36,5 @@ Standard next step: `/gsd-plan-phase 1` to plan the Knowledge Base Foundation ph
 
 ## Reference material
 
-- `raw_content.txt` — Vietnamese transcript of an ElevenLabs+n8n+Gemini voice agent tutorial. Used as **use case reference only** (Apple Store support, 3-SKU catalog). The implementation is AWS-native, NOT a port.
 - AWS blog: [Deploy voice agents with Pipecat and Amazon Bedrock AgentCore Runtime — Part 1](https://aws.amazon.com/blogs/machine-learning/deploy-voice-agents-with-pipecat-and-amazon-bedrock-agentcore-runtime-part-1/)
 - Reference repo: [aws-samples/sample-nova-sonic-websocket-agentcore](https://github.com/aws-samples/sample-nova-sonic-websocket-agentcore)
