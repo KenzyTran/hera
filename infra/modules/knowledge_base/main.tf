@@ -112,4 +112,14 @@ resource "aws_bedrockagent_data_source" "catalog" {
       }
     }
   }
+
+  # The AWS provider does not force-new this resource when knowledge_base_id
+  # changes. When the KB is replaced (e.g. due to a force-new on the underlying
+  # vector index), the data source must be recreated alongside it - the API
+  # treats data sources as children of the KB and the old data source ID dies
+  # with the old KB. Without this, terraform tries to UpdateDataSource on the
+  # new KB ID with the dead data source ID and gets ResourceNotFoundException.
+  lifecycle {
+    replace_triggered_by = [aws_bedrockagent_knowledge_base.this]
+  }
 }
