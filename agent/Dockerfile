@@ -8,7 +8,9 @@
 # dev (Pitfall C). docker buildx orchestrates the per-arch layers via the
 # TARGETPLATFORM / BUILDPLATFORM args.
 
-FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS base
+# Pinned to the uv version verified during Phase 2 AGT-04 (uv 0.10.8).
+# Bump deliberately when needed; do not float on :python3.12-trixie-slim.
+FROM ghcr.io/astral-sh/uv:0.10.8-python3.12-trixie-slim AS base
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
