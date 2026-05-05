@@ -67,10 +67,12 @@ curl -fsS http://localhost:8080/ping | grep -q '"status":"Healthy"' || {
 
 # Run the latency probe inside agent/.venv so `import websockets` resolves
 # (Plan 02-01 declared websockets as a dev-dep in agent/pyproject.toml).
+# Same-line capture so `set -e` does not abort before we read $? and emit
+# the diagnostic.
 echo "running bin/_smoke_voice_probe.py against ws://localhost:8080/ws"
 cd "${REPO_ROOT}/agent"
-uv run python "${REPO_ROOT}/bin/_smoke_voice_probe.py"
-PROBE_RC=$?
+PROBE_RC=0
+uv run python "${REPO_ROOT}/bin/_smoke_voice_probe.py" || PROBE_RC=$?
 cd "${REPO_ROOT}"
 
 if [[ ${PROBE_RC} -ne 0 ]]; then
