@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 2 — Pipecat Voice Agent (Local) COMPLETE; Phase 3 (AgentCore Deploy) is next.
+**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — context gathered; planning next.
 
 ## Current Position
 
-Phase: 2 of 5 (Pipecat Voice Agent — Local) COMPLETE
-Plan: 3 of 3 complete (02-01 + 02-03 + 02-02). All Phase 2 ROADMAP success criteria demonstrated.
-Status: Plan 02-02 complete — Multi-arch hera-agent container (linux/arm64+linux/amd64, ghcr.io/astral-sh/uv:python3.12-trixie-slim base, non-root appuser uid 1000, HEALTHCHECK on /ping), two-service docker-compose stack (agent on 8080:8080 + nginx frontend on 8000:80 with mic + transcript + worklet capture/playback), and bin/smoke-voice.sh AGT-04 latency gate exiting 0 with LATENCY_MS=0 against LIVE Bedrock Nova 2 Sonic in ap-northeast-1 + live KB BKXE19AH89. AGT-04 + AGT-08 both satisfied. Two Plan-02-01 latent issues uncovered + auto-fixed in pipeline.py (Rule 1+2): (1) Pipecat 1.1.0's FastAPIWebsocketTransport silently drops every frame when serializer is None — added agent/hera_agent/serializer.py RawPCMSerializer; (2) on_client_connected race condition prevented Sonic's greet from firing — pre-seeded LLMContext with kickoff user message at construction time. 11/11 unit tests still pass. Phase 1 KB still returns top score 0.861 (no regression). RUNBOOK gains "First voice test" + "Cleanup local Docker resources" sections (no merge collision with Plan 02-03's distinct headings). Next: Phase 3 (AgentCore Runtime deploy + public endpoint + web widget polish).
-Last activity: 2026-05-05 — Phase 2 verification gates complete: code-review (0 blocker / 6 warning / 5 info — non-blocking, commit 953beda), regression (11/11 agent unit tests pass + Phase 1 KB live retrieve verified score 0.861 during 02-03 apply), verifier `passed` (8/8 must-haves + 8/8 AGT requirements + 5/5 ROADMAP success criteria, commit 908d666). ROADMAP.md Phase 2 marked complete. Two non-blocking review warnings recommended for Phase 3: WR-02 (frontend WS-OPEN race) + WR-03 (audio-worklet anti-aliasing) — both relevant when public widget handles real speech instead of silence-probe.
+Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — context gathered
+Plan: 0 of TBD. CONTEXT.md ships D-24..D-30 (IaC split TF+CDK hybrid; 3-step deploy; S3+CloudFront widget; Apple-Store light polish; $5/day cap; 2-concurrent throttling). Researcher and planner have not yet run.
+Status: `/gsd:discuss-phase 3` complete (commit 5c0f31b). 4 gray areas resolved with 8 single-question turns: (1) DEP-04 IaC fallback flavor → TF + AWS CDK Python (TF owns everything except the AgentCore Runtime resource; CDK owns one stack `hera-agentcore`); (2) WID-01 / DEM-01 hosting → S3 + CloudFront with default `*.cloudfront.net` URL; build-time sed-replace injects the AgentCore WSS URL into `frontend/app.js`; (3) WID polish → Apple-Store light branding (5 record-button states, color-coded transcript, human-readable WID-06 errors) — `/gsd-ui-phase 3` will generate UI-SPEC.md next; (4) DEM-02 / DEM-03 → $5/day banner copy hardcoded, AgentCore concurrency capped at 2, no per-IP. Phase 4 will own CloudWatch alarms + Lambda cost-circuit-breaker. Phase 2 D-22 closes in Phase 3 (managed policy `hera-kb-retrieve-prod` attaches to the new AgentCore exec role). Next: `/gsd-ui-phase 3` for UI-SPEC.md, then `/gsd-plan-phase 3`.
+Last activity: 2026-05-05 — `/gsd:discuss-phase 3` produced `.planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-CONTEXT.md` + `03-DISCUSSION-LOG.md` (commit 5c0f31b). Carry-forward decisions (D-13 zero IAM wildcards, D-14 region defaults, D-19 WSS transport, D-20 multi-arch container, D-22 consumer policy attach) preserved without re-litigation. Phase 2 review warnings WR-02 (WS-OPEN race) and WR-03 (anti-aliasing) already fixed; baseline frontend stable for Phase 3 polish.
 
 Progress: [████████████████░░░░] 40%
 
@@ -106,5 +106,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Plan 02-02 complete (12 files / 5 commits dbc77a7, c8027f8, f8238c8, 80fa3ea, ea3e4b5 / AGT-04 live gate passed against Bedrock Nova 2 Sonic + KB BKXE19AH89 with `LATENCY_MS=0`). Phase 2 is COMPLETE — all 5 ROADMAP success criteria demonstrated. Next executor target: Phase 3 (AgentCore Deploy + Web Widget + Public Demo URL). Phase 3 is currently planned at granularity coarse with 0/TBD plans — needs `/gsd-research-phase 3` followed by `/gsd-plan-phase 3` before any executor runs.
-Resume file: (Phase 3 not yet planned)
+Stopped at: Phase 3 context gathered. `/gsd:discuss-phase 3` produced 03-CONTEXT.md (D-24..D-30) and 03-DISCUSSION-LOG.md, commit 5c0f31b. Hybrid TF + CDK Python IaC split locked. 3-step deploy lifecycle locked. S3+CloudFront widget hosting locked. $5/day banner cap + 2-concurrent throttling locked. D-22 (Phase 2 deferral) closes here when policy attachment lands in Phase 3 IAM module. Next: `/gsd-ui-phase 3` for UI-SPEC.md, then `/gsd-plan-phase 3` (researcher must resolve research/SUMMARY.md open questions #1, #3, #4, #6 around AgentCore Terraform support, deploy steps, concurrency knob, KB tool helper).
+Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-CONTEXT.md
