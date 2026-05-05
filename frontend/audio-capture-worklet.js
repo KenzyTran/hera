@@ -17,6 +17,12 @@ class CaptureProcessor extends AudioWorkletProcessor {
     // 8-24 kHz folds back into voice band and degrades Sonic ASR.
     this._lpfState = 0;
     this._lpfCoeff = Math.exp(-2 * Math.PI * 7000 / sampleRate);
+    // Running fractional read cursor carried across process() quanta. At
+    // non-integer ratios (e.g. 44.1 kHz native -> 16 kHz, ratio ~= 2.756)
+    // restarting at 0 each quantum drops the leftover fraction and slowly
+    // drifts. Carrying _cursor preserves exact spacing between output
+    // samples regardless of native rate.
+    this._cursor = 0;
   }
 
   process(inputs) {
@@ -35,14 +41,19 @@ class CaptureProcessor extends AudioWorkletProcessor {
     }
     this._lpfState = y;
 
-    // Pass 2: decimate to target rate. Math.round is symmetric for
-    // negative samples (Math.floor biased one step low).
-    const outLen = Math.floor(channel.length / ratio);
-    const out = new Int16Array(outLen);
-    for (let i = 0; i < outLen; i++) {
-      const s = filtered[Math.floor(i * ratio)];
-      out[i] = Math.max(-32768, Math.min(32767, Math.round(s * 32767)));
+    // Pass 2: decimate to target rate using a running cursor so the
+    // fractional remainder carries into the next quantum (no drift on
+    // non-integer ratios). Math.round is symmetric for negative samples
+    // (Math.floor biased one step low).
+    const outSamples = [];
+    while (this._cursor < channel.length) {
+      const s = filtered[Math.floor(this._cursor)];
+      outSamples.push(Math.max(-32768, Math.min(32767, Math.round(s * 32767))));
+      this._cursor += ratio;
     }
+    this._cursor -= channel.length; // carry fractional leftover into next quantum
+
+    const out = new Int16Array(outSamples);
     this.port.postMessage(out.buffer, [out.buffer]);
     return true;
   }
