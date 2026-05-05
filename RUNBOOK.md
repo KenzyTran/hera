@@ -216,8 +216,61 @@ OK (cleanup): KB no longer accessible
 
 After this, no Bedrock KB, no S3 source bucket, no S3 Vectors bucket / index, and no IAM role exist for this stack. Cost Explorer should show $0 for the affected services within 24 hours. Phase 4 builds a more comprehensive cleanup-verify script that checks across all phases.
 
+## Local agent setup (Phase 2) — uv path
+
+The Phase 2 Pipecat voice agent runs on a developer laptop and proves the full voice loop end-to-end against the live Phase 1 KB. This section covers the **uv-native run path** (fast iteration, no Docker rebuild loop). The Docker Compose run path and the first-voice-test smoke probe are documented in subsequent sections (`First voice test`, `Cleanup local Docker resources`) added by Plan 02-02.
+
+Pre-flight: confirm uv 0.10+ is installed, and that AWS credentials with `bedrock:InvokeModelWithBidirectionalStream` (for Nova 2 Sonic) and `bedrock:Retrieve` (for the KB) are available in your shell.
+
+```bash
+uv --version       # expect 0.10 or newer
+
+# AWS Nova 2 Sonic model access (per-region, separate from IAM)
+aws bedrock list-foundation-models --region ap-northeast-1 \
+  --query 'modelSummaries[?modelId==`amazon.nova-2-sonic-v1:0`].modelLifecycle.status' \
+  --output text
+# Expect: ACTIVE
+# Empty -> Console -> Bedrock -> Model access -> Modify -> Amazon Nova 2 Sonic -> Save changes (~1 min)
+```
+
+Set the required env vars (or copy `agent/.env.example` to `agent/.env` and fill in):
+
+```bash
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+# AWS_SESSION_TOKEN only needed if your creds are short-lived (SSO / AssumeRole)
+export HERA_KB_ID=$(terraform -chdir=infra/envs/prod output -raw kb_id)
+export AWS_REGION=ap-northeast-1     # default if unset
+export HERA_KB_SCORE_THRESHOLD=0.4   # default if unset
+export HERA_VOICE=matthew            # default if unset; tiffany / amy also valid
+```
+
+Run the agent natively via uv:
+
+```bash
+bin/run-agent-local.sh
+# starts uvicorn on http://localhost:8080
+# /ping -> {"status":"Healthy", ...}
+# /ws   -> Pipecat WebSocket endpoint (browser test page connects here)
+```
+
+Stop with Ctrl-C. The agent has no persistent state — D-21 mandates in-memory only — so there is nothing to back up between runs.
+
+Troubleshooting:
+
+- If the agent fails to start with `KeyError: 'AWS_SECRET_ACCESS_KEY'`: the `AWSNovaSonicLLMService` requires explicit static credentials (it does NOT follow the boto3 default chain). The env vars MUST be set in the shell or `agent/.env`. See `agent/.env.example`.
+- If the agent answers but says "no relevant product info": confirm the live KB is queryable with `bin/verify-kb.sh`, confirm `HERA_KB_ID` matches `terraform -chdir=infra/envs/prod output -raw kb_id`, and try a lower threshold like `HERA_KB_SCORE_THRESHOLD=0.2`.
+- If long conversations (>8 minutes) cut out: Pipecat's `SessionContinuationParams` (default `transition_threshold_seconds=360`) rotates the Sonic bidi stream ~120s before the cap. The transition should be inaudible. If you observe a real audio dropout, root-cause via agent logs (look for the rotation log line); do NOT add try/except in `pipeline.py`.
+
+For the docker-compose run path and the browser-driven voice loop, see the `First voice test` and `Cleanup local Docker resources` sections below (added by Plan 02-02).
+
+## Resolved deferrals
+
+The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
+
+- Consumer `bedrock:Retrieve` policy for Pipecat (Phase 1 D-10 -> Phase 2 D-22). Delivered in Plan 02-03 as the managed policy `hera-kb-retrieve-prod` (output `kb_retrieve_policy_arn`). NOT attached to any role in Phase 2 — Phase 3 attaches to the AgentCore execution role with `aws_iam_role_policy_attachment`.
+
 ## Next steps (deferred)
 
 - Remote Terraform backend (S3 versioned + DynamoDB lock) — out of v1 scope per D-11. For v1 the workshop default is local state. When the project grows past one operator, bootstrap a separate state-backend stack first, then migrate this stack with `terraform init -migrate-state`.
-- Consumer `bedrock:Retrieve` role for Pipecat — Phase 2 (D-10). Phase 1 only outputs `kb_arn` so Phase 2 can scope its consumer role policy.
 - Bedrock Guardrails (PII redaction) — out of v1 per PROJECT.md.
