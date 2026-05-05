@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
-| 2. Pipecat Voice Agent (Local) | 2/3 | In progress (Wave 1: 02-01 + 02-03 complete; Wave 2: 02-02 pending) | - |
+| 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |

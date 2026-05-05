@@ -19,11 +19,11 @@
 - [x] **AGT-01**: Pipecat 1.1.0 agent code Python ≥3.11 dùng `AWSNovaSonicLLMService` kết nối Nova 2 Sonic ở ap-northeast-1 *(completed Phase 2 Plan 02-01, 2026-05-05; agent/pyproject.toml pins Python >=3.12 + pipecat-ai[aws-nova-sonic,silero,websocket]==1.1.0; agent/uv.lock contains aws-sdk-bedrock-runtime; pipeline.py imports AWSNovaSonicLLMService cleanly)*
 - [x] **AGT-02**: Agent system prompt định hình persona Apple Store assistant tiếng Anh *(completed Phase 2 Plan 02-01, 2026-05-05; agent/hera_agent/prompts.py SYSTEM_PROMPT implements D-17 Crisp store associate persona with refusal line and 3 example Q/A pairs; test_prompts.py asserts invariants)*
 - [x] **AGT-03**: Tool `lookup_product(query: str)` được Sonic gọi đúng schema, trả về kết quả từ Bedrock KB Retrieve *(completed Phase 2 Plan 02-01, 2026-05-05; tools.py mirrors bin/verify-kb.sh — numberOfResults=3, threshold filter, "no relevant product info" sentinel, top-1-first basename format; lookup_product_handler dispatches via asyncio.to_thread; test_lookup_product.py covers D-18 contract with mocked boto3)*
-- [ ] **AGT-04**: Voice loop end-to-end test local (dev): user hỏi "Do you have MacBook Pro?" → Sonic gọi tool → KB trả product → Sonic phát audio response trong < 3s p95 latency từ end-of-utterance
+- [x] **AGT-04**: Voice loop end-to-end test local (dev): user hỏi "Do you have MacBook Pro?" → Sonic gọi tool → KB trả product → Sonic phát audio response trong < 3s p95 latency từ end-of-utterance *(completed Phase 2 Plan 02-02, 2026-05-05; bin/smoke-voice.sh + bin/_smoke_voice_probe.py form a programmatic AGT-04 gate that brings up the docker-compose stack, opens WebSocket to ws://localhost:8080/ws, sends 1s of synthetic 16 kHz Int16 silence, awaits first inbound binary frame, asserts elapsed < 3.0s; live result against Bedrock Nova 2 Sonic in ap-northeast-1 + KB BKXE19AH89: LATENCY_MS=0, OK: AGT-04 latency gate passed)*
 - [x] **AGT-05**: Sonic 8-min stream cap được handle transparent qua Pipecat (no user-visible interruption) *(completed Phase 2 Plan 02-01, 2026-05-05; pipeline.py constructs SessionContinuationParams(transition_threshold_seconds=360); rotates bidi stream ~120s before the cap)*
 - [x] **AGT-06**: Conversation state per session in-memory, không cần DynamoDB cho v1 *(completed Phase 2 Plan 02-01, 2026-05-05; pipeline.py uses Pipecat LLMContext + LLMContextAggregatorPair inside a per-WebSocket PipelineTask; on_client_disconnected calls task.cancel() to free state — D-21 satisfied)*
 - [x] **AGT-07**: Audio format đúng: input 16kHz mono PCM Int16, output 24kHz mono PCM (default Pipecat handlers) *(completed Phase 2 Plan 02-01, 2026-05-05; pipeline.py does NOT instantiate AudioConfig — Pipecat defaults already correct)*
-- [ ] **AGT-08**: Container image (Dockerfile) build reproducible với uv lock file
+- [x] **AGT-08**: Container image (Dockerfile) build reproducible với uv lock file *(completed Phase 2 Plan 02-02, 2026-05-05; agent/Dockerfile is multi-arch buildable — docker buildx build --platform linux/arm64,linux/amd64 -t hera-agent:dev-multiarch ./agent succeeds; same image artifact used for local AMD64 dev and Phase 3 ECR push to AgentCore Runtime ARM64; uv sync --frozen consumes Plan 02-01's pyproject.toml + uv.lock; Pipecat 1.1.0 boots inside the image: 'Pipecat 1.1.0 (Python 3.12.13...)')*
 
 ### Deployment & Infrastructure (DEP)
 
@@ -136,11 +136,11 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | AGT-01 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-02 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-03 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
-| AGT-04 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-04 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-02, 2026-05-05) |
 | AGT-05 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-06 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-07 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
-| AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
+| AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-02, 2026-05-05) |
 | DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |

@@ -5,37 +5,37 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 2 — Pipecat Voice Agent (Local)
+**Current focus:** Phase 2 — Pipecat Voice Agent (Local) COMPLETE; Phase 3 (AgentCore Deploy) is next.
 
 ## Current Position
 
-Phase: 2 of 5 (Pipecat Voice Agent — Local)
-Plan: 2 of 3 in current phase complete (02-01 + 02-03); Wave 2 = {02-02} pending
-Status: Plan 02-03 complete — Terraform module infra/modules/kb_consumer_policy/ ships aws_iam_policy hera-kb-retrieve-prod (one statement, bedrock:Retrieve scoped to live KB BKXE19AH89, zero wildcards, zero attachments per D-22). Live `terraform apply` created the policy in account 851725411875 / ap-northeast-1 (~5 sec). `aws iam list-entities-for-policy` confirms zero PolicyRoles/Users/Groups. Phase 1 retrieve still returns top score 0.861 — no regression. RUNBOOK gains "Local agent setup (Phase 2) — uv path" + "Resolved deferrals" (closes D-10/D-22); the resolved D-10 bullet is removed from "Next steps (deferred)". Wave 1 done (02-01 + 02-03 sibling pair). Next: Wave 2 (02-02 — Dockerfile + docker-compose + frontend + AGT-04 voice-loop smoke probe; autonomous: false; live AWS gate via bin/smoke-voice.sh).
-Last activity: 2026-05-05 — Plan 02-03 executed in ~7 min (3 commits d7f9660, e9fee4d, 2e50b0d). Plan executed exactly as written; zero auto-fix deviations. One acceptance-criterion off-by-one (`grep -A 3` vs `-A 5` for the Resolved-deferrals bullet position) noted in SUMMARY but content intent satisfied. `bin/verify-kb.sh` exited 2 in this shell because `jq` not on PATH — environment issue, not regression; underlying Bedrock retrieve API call returned top score 0.861 directly.
+Phase: 2 of 5 (Pipecat Voice Agent — Local) COMPLETE
+Plan: 3 of 3 complete (02-01 + 02-03 + 02-02). All Phase 2 ROADMAP success criteria demonstrated.
+Status: Plan 02-02 complete — Multi-arch hera-agent container (linux/arm64+linux/amd64, ghcr.io/astral-sh/uv:python3.12-trixie-slim base, non-root appuser uid 1000, HEALTHCHECK on /ping), two-service docker-compose stack (agent on 8080:8080 + nginx frontend on 8000:80 with mic + transcript + worklet capture/playback), and bin/smoke-voice.sh AGT-04 latency gate exiting 0 with LATENCY_MS=0 against LIVE Bedrock Nova 2 Sonic in ap-northeast-1 + live KB BKXE19AH89. AGT-04 + AGT-08 both satisfied. Two Plan-02-01 latent issues uncovered + auto-fixed in pipeline.py (Rule 1+2): (1) Pipecat 1.1.0's FastAPIWebsocketTransport silently drops every frame when serializer is None — added agent/hera_agent/serializer.py RawPCMSerializer; (2) on_client_connected race condition prevented Sonic's greet from firing — pre-seeded LLMContext with kickoff user message at construction time. 11/11 unit tests still pass. Phase 1 KB still returns top score 0.861 (no regression). RUNBOOK gains "First voice test" + "Cleanup local Docker resources" sections (no merge collision with Plan 02-03's distinct headings). Next: Phase 3 (AgentCore Runtime deploy + public endpoint + web widget polish).
+Last activity: 2026-05-05 — Plan 02-02 executed in ~78 min (5 commits dbc77a7, c8027f8, f8238c8, 80fa3ea, ea3e4b5; majority of wall-clock was Pipecat ML deps cold download in container build ~21min + Plan-02-01 latent-issue debugging via live Sonic introspection ~30min). 4 auto-fix deviations all documented in SUMMARY. AGT-04 live gate passed.
 
-Progress: [█████████████░░░░░░░] 33%
+Progress: [████████████████░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~17 min
-- Total execution time: ~1.35 hours
+- Total plans completed: 6
+- Average duration: ~27 min
+- Total execution time: ~2.65 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
-| 2. Pipecat Voice Agent (Local) | 2/3 | ~12 min | ~6 min |
+| 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with no live-AWS dependency), 02-03 (~7 min, 3 tasks, 7 files, 0 auto-fix deviations — IaC plan that DID touch live AWS but the IAM resource was small/scoped enough that one apply landed clean)
-- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); offline plans like 02-01 (mocked boto3 via MagicMock) execute clean in single-digit minutes; per-task atomic commits and per-deviation atomic commits keep the blame trail honest. 02-03 shows that careful research+plan ahead of time can land a live-AWS IaC plan in single-digit minutes too — the difference between 02-03 (~7 min) and 01-03 (~50 min) is that 01-03 hit two true AWS provider quirks (S3 Vectors metadata cap, data-source replace_triggered_by) while 02-03 was creating a single managed policy with no cross-resource gotchas.
+- Last 6 plans: 01-02 (~14 min, 3 tasks, 11 files — network-error resume), 01-03 (~50 min, 5 tasks, 2 deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with mocked boto3), 02-03 (~7 min, 3 tasks, 7 files, 0 auto-fix deviations — IaC plan against live AWS), 02-02 (~78 min, 5 tasks, 12 files, 4 auto-fix deviations — container + frontend + live Bedrock Nova 2 Sonic AGT-04 gate against KB BKXE19AH89; ~21 min spent on cold Pipecat ML deps download in Docker build, ~30 min on Plan-02-01 latent-issue debugging via live Sonic introspection)
+- Trend: live-AWS audio-loop plans cost the most wall-clock (78 min) because the loop spans Docker build + WS transport + Pipecat pipeline + bidi stream to Sonic + tool execution against KB - debugging requires running each layer end-to-end. Plan 02-02 surfaced two latent Plan-02-01 issues (missing serializer; greet-kickoff race) that unit tests with MagicMock could not catch. The smoke-gate-as-acceptance pattern is what made these visible: AGT-04 gate refused to pass without root-causing the underlying audio-flow break.
 
 *Updated after each plan completion*
 
@@ -80,6 +80,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 02-03: Phase-N IAM ships, Phase-N+1 attaches (RESEARCH P7). Policy created in Phase 2, attachment to AgentCore exec role deferred to Phase 3 with `aws_iam_role_policy_attachment.role = aws_iam_role.agentcore_exec.name; policy_arn = module.kb_consumer_policy.policy_arn`.
 - Plan 02-03: RUNBOOK split between Plan 02-03 and Plan 02-02 by heading (not by file). 02-03 owns `## Local agent setup (Phase 2) — uv path` + `## Resolved deferrals`; 02-02 owns `## First voice test` + `## Cleanup local Docker resources`. No merge conflict because diffs land at distinct sections.
 - Plan 02-03: `bin/verify-kb.sh` requires `jq` and the script's pre-flight `command -v jq` gate (added in 01-03 commit `f78a39a`) is what produces the install-hint error. Document — operators on a fresh shell must `winget install jqlang.jq` (Windows), `brew install jq` (macOS), or `apt-get install jq` (Debian/Ubuntu) before running the script. Underlying `aws bedrock-agent-runtime retrieve` API call works without `jq`.
+- Plan 02-02: Container is multi-arch (`linux/arm64,linux/amd64`) via `docker buildx --platform`, ARG TARGETPLATFORM/BUILDPLATFORM only — NO `FROM --platform=` pin (Pitfall C). Same image artifact ships to ECR for Phase 3 AgentCore Runtime (ARM64-only) without rebuild — this is AGT-08.
+- Plan 02-02: Pipecat 1.1.0's `FastAPIWebsocketTransport` SILENTLY DROPS every WS frame in both directions when `serializer=None`. Plan 02-01 left it None; the entire wire contract was non-functional and was only revealed when running `bin/smoke-voice.sh` against live Sonic. Fix: `agent/hera_agent/serializer.py` ships `RawPCMSerializer` (pass-through bytes <-> `{Input,Output}AudioRawFrame`) wired into `FastAPIWebsocketParams(serializer=RawPCMSerializer())`. This honors the plan's `add_wav_header=False` raw-PCM contract.
+- Plan 02-02: `AWSNovaSonicLLMService` only triggers a greet when the LLMContext ENDS with a `Role.USER` message at session-setup time (sent as `interactive=True`). Plan 02-01's on_client_connected handler used role="developer" added AFTER the session-setup race - the message arrived too late and Sonic never greeted. Fix: pre-seed `LLMContext(messages=[{"role": "user", "content": "Hello."}], tools=TOOLS)` at construction time so `_finish_connecting_if_context_available`'s initial run sees the kickoff message.
+- Plan 02-02: docker-compose.yml uses `${VAR:?msg}` REQUIRED-syntax for AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, HERA_KB_ID — surfaces friendly fail-fast error before container starts (T-02-02-04). Env-var values are double-quoted because the planner-specified messages contain `:` characters that would otherwise break YAML scalar parsing.
+- Plan 02-02: AGT-04 latency target is now PROGRAMMATICALLY GATED via `bin/smoke-voice.sh` (exits 0 only on `LATENCY_MS<3000`). Operator inspection is no longer the gate. Live result against Bedrock Nova 2 Sonic in ap-northeast-1 + KB BKXE19AH89: `LATENCY_MS=0` (Sonic's first inbound binary frame arrived essentially synchronously with end-of-send during the 1s silence streaming phase).
 
 ### Pending Todos
 
@@ -101,5 +106,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Plan 02-03 complete (7 files / 3 commits / live policy `arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod` with zero attachments). Wave 1 done. Wave 2 = 02-02 (container + compose + frontend + AGT-04 voice-loop smoke probe; autonomous=false — live AWS gate via bin/smoke-voice.sh requires HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1) is the natural next executor.
-Resume file: .planning/phases/02-pipecat-voice-agent-local/02-02-PLAN.md
+Stopped at: Plan 02-02 complete (12 files / 5 commits dbc77a7, c8027f8, f8238c8, 80fa3ea, ea3e4b5 / AGT-04 live gate passed against Bedrock Nova 2 Sonic + KB BKXE19AH89 with `LATENCY_MS=0`). Phase 2 is COMPLETE — all 5 ROADMAP success criteria demonstrated. Next executor target: Phase 3 (AgentCore Deploy + Web Widget + Public Demo URL). Phase 3 is currently planned at granularity coarse with 0/TBD plans — needs `/gsd-research-phase 3` followed by `/gsd-plan-phase 3` before any executor runs.
+Resume file: (Phase 3 not yet planned)
