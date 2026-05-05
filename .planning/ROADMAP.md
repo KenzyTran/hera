@@ -54,7 +54,24 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Conversations longer than 8 minutes do not visibly break — Pipecat's `AWSNovaSonicLLMService` handles the Sonic stream cap with no user-visible interruption.
   4. The agent stays in its Apple Store assistant persona (English) and answers product/stock questions; per-session conversation state is held in-memory only (no DynamoDB).
   5. The container image builds reproducibly with `uv` lockfile and is ready to push to ECR for Phase 3 AgentCore deploy.
-**Plans**: TBD
+**Plans:** 3 plans
+
+**Wave 1** *(parallel: 02-01 builds Python agent core; 02-03 ships Terraform IAM consumer policy + RUNBOOK extension; no file overlap)*
+- [ ] 02-01-PLAN.md — Python agent core: uv project (Python 3.12 + Pipecat 1.1.0), hera_agent package (FastAPI app with /ping + /ws, AWSNovaSonicLLMService with explicit static creds, lookup_product tool via asyncio.to_thread, SessionContinuationParams), unit tests with mocked boto3, bin/run-agent-local.sh launcher. Covers AGT-01, AGT-02, AGT-03, AGT-05, AGT-06, AGT-07.
+- [ ] 02-03-PLAN.md — Terraform IAM consumer policy: new module infra/modules/kb_consumer_policy/ shipping aws_iam_policy hera-kb-retrieve-prod (single statement, bedrock:Retrieve scoped to KB ARN, zero wildcards, NOT attached per D-22 — Phase 3 attaches). Resolves Phase 1 D-10. RUNBOOK.md extended with Phase 2 operational sections (Local agent setup, First voice test, Cleanup local Docker resources).
+
+**Wave 2** *(02-02 depends on 02-01: needs the agent module + uv.lock to package)*
+- [ ] 02-02-PLAN.md — Container + compose + frontend: multi-arch Dockerfile (linux/arm64 + linux/amd64 via docker buildx, base ghcr.io/astral-sh/uv:python3.12-trixie-slim — research correction #1), docker-compose.yml two-service stack (agent on host 8080, frontend on host 8000) with required-syntax env vars (research correction #3), minimal frontend (index.html + app.js + audio-capture-worklet.js with 16 kHz Int16 capture and 24 kHz playback queue), bin/run-agent-docker.sh launcher. Covers AGT-04, AGT-08.
+
+**Cross-cutting constraints** (truths shared by 2+ plans — every executor must honor):
+- No emojis in any file (CLAUDE.md mandate; appears in all 3 plans).
+- uv exclusively for Python (uv add, uv sync --frozen, uv run); never pip install, never python3 X.
+- Python 3.12 mandatory (research correction #1 — Pipecat aws-nova-sonic extra has marker python_version>=3.12; CONTEXT D-20 said 3.11 — 3.12 wins).
+- AWSNovaSonicLLMService receives explicit access_key_id= / secret_access_key= kwargs from os.environ (research correction #3 — service uses StaticCredentialsResolver, NOT boto3 default chain).
+- FastAPI app exposes both /ping (HTTP) and /ws (WebSocket) on port 8080 (research correction #4 — AgentCore HTTP service contract; same shape Phase 3 deploys).
+- Region defaults to ap-northeast-1, override to us-east-1 (D-14, DEP-06).
+- Zero IAM wildcards (D-13 carried forward from Phase 1).
+- No defensive try/except around AWS / Bedrock / KB calls (AGENTS.md root-cause discipline; the only try/except is WebSocketDisconnect which is the normal close path).
 
 ### Phase 3: AgentCore Deploy + Web Widget + Public Demo URL
 **Goal**: Anyone with the public instructor URL can open a browser, click a record button, and have a working voice conversation with the Apple Store agent running on Amazon Bedrock AgentCore Runtime — no installation, no login, just a headset and a microphone.
@@ -102,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
-| 2. Pipecat Voice Agent (Local) | 0/TBD | Not started | - |
+| 2. Pipecat Voice Agent (Local) | 0/3 | Planned (3 plans, 2 waves) | - |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
