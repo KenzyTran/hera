@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Wave 1** *(linear: 01-02 depends on 01-01 .gitignore; 01-03 depends on 01-01 + 01-02 outputs)*
 - [x] 01-01-PLAN.md — Repo skeleton (catalog/*.md per D-02 schema, RUNBOOK.md stub, .gitignore Terraform additions). Covers KB-01. *(completed 2026-05-05)*
 - [x] 01-02-PLAN.md — Terraform module + root infra (envs/prod + modules/knowledge_base): S3 source, S3 Vectors, Bedrock KB, data source, KB service IAM role; ends at terraform validate. Covers KB-02, KB-03, KB-05. *(completed 2026-05-05)*
-- [ ] 01-03-PLAN.md — bin/verify-kb.sh, RUNBOOK.md sync/recovery/cleanup sections, live terraform apply + ingestion + verify (autonomous: false; requires AWS credentials). Covers KB-04, KB-06.
+- [x] 01-03-PLAN.md — bin/verify-kb.sh, RUNBOOK.md sync/recovery/cleanup sections, live terraform apply + ingestion + verify (autonomous: false; requires AWS credentials). Covers KB-04, KB-06. *(completed 2026-05-05; live KB BKXE19AH89 in ap-northeast-1, top score 0.8598 for verification query)*
 
 **Cross-cutting constraints** (truths shared by 2+ plans — every executor must honor):
 - No emojis in any file (CLAUDE.md mandate; appears in all 3 plans).
@@ -101,7 +101,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Knowledge Base Foundation | 2/3 | In progress (Plans 01-01 and 01-02 complete) | - |
+| 1. Knowledge Base Foundation | 3/3 | Plans 01-01, 01-02, 01-03 complete; pending phase verification | - |
 | 2. Pipecat Voice Agent (Local) | 0/TBD | Not started | - |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |

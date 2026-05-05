@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 1 of 5 (Knowledge Base Foundation)
-Plan: 2 of 3 in current phase
-Status: Plan 01-02 complete; ready to execute Plan 01-03 (verify + sync, requires AWS credentials)
-Last activity: 2026-05-05 — Executed Plan 01-02 (Terraform KB module + envs/prod root): 3 tasks committed atomically (442a63e, ea36745, b47ce36); KB-02/KB-03/KB-05 satisfied at the IaC level; `terraform init && terraform validate` exits 0 offline; first run interrupted by network error mid-Task-3, resumed and completed cleanly
+Plan: 3 of 3 in current phase
+Status: Plan 01-03 complete; Phase 1 ready for verifier sign-off (3/3 plans done; live KB BKXE19AH89 in ap-northeast-1 indexed and queryable)
+Last activity: 2026-05-05 — Executed Plan 01-03 (verify-and-sync, live AWS): bin/verify-kb.sh shipped (7ec0b2e, hardened f78a39a), RUNBOOK.md TODO(plan-03) markers filled (dad8e67), live terraform apply + ingestion + verify cycle in account 851725411875 / ap-northeast-1; KB-04 verified end-to-end (top score 0.8598 for "iPhone 13 Pro Max stock"); KB-06 re-index path verified; three deviation fixes (9006d48, 28bbcee, f78a39a) hardened the IaC and operator script before final green
 
-Progress: [█████░░░░░] 13%
+Progress: [██████░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: ~10 min
-- Total execution time: ~0.32 hours
+- Total plans completed: 3
+- Average duration: ~23 min
+- Total execution time: ~1.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Knowledge Base Foundation | 2/3 | ~19 min | ~10 min |
+| 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
 | 2. Pipecat Voice Agent (Local) | 0/TBD | — | — |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (~5 min, 3 tasks, 6 files), 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution)
-- Trend: per-task atomic commits with no rework; resume-from-staged-files path is proven (01-02 executor died mid-flight and the second agent picked up exactly where the first left off, no work lost)
+- Last 5 plans: 01-01 (~5 min, 3 tasks, 6 files), 01-02 (~14 min, 3 tasks, 11 files — included a network-error resume mid-execution), 01-03 (~50 min, 5 tasks, 2 plan deliverables + 3 deviation-fix iterations against live AWS)
+- Trend: live-AWS plans cost more wall-clock than offline IaC plans (3 deviation fixes were forced by AWS-side reality the offline `terraform validate` could not catch); per-task atomic commits and per-deviation atomic commits keep the blame trail honest
 
 *Updated after each plan completion*
 
@@ -59,6 +59,12 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 01-02: Provider quirks honored verbatim — `aws_s3vectors_index` uses lowercase `float32`/`cosine`; `aws_bedrockagent_knowledge_base` uses UPPERCASE `FLOAT32`; `aws_s3vectors_vector_bucket` uses `vector_bucket_name` (not `name`).
 - Plan 01-02: `aws_bedrockagent_knowledge_base.depends_on = [aws_iam_role_policy.kb_inline]` is mandatory (KB validates role permissions at create time — RESEARCH.md Pattern 5).
 - Plan 01-02: No `aws_s3_object` and no `null_resource`/`local-exec` — Plan 03 RUNBOOK is the manual-upload + manual-ingestion teaching surface (D-05/D-07).
+- Plan 01-03: S3 Vectors `aws_s3vectors_index` declares `metadata_configuration { non_filterable_metadata_keys = ["AMAZON_BEDROCK_TEXT", "AMAZON_BEDROCK_METADATA"] }`. Forced by live ingestion failure: S3 Vectors caps filterable metadata at 2 KB per record; Bedrock-written chunk text routinely exceeds that for FIXED_SIZE 300-token chunks. Both keys are retrieve-only — never filtered on — so non-filterable is the correct shape, not a workaround. Commit `9006d48`.
+- Plan 01-03: `aws_bedrockagent_data_source.catalog` carries `lifecycle.replace_triggered_by = [aws_bedrockagent_knowledge_base.this]`. The AWS provider does NOT mark the data source for replacement when its parent KB is replaced; without this lifecycle block, terraform attempts `UpdateDataSource` against the new KB id with the stale data source id and corrupts state. Forces lockstep replacement. Commit `28bbcee`.
+- Plan 01-03: `bin/verify-kb.sh` enforces `command -v aws` and `command -v jq` at startup, exits 2 with platform install hints on miss; the original `2>/dev/null || echo 0` jq fallback was a textbook diagnostic-killing pattern (masked missing-jq install as 5-minute propagation timeout). Aligns with AGENTS.md "don't program defensively, identify root cause first." Commit `f78a39a`.
+- Plan 01-03: KB-04 verified end-to-end against live AWS — `aws bedrock-agent-runtime retrieve` for "iPhone 13 Pro Max stock" returns top score `0.8598317801952362` against KB `BKXE19AH89` in `ap-northeast-1`. Closes Phase 1 success criterion #2.
+- Plan 01-03: KB-06 re-index path verified for-real — single-file edit + `aws s3 cp` + `aws bedrock-agent start-ingestion-job` (job `KKLS6LQP9A`) re-indexes incrementally; new content queryable at attempt 1. Catalog reverted; final sync `AWI4TJPQN9` re-aligned KB to repo state. Closes Phase 1 success criterion #5.
+- Plan 01-03: Live KB id is `BKXE19AH89` (NOT `DWQQ6HXRQW` — the original first-apply id was replaced when the metadata_configuration fix landed). Phase 2 consumer role must scope to `kb_arn = arn:aws:bedrock:ap-northeast-1:851725411875:knowledge-base/BKXE19AH89`.
 
 ### Pending Todos
 
@@ -79,5 +85,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Completed Plan 01-02 (Terraform KB module + envs/prod root); next is Plan 01-03 (verify-and-sync — requires AWS credentials, not autonomous)
-Resume file: .planning/phases/01-knowledge-base-foundation/01-03-verify-and-sync-PLAN.md
+Stopped at: Completed Plan 01-03 (verify-and-sync, live AWS); all 3 Phase-1 plans done; next is Phase 1 verification (`/gsd-verify-phase 1`) which inspects the SUMMARYs against ROADMAP success criteria and closes the phase checkbox
+Resume file: .planning/phases/01-knowledge-base-foundation/01-03-verify-and-sync-SUMMARY.md

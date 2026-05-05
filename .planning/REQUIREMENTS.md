@@ -8,11 +8,11 @@
 ### Knowledge Base (KB)
 
 - [x] **KB-01**: Apple product catalog viết bằng English markdown — gồm 3 SKU (Apple Watch Series 11, iPhone 13 Pro Max, MacBook Pro M4) với spec, giá, stock status *(completed Phase 1 Plan 01-01, 2026-05-05)*
-- [x] **KB-02**: S3 Vectors bucket + index được tạo bằng Terraform với dimension và distance metric đúng cho Titan Text Embeddings v2 (1024-dim, float32, cosine) *(IaC complete Plan 01-02, 2026-05-05; live apply in Plan 01-03)*
-- [x] **KB-03**: Bedrock Knowledge Base được tạo với S3 Vectors backend (`s3_vectors_storage_configuration`) qua Terraform `~> 6.27` *(IaC complete Plan 01-02, 2026-05-05; live apply in Plan 01-03)*
-- [ ] **KB-04**: Data source ingestion job chạy thành công, KB query API trả về document đúng cho câu hỏi "iPhone 13 Pro Max stock"
-- [x] **KB-05**: IAM role/policy least-privilege cho `bedrock:Retrieve` được quản lý qua Terraform *(IaC complete Plan 01-02, 2026-05-05 — KB service role with zero wildcards and confused-deputy-mitigated trust policy; the Phase-2 consumer `bedrock:Retrieve` role is deferred per D-10)*
-- [ ] **KB-06**: Re-index workflow documented (sửa product → re-sync KB) — manual ingestion job trigger qua AWS CLI
+- [x] **KB-02**: S3 Vectors bucket + index được tạo bằng Terraform với dimension và distance metric đúng cho Titan Text Embeddings v2 (1024-dim, float32, cosine) *(IaC complete Plan 01-02, 2026-05-05; live-applied Plan 01-03 — index `hera-kb-index` in `hera-kb-vectors-prod` bucket; metadata_configuration deviation `9006d48` marks AMAZON_BEDROCK_TEXT/METADATA non-filterable to satisfy the 2 KB cap)*
+- [x] **KB-03**: Bedrock Knowledge Base được tạo với S3 Vectors backend (`s3_vectors_storage_configuration`) qua Terraform `~> 6.27` *(IaC complete Plan 01-02, 2026-05-05; live-applied Plan 01-03 — KB id `BKXE19AH89` in ap-northeast-1, account 851725411875)*
+- [x] **KB-04**: Data source ingestion job chạy thành công, KB query API trả về document đúng cho câu hỏi "iPhone 13 Pro Max stock" *(live-verified Plan 01-03, 2026-05-05 — ingestion job `231ZT93KYF` indexed 4/4 documents; `bin/verify-kb.sh` PASSed at attempt 1 with top score `0.8598317801952362` >> threshold 0.4)*
+- [x] **KB-05**: IAM role/policy least-privilege cho `bedrock:Retrieve` được quản lý qua Terraform *(IaC complete Plan 01-02, 2026-05-05 — KB service role with zero wildcards and confused-deputy-mitigated trust policy; live-applied Plan 01-03; the Phase-2 consumer `bedrock:Retrieve` role is deferred per D-10 and will be scoped to `arn:aws:bedrock:ap-northeast-1:851725411875:knowledge-base/BKXE19AH89`)*
+- [x] **KB-06**: Re-index workflow documented (sửa product → re-sync KB) — manual ingestion job trigger qua AWS CLI *(live-verified Plan 01-03, 2026-05-05 — RUNBOOK "Re-index after editing a product file" section + `aws s3 cp` + `aws bedrock-agent start-ingestion-job` job `KKLS6LQP9A` re-indexed an edited catalog file with 1 modified / 0 failed; verify-kb.sh PASSed at attempt 1)*
 
 ### Voice Agent (AGT)
 
@@ -128,11 +128,11 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | KB-01 | Phase 1 — Knowledge Base Foundation | Done (Plan 01-01) |
-| KB-02 | Phase 1 — Knowledge Base Foundation | IaC done (Plan 01-02); live apply pending (Plan 01-03) |
-| KB-03 | Phase 1 — Knowledge Base Foundation | IaC done (Plan 01-02); live apply pending (Plan 01-03) |
-| KB-04 | Phase 1 — Knowledge Base Foundation | Pending |
-| KB-05 | Phase 1 — Knowledge Base Foundation | IaC done (Plan 01-02); live apply pending (Plan 01-03) |
-| KB-06 | Phase 1 — Knowledge Base Foundation | Pending |
+| KB-02 | Phase 1 — Knowledge Base Foundation | Done (IaC Plan 01-02 + live-applied Plan 01-03; metadata_configuration fix `9006d48`) |
+| KB-03 | Phase 1 — Knowledge Base Foundation | Done (IaC Plan 01-02 + live-applied Plan 01-03; live KB `BKXE19AH89` in ap-northeast-1) |
+| KB-04 | Phase 1 — Knowledge Base Foundation | Done (Plan 01-03 live-verified; verify-kb.sh PASS, top score 0.8598) |
+| KB-05 | Phase 1 — Knowledge Base Foundation | Done (IaC Plan 01-02 + live-applied Plan 01-03; Phase-2 consumer role deferred per D-10) |
+| KB-06 | Phase 1 — Knowledge Base Foundation | Done (Plan 01-03 live-verified; ingestion job `KKLS6LQP9A` re-indexed edit, verify-kb.sh PASS) |
 | AGT-01 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
 | AGT-02 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
 | AGT-03 | Phase 2 — Pipecat Voice Agent (Local) | Pending |
@@ -189,4 +189,4 @@ Deferred. Tracked nhưng không trong roadmap v1.
 
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-05-04 — traceability mapped to 5-phase roadmap (100% coverage)*
+*Last updated: 2026-05-05 — Phase 1 complete (KB-01..06 all Done); KB live in account 851725411875 / ap-northeast-1, KB id `BKXE19AH89`*
