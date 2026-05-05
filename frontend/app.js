@@ -70,6 +70,15 @@ async function connect() {
     setStatus("disconnected");
     appendTranscript("[ws] closed code=" + ev.code + " reason=" + (ev.reason || "(none)"));
     stopCapture();
+    // Tear down the playback AudioContext so resources do not leak across
+    // reconnects. nextStart is module-level scheduling state for the
+    // current context; reset it so the next connect() starts cleanly.
+    if (playbackCtx) {
+      const ctx = playbackCtx;
+      playbackCtx = null;
+      nextStart = 0;
+      ctx.close().catch((e) => console.warn("playbackCtx close failed", e));
+    }
   };
 
   ws.onerror = (ev) => {
