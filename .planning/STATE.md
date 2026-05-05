@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 2 of 5 (Pipecat Voice Agent — Local)
-Plan: 0 of TBD in current phase
-Status: Phase 2 context gathered (D-17..D-23 locked: Crisp persona, top-3 + score >= 0.4 KB shape, WSS end-to-end, docker compose 2-service local UX, managed IAM policy for consumer role NOT attached in P2, latency budget split). Ready for `/gsd-plan-phase 2`.
-Last activity: 2026-05-05 — Discuss-phase for Phase 2 captured 4 of 4 gray areas; CONTEXT.md and DISCUSSION-LOG.md committed (e1578e1). Phase 1 closed earlier today.
+Plan: 0 of 3 in current phase
+Status: Phase 2 planned (3 plans, 2 waves; checker passed iteration 2 with 0 blockers). 02-RESEARCH.md prescribed 7 named patterns + 4 critical corrections (Python 3.12 not 3.11, ARM64 multi-arch buildx, AWSNovaSonicLLMService StaticCredentialsResolver kwargs, FastAPI /ping + /ws on port 8080 per AgentCore HTTP contract). 02-PATTERNS.md mapped 23 files (15 greenfield + 8 in-repo analogs from Phase 1 IaC + verify-kb.sh). All 8 AGT requirements covered (02-01: AGT-01/02/03/05/06/07; 02-02: AGT-04/08; 02-03: closes Phase 1 D-10 by shipping the IAM consumer policy). Ready for `/gsd-execute-phase 2`.
+Last activity: 2026-05-05 — Plan-phase complete: research + pattern map + plan + checker (2 iterations) + revision; AGT-04 latency gate scripted via `bin/smoke-voice.sh` + `bin/_smoke_voice_probe.py` (Plan 02-02 Task 4, autonomous: false, blocks on LATENCY_MS<3000).
 
 Progress: [██████████░░░░░░░░░░] 20%
 
@@ -28,7 +28,7 @@ Progress: [██████████░░░░░░░░░░] 20%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
-| 2. Pipecat Voice Agent (Local) | 0/TBD | — | — |
+| 2. Pipecat Voice Agent (Local) | 0/3 | — | — |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
@@ -85,5 +85,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-05
-Stopped at: Phase 2 context gathered (4/4 gray areas discussed; D-17..D-23 locked). Live KB BKXE19AH89 in ap-northeast-1 still up. Next is `/gsd-plan-phase 2` (research + plan).
-Resume file: .planning/phases/02-pipecat-voice-agent-local/02-CONTEXT.md
+Stopped at: Phase 2 planned. 3 plans (02-01 Python agent core, 02-02 container+compose+frontend+AGT-04 scripted gate, 02-03 Terraform IAM consumer policy + RUNBOOK). Wave 1 = {02-01, 02-03} parallel, Wave 2 = {02-02}. Plan 02-02 is autonomous=false (live AWS gate via bin/smoke-voice.sh — must be run with HERA_KB_ID=BKXE19AH89 and Bedrock Nova 2 Sonic access in ap-northeast-1). Next is `/gsd-execute-phase 2`.
+Resume file: .planning/phases/02-pipecat-voice-agent-local/02-01-PLAN.md (start with Wave 1)
