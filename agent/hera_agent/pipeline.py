@@ -34,6 +34,7 @@ from pipecat.transports.websocket.fastapi import (
 
 from hera_agent.config import AWS_REGION, HERA_VOICE
 from hera_agent.prompts import SYSTEM_PROMPT
+from hera_agent.serializer import RawPCMSerializer
 from hera_agent.tools import TOOLS, lookup_product_handler
 
 
@@ -70,6 +71,12 @@ async def run_pipeline(websocket: WebSocket) -> None:
             audio_in_enabled=True,
             audio_out_enabled=True,
             add_wav_header=False,
+            # Pipecat 1.1.0's FastAPIWebsocketTransport silently drops every
+            # frame in both directions when serializer is None. Plan 02-02's
+            # wire contract is raw 16 kHz Int16 LE PCM in / raw 24 kHz Int16
+            # LE PCM out (Pattern 6 + Pattern 7), so we wire a pass-through
+            # serializer that maps WS bytes <-> {Input,Output}AudioRawFrame.
+            serializer=RawPCMSerializer(),
         ),
     )
 
@@ -83,7 +90,17 @@ async def run_pipeline(websocket: WebSocket) -> None:
         cancel_on_interruption=False,
     )
 
-    context = LLMContext(tools=TOOLS)
+    # Seed the context with a user-role kickoff message BEFORE the pipeline
+    # starts. AWSNovaSonicLLMService._finish_connecting_if_context_available
+    # only triggers an assistant response when the context already ends in a
+    # user-role message at session-setup time (sent as interactive=True);
+    # adding it from on_client_connected races with Sonic's connection setup
+    # and the greeting never fires. Plan 02-02 AGT-04 latency probe revealed
+    # this race.
+    context = LLMContext(
+        messages=[{"role": "user", "content": "Hello."}],
+        tools=TOOLS,
+    )
     user_agg, asst_agg = LLMContextAggregatorPair(
         context,
         user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
@@ -107,7 +124,8 @@ async def run_pipeline(websocket: WebSocket) -> None:
 
     @transport.event_handler("on_client_connected")
     async def _on_connected(_t, _c) -> None:
-        context.add_message({"role": "developer", "content": "Greet the user briefly."})
+        # Context already has a kickoff user message (seeded at construction).
+        # LLMRunFrame triggers Sonic to consume the queued context and respond.
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
