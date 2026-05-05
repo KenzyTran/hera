@@ -1,0 +1,44 @@
+# Hera Phase 2 local stack - two services on different host ports.
+# agent     -> http://localhost:8080  (Pipecat WS at /ws, health at /ping)
+# frontend  -> http://localhost:8000  (static page with mic + transcript)
+#
+# AWS credentials are passed through from the developer's shell. The Pipecat
+# AWSNovaSonicLLMService uses StaticCredentialsResolver and reads these env
+# vars EXPLICITLY - mounting ~/.aws alone is insufficient (Pitfall B).
+# ${VAR:?msg} fails docker compose up immediately with a clear message if the
+# var is unset, so misconfiguration surfaces before the container starts.
+
+services:
+  agent:
+    build:
+      context: ./agent
+      # Local dev uses the local platform (matches the developer's machine).
+      # Phase 3 builds with: docker buildx build --platform linux/arm64,linux/amd64 ./agent
+      # NOT pinned here - buildx invocation owns the platform target.
+    image: hera-agent:dev
+    ports:
+      - "8080:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:?need AWS_ACCESS_KEY_ID in shell or .env (export AWS_ACCESS_KEY_ID=...)}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:?need AWS_SECRET_ACCESS_KEY in shell or .env}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      AWS_REGION: "${AWS_REGION:-ap-northeast-1}"
+      HERA_KB_ID: "${HERA_KB_ID:?need HERA_KB_ID (e.g. BKXE19AH89) - resolve with terraform -chdir=infra/envs/prod output -raw kb_id}"
+      HERA_KB_SCORE_THRESHOLD: "${HERA_KB_SCORE_THRESHOLD:-0.4}"
+      HERA_VOICE: "${HERA_VOICE:-matthew}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping').read()"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      agent:
+        condition: service_healthy
