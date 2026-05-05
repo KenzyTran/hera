@@ -34,6 +34,23 @@ function appendTranscript(line) {
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
 }
 
+function waitForOpen(socket) {
+  return new Promise((resolve, reject) => {
+    if (socket.readyState === WebSocket.OPEN) return resolve();
+    const onOpen = () => { cleanup(); resolve(); };
+    const onError = (ev) => { cleanup(); reject(ev); };
+    const onClose = (ev) => { cleanup(); reject(ev); };
+    function cleanup() {
+      socket.removeEventListener("open", onOpen);
+      socket.removeEventListener("error", onError);
+      socket.removeEventListener("close", onClose);
+    }
+    socket.addEventListener("open", onOpen, { once: true });
+    socket.addEventListener("error", onError, { once: true });
+    socket.addEventListener("close", onClose, { once: true });
+  });
+}
+
 async function connect() {
   setStatus("connecting...");
   ws = new WebSocket(WS_URL);
@@ -108,9 +125,15 @@ async function startCapture() {
   captureNode = new AudioWorkletNode(captureCtx, "capture-processor");
   captureSource.connect(captureNode);
 
+  let droppedFrames = 0;
   captureNode.port.onmessage = (e) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(e.data); // raw 16 kHz Int16 LE PCM
+      return;
+    }
+    droppedFrames += 1;
+    if (droppedFrames === 1 || droppedFrames % 25 === 0) {
+      console.warn("[mic] WS not OPEN; dropped frame", droppedFrames);
     }
   };
 
@@ -149,9 +172,16 @@ async function init() {
 
   recordBtn.addEventListener("click", async () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      await connect();
-      // Wait briefly for ws.onopen.
-      await new Promise((r) => setTimeout(r, 200));
+      try {
+        await connect();
+        // Block until WS handshake completes; do not start capture early.
+        await waitForOpen(ws);
+      } catch (e) {
+        setStatus("ws error", "error");
+        appendTranscript("[ws] failed to open before capture; aborting");
+        console.error("ws open error", e);
+        return;
+      }
     }
     if (recording) {
       stopCapture();
