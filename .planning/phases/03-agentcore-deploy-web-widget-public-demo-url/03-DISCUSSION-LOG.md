@@ -67,12 +67,11 @@
 | Option | Description | Selected |
 |--------|-------------|----------|
 | GitHub Pages | Reuse existing `.github/workflows/` Hugo deploy. Free, HTTPS-included. Trade: cross-origin (GH Pages domain vs AgentCore endpoint) requires CORS; no custom-domain ACM. | |
-| S3 + CloudFront | AWS-native: S3 + CloudFront + ACM cert. Workshop teaches "static-site on AWS" as part of the deliverable. Trade: 2 extra TF modules (s3_widget, cloudfront), still has CORS. | (initial pick — revised) |
+| S3 + CloudFront | AWS-native: S3 + CloudFront + ACM cert. Workshop teaches "static-site on AWS" as part of the deliverable. Trade: 2 extra TF modules (s3_widget, cloudfront), still has CORS. | ✓ |
 | Serve from agent container (FastAPI StaticFiles) | One URL for widget + WSS, no CORS. Trade: AgentCore HTTP path forwarding for non-`/ping`/`/ws` routes is unverified; couples web concerns into agent container. | |
-| **S3 only (REST endpoint HTTPS)** | **S3 public-read bucket; user accesses `https://<bucket>.s3.<region>.amazonaws.com/index.html` (S3 service TLS cert). No CloudFront, no ACM. Workshop teaches simpler "host UI on S3" pattern. Trade: ugly URL, no edge cache, no auto-index, no error-document — acceptable for instructor demo.** | ✓ (revised 2026-05-05) |
 
-**User's choice:** revised to S3 only.
-**Rationale captured:** Original S3+CloudFront pick was over-engineered for instructor demo. User pushed back: "s3 export ra UI được rồi, không cần phải clonfront làm gì". Phase 3 ships S3-only widget hosting with HTTPS via the S3 REST endpoint (works for `getUserMedia`); CloudFront / CDN / ACM all moved to deferred. CORS configured on AgentCore endpoint to allow the S3 origin.
+**User's choice:** S3 + CloudFront.
+**Rationale captured:** Workshop teaches AWS-native static-site as a deliverable lesson; tightly aligned with "pure-AWS" PROJECT.md mandate.
 
 ### Q2.2 — How widget knows the AgentCore WSS URL
 
@@ -145,8 +144,7 @@ The user did not actively defer any specific question to Claude during the discu
 
 ## Deferred Ideas
 
-- CloudFront / CDN / edge caching → rejected (D-26 revised); add to v2 if production traffic needs CDN
-- Custom domain + ACM cert → v2 (S3 REST endpoint URL accepted; real domain requires CloudFront or HTTP-only S3 website endpoint, both unsuitable for v1)
+- Custom domain + ACM cert for CloudFront → v2 (default `*.cloudfront.net` accepted)
 - WebRTC transport for AgentCore endpoint → v2 (Pipecat WSS locked Phase 2 D-19)
 - Pipecat client SDK + RTVI in browser → v2 (vanilla AudioWorklet proven)
 - Modal onboarding / FAQ inline / waveform visualizer → potential v2 polish
