@@ -15,3 +15,9 @@ variable "name_prefix" {
   type        = string
   default     = "hera"
 }
+
+variable "agentcore_runtime_arn" {
+  description = "AgentCore Runtime ARN emitted by `cdk deploy hera-agentcore` (dist/cdk-outputs.json -> hera-agentcore.AgentCoreRuntimeArn). Pass empty string for the FIRST terraform apply (the IAM policy gets a placeholder ARN); pass the real ARN for the SECOND-PASS apply that wires the widget_presigner Lambda. RUNBOOK Phase 3 documents the 4-step lifecycle: terraform apply (Wave 1) -> push-image -> cdk deploy -> terraform apply -var=agentcore_runtime_arn=<arn> -> build-widget -> smoke."
+  type        = string
+  default     = ""
+}

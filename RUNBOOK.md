@@ -338,8 +338,21 @@ The Pipecat agent has no persistent state - D-21 mandates in-memory only - so th
 
 ## Phase 3: AgentCore deploy
 
-Three explicit paste-blocks per D-25. Each step has one job, surfaces its own
-exit code, and is idempotent enough to re-run safely.
+Four explicit paste-blocks (D-25 amended in Plan 03-04 Task 5b: the Rule-4
+widget_presigner Lambda needs the AgentCore Runtime ARN, so the original
+3-step lifecycle gains a second-pass Terraform apply between cdk deploy and
+build-widget). Each step has one job, surfaces its own exit code, and is
+idempotent enough to re-run safely.
+
+Sequence:
+
+1. `terraform apply` (KB + IAM + ECR + widget hosting + log group; Wave 1)
+2. `bin/push-image.sh` (multi-arch buildx push to ECR)
+3. `cdk deploy hera-agentcore` (creates the AgentCore Runtime; emits ARN)
+4. `terraform apply -var=agentcore_runtime_arn=<arn>` (wires the
+   widget_presigner Lambda to the now-existing runtime)
+5. `bin/build-widget.sh` (sed-inject __PRESIGN_URL__ + s3 sync + invalidate)
+6. `bin/smoke-deploy.sh` (end-to-end smoke; or run individual steps)
 
 ### Prerequisites
 
@@ -377,24 +390,61 @@ What this does (Plan 03-03):
 
 Output ends with the `cdk deploy` line you paste into Step 3. Re-run is safe: pushing the same SHA tag twice no-ops at ECR (manifest digest already present); pushing a new SHA tag adds a new image manifest. To deploy a new image, commit your changes locally first so the SHA differs.
 
-### Step 3: Deploy AgentCore (CDK) and the widget (S3+CloudFront)
+### Step 3: Deploy AgentCore (CDK)
 
 ```bash
-# 3a - provision/replace the AgentCore Runtime resource
+# Dump terraform outputs so the CDK app can read them (TF -> CDK bridge).
+cd infra/envs/prod
+terraform output -json > terraform-outputs.json
+cd ../../..
+
+# Provision/replace the AgentCore Runtime resource. Captures the runtime ARN
+# in dist/cdk-outputs.json under hera-agentcore.AgentCoreRuntimeArn.
 cd infra/cdk
+GIT_SHA=$(git rev-parse --short HEAD)
 uv run cdk deploy hera-agentcore --context image_tag=${GIT_SHA} --outputs-file ../../dist/cdk-outputs.json --require-approval never
 cd ../..
+```
 
-# 3b - inject the WSS URL into the widget and ship to CloudFront
-export AGENTCORE_WSS_URL=$(jq -r '."hera-agentcore".AgentCoreWssUrl' dist/cdk-outputs.json)
+Plan 03-04 owns the `infra/cdk/` stack and the `dist/cdk-outputs.json` shape.
+
+### Step 3.5: Wire widget_presigner to the live AgentCore Runtime ARN
+
+```bash
+# Read the runtime ARN that cdk deploy just emitted, then second-pass
+# terraform apply to update the widget_presigner Lambda env vars + IAM
+# policy to point at the real runtime ARN.
+RUNTIME_ARN=$(jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json)
+cd infra/envs/prod
+terraform apply -var "agentcore_runtime_arn=${RUNTIME_ARN}" -auto-approve
+cd ../../..
+```
+
+This is the Plan 03-04 Rule-4 deviation: the browser cannot SigV4-sign a
+WebSocket upgrade directly, so a small Lambda Function URL mints
+short-lived (TTL 300s) presigned WSS URLs the widget fetches before
+opening the connection. The Lambda needs the runtime ARN, but the runtime
+is created by CDK, so this is a second-pass terraform apply. On a fresh
+deploy the Wave-1 apply uses the empty-string default for
+`agentcore_runtime_arn` (placeholder ARN in the IAM policy); this step
+swaps it for the real ARN.
+
+### Step 4: Deploy the widget (S3+CloudFront)
+
+```bash
+# Inject __PRESIGN_URL__ into the widget and ship to CloudFront. Reads
+# presign_url from terraform outputs (set in Step 3.5).
 bin/build-widget.sh
 ```
 
-Plan 03-04 owns the `infra/cdk/` stack, the `dist/cdk-outputs.json` shape, and the smoke verification that follows.
+The widget loads `index.html` -> reads the injected `PRESIGN_URL` constant
+in `app.js` -> on click-record, fetches `${PRESIGN_URL}` -> server returns
+`{"url": "wss://..."}` -> browser opens the WSS URL. The Function URL has
+CORS allow-origin restricted to the CloudFront domain.
 
-### Step 4: End-to-end smoke
+### Step 5: End-to-end smoke
 
-The 3 steps above can be run in one paste-block:
+All steps above can be run in one paste-block:
 
 ```
 bin/smoke-deploy.sh
@@ -403,17 +453,22 @@ bin/smoke-deploy.sh
 What it does:
 1. `terraform output -json > infra/envs/prod/terraform-outputs.json` (CDK reads this).
 2. `cdk deploy hera-agentcore --context image_tag=$(git rev-parse --short HEAD) --outputs-file dist/cdk-outputs.json`.
-3. Extracts `AgentCoreWssUrl` from `dist/cdk-outputs.json` and exports `AGENTCORE_WSS_URL`.
-4. `bin/build-widget.sh` (sed-injects the WSS URL, s3 syncs, invalidates CloudFront).
-5. `curl -fsS https://<cloudfront-domain>/` -- HTTPS reachability gate (DEM-01 verify).
-6. `uv run python bin/_smoke_deploy_probe.py` against `AGENTCORE_WSS_URL` -- opens WSS, streams 1s of synthetic 16 kHz Int16 silence, asserts >=1 inbound binary frame within 10s.
+3. Extracts `AgentCoreRuntimeArn` from `dist/cdk-outputs.json`.
+4. `terraform apply -var=agentcore_runtime_arn=<arn>` -- second-pass apply
+   updates the widget_presigner Lambda to point at the real runtime ARN.
+5. Reads `presign_url` from `terraform output`; exports as `PRESIGN_URL`.
+6. `bin/build-widget.sh` (sed-injects `__PRESIGN_URL__`, s3 syncs, invalidates CloudFront).
+7. `curl -fsS https://<cloudfront-domain>/` -- HTTPS reachability gate (DEM-01 verify).
+8. `curl -fsS ${PRESIGN_URL}` -- presigner reachability gate; expects `{"url": "wss://..."}`.
+9. `uv run python bin/_smoke_deploy_probe.py` -- fetches the presigned URL, opens WSS, streams 1s of synthetic 16 kHz Int16 silence, asserts >=1 inbound binary frame within 10s.
 
 On success the operator sees:
 ```
 OK: Phase 3 smoke passed.
-    Widget URL : https://d111111abcdef.cloudfront.net
-    WSS URL    : wss://...
-    Image tag  : <git-sha>
+    Widget URL  : https://d111111abcdef.cloudfront.net
+    Presign URL : https://....lambda-url.ap-northeast-1.on.aws/
+    Runtime ARN : arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/...
+    Image tag   : <git-sha>
 ```
 
 If any step fails, fix at that layer and re-run -- `bin/smoke-deploy.sh` is idempotent.

@@ -62,3 +62,8 @@ output "widget_cloudfront_distribution_id" {
   description = "CloudFront distribution ID. Plan 03-04 deploy-widget.sh aws cloudfront create-invalidation --distribution-id target."
   value       = module.widget_hosting.cloudfront_distribution_id
 }
+
+output "presign_url" {
+  description = "Public Lambda Function URL the widget fetches to mint a SigV4-presigned WSS URL for the AgentCore Runtime (Plan 03-04 Rule-4 deviation). Browser fetches this anonymously over HTTPS; response is {\"url\": \"wss://...\"} valid for 5 min. bin/build-widget.sh sed-injects this into __PRESIGN_URL__."
+  value       = module.widget_presigner.presign_url
+}

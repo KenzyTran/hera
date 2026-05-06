@@ -38,3 +38,17 @@ module "agentcore_iam" {
   # name_prefix and env use module defaults; sonic_model_arn uses module default
   # (overrideable when the verified Nova 2 Sonic model id is confirmed).
 }
+
+# Widget presigner Lambda (Plan 03-04 Rule-4 deviation). The browser cannot
+# SigV4-sign a WebSocket directly, so the widget fetches a short-lived
+# presigned URL from this Function URL before opening the AgentCore wss://
+# connection. agentcore_runtime_arn comes from the CDK stack via
+# `terraform apply -var=agentcore_runtime_arn=<arn>` AFTER `cdk deploy`.
+module "widget_presigner" {
+  source = "../../modules/widget_presigner"
+
+  region                = var.region
+  account_id            = data.aws_caller_identity.current.account_id
+  agentcore_runtime_arn = var.agentcore_runtime_arn
+  cors_allow_origin     = module.widget_hosting.cloudfront_url
+}
