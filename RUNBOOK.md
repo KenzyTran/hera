@@ -563,6 +563,104 @@ To roll back the AgentCore Runtime to version=2:
   --context "image_tag=5f21e36" --require-approval never)
 ```
 
+## Phase 4: Observability dashboard walkthrough
+
+CloudWatch dashboard + 3 alarms ship via `infra/modules/observability/`. Zero
+Bedrock spend; zero new IAM (D-13). Pre-flight: tick "Receive CloudWatch
+Billing Alerts" in account Billing Preferences ONCE before apply (RESEARCH
+A1). Without the toggle, the billing alarm sits INSUFFICIENT_DATA forever
+even though the resource is deployed.
+
+### Pre-flight (one-time, per AWS account)
+
+1. Open https://console.aws.amazon.com/billing/home#/preferences
+2. Edit Alert preferences -> tick "Receive CloudWatch Billing Alerts" -> Save.
+3. Wait ~15 minutes for billing data to start flowing.
+
+This is informational only — terraform apply succeeds without it; the alarm
+sits INSUFFICIENT_DATA until the toggle flips. It is not a gate on apply.
+
+### Apply
+
+The observability module references `var.agentcore_runtime_arn`, so apply must
+pass the live runtime ARN to keep the presigner Lambda wired correctly:
+
+```bash
+RUNTIME_ARN=$(jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json)
+(cd infra/envs/prod && terraform init -upgrade)
+(cd infra/envs/prod && terraform apply -var="agentcore_runtime_arn=$RUNTIME_ARN")
+```
+
+If `dist/cdk-outputs.json` is missing or stale, fall back to:
+
+```bash
+RUNTIME_ARN="arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/hera_agent-GIsf2P4ImD"
+```
+
+Expected plan: 4 to add (1 dashboard + 3 alarms). Any in-place changes
+unrelated to the observability module are benign drift (CloudFront TLS
+auto-bump, S3 policy provider re-encoding) — accept and continue.
+
+### Dashboard walkthrough
+
+Open the dashboard URL:
+
+```bash
+(cd infra/envs/prod && terraform output -raw observability_dashboard_url)
+```
+
+Five panels (left-to-right, top-to-bottom):
+1. **Active sessions (singleValue):** AgentCore `ActiveStreamingConnections` 1-min sum. Updates live during a voice session.
+2. **Latency p50 / p95 (timeSeries):** AgentCore `Latency` end-to-end-request milliseconds.
+3. **Error rate (timeSeries):** computed as `100 * TotalErrors / Invocations`. Returns 0 when no invocations in the window.
+4. **Bedrock invocations + tokens (timeSeries):** `AWS/Bedrock` `Invocations` + `InputTokenCount` + `OutputTokenCount` for `amazon.nova-sonic-v1:0`. Proxy for cost.
+5. **Estimated charges (us-east-1 cross-region):** `AWS/Billing` `EstimatedCharges` `Currency=USD`. Updated every 6 hours.
+
+A widget panel showing "No data available" is expected on a freshly-deployed
+dashboard — fire some traffic via https://dg0w939ktclw6.cloudfront.net/ and
+revisit. Bedrock cost panel takes up to 24h to start populating.
+
+### OBS-05 trade-off — billing-alarm manual-stop fallback (D-35)
+
+The billing alarm has `alarm_actions = []` per D-35 — no SNS topic, no email
+subscription, no Lambda auto-stop hook. When the alarm transitions to ALARM
+state (visible on the dashboard's billing panel + via `aws cloudwatch
+describe-alarms`), respond manually:
+
+```bash
+# Stop the AgentCore Runtime to halt new invocations:
+aws bedrock-agentcore-control update-agent-runtime \
+  --agent-runtime-id hera_agent-GIsf2P4ImD \
+  --region ap-northeast-1 \
+  --status STOPPED
+# (verify the exact verb name; if not supported, scale concurrency to 0
+#  via service-quota or destroy the runtime via cdk destroy.)
+
+# Or via CDK destroy (full teardown of just AgentCore):
+(cd infra/cdk && uv run cdk destroy hera-agentcore --force)
+```
+
+Trade-off accepted: instructor must monitor dashboard. No out-of-band
+notification. For a future v2 with real public traffic, add an SNS topic
++ email subscription + (optional) Lambda hook to automate this — explicitly
+out of scope per D-35.
+
+### OBS-04 trade-off — no per-IP rate limit on presigner (D-36)
+
+The presigner Lambda Function URL is open (no per-IP rate limit). Effective
+rate-limit lives downstream at the AgentCore Runtime concurrency cap=2 (D-30
+operational service quota). Abuse via cached URL replay returns 503 from the
+runtime once cap is hit.
+
+What we did NOT add:
+- AWS WAF rate-based rule on CloudFront — out of demo budget (~$5/month base).
+- DynamoDB token-bucket Lambda — added complexity for marginal benefit given
+  the 2-session cap.
+
+Trade-off accepted: presigner is open; AgentCore concurrency is the gate.
+For a v2 with real public traffic, add WAF or token-bucket — explicitly out
+of scope per D-36.
+
 ## Resolved deferrals
 
 The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
