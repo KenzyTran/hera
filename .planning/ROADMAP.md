@@ -90,7 +90,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 03-02-PLAN.md — Polished frontend widget (Apple-Store light per UI-SPEC) + bin/build-widget.sh sed-injection script. Covers WID-01, WID-02, WID-03, WID-04, WID-05, WID-06, DEM-03. *(completed 2026-05-06; 5 files / 3 commits; all 5 button states + 5 WID-06 verbatim error strings + 30s heartbeat + AGENTCORE_WSS_URL placeholder; commits 011395f, 95ae987, 6a57d95)*
 
 **Wave 2** *(03-03 depends on 03-01: needs ECR repo URL output)*
-- [ ] 03-03-PLAN.md — bin/push-image.sh multi-arch buildx push to ECR + RUNBOOK Phase 3 deploy section. Covers DEP-02, DEP-03.
+- [x] 03-03-PLAN.md — bin/push-image.sh multi-arch buildx push to ECR + RUNBOOK Phase 3 deploy section. Covers DEP-02, DEP-03. *(completed 2026-05-06; 2 files / 2 commits + live ECR push; image manifest list at 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3 with both arm64+amd64 children verified live; commits 66959e8, 5e574b3)*
 
 **Wave 3** *(03-04 depends on 03-01 + 03-02 + 03-03: needs all TF outputs, deployed widget, pushed image)*
 - [ ] 03-04-PLAN.md — CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section. Covers DEP-01, DEP-02, DEP-03, DEP-04, DEP-06, DEM-01, DEM-02.
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 2/4 | Wave 1 complete (03-01 + 03-02); Wave 2 next (03-03 push-image) | - |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 3/4 | Wave 2 complete (03-03 live ECR push: hera-agent:5e574b3 multi-arch); Wave 3 next (03-04 CDK + smoke) | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
 

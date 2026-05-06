@@ -142,8 +142,8 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | AGT-07 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-02, 2026-05-05) |
 | DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
+| DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Partial (Plan 03-03, 2026-05-06: image artifact at hera-agent:5e574b3 multi-arch in ECR; AgentCore endpoint exposure pending Plan 03-04) |
+| DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06; deploy pipeline-as-code extended Plan 03-03 2026-05-06: bin/push-image.sh + RUNBOOK Phase 3 section close the build/push step of the 3-step deploy contract) |
 | DEP-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | DEP-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | DEP-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |

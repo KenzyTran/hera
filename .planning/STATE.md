@@ -5,14 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — Wave 1 complete (03-01 + 03-02 done); Wave 2 next (03-03 bin/push-image.sh).
+**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — Wave 2 complete (03-03 bin/push-image.sh + live ECR push done); Wave 3 next (03-04 CDK + smoke).
 
 ## Current Position
 
 Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — In progress
-Plan: 2 of 4 done. Plan 03-02 (frontend widget Apple-Store light + bin/build-widget.sh) shipped 5 files in 3 atomic commits. Apple-Store light widget polish satisfies WID-01..06 + DEM-03: 5 record-button state classes wired by a setState() machine in app.js, all 5 WID-06 error trigger handlers wired to D-28 events with verbatim UI-SPEC copy, 30s heartbeat for agent-timeout, AGENTCORE_WSS_URL build-time placeholder with typeof guard so source-tree local-dev fallback (`ws://localhost:8080/ws`) keeps docker compose path working. bin/build-widget.sh paste-style operator script copies frontend/* into dist/widget/, sed-replaces the placeholder, runs two sanity gates (placeholder gone + localhost dev URL gone), then `aws s3 sync` + `aws cloudfront create-invalidation` on 4 specific paths. audio-capture-worklet.js byte-for-byte unchanged from Phase 2.
+Plan: 3 of 4 done. Plan 03-03 (bin/push-image.sh + RUNBOOK Phase 3 deploy section + live ECR push) shipped 2 files in 2 atomic commits + executed live push. bin/push-image.sh paste-style operator script (D-25 step 2): preflight aws/docker/git/terraform/buildx, terraform output -raw ecr_repo_url, git rev-parse --short HEAD as image tag, aws ecr get-login-password | docker login, idempotent hera-builder buildx bootstrap, docker buildx build --platform linux/arm64,linux/amd64 --provenance=false --sbom=false --push, post-push aws ecr describe-images verification. RUNBOOK.md "## Phase 3: AgentCore deploy" section appended before "## Resolved deferrals" with three-step paste sequence + Prerequisites + Cleanup order (CDK destroy first, TF destroy second per D-24). Phase 1+2 sections preserved byte-for-byte. Live push: image manifest list 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3 (sha256:95d7d51e52e4e53a38a23f692d25cc0809e223628342852f027da2079ea6b43a) referencing arm64 manifest sha256:1241bd9... + amd64 manifest sha256:5b034d2... — AGT-08 same-artifact contract live. Cold build ~16 min for both arches in parallel; idempotent re-run completed in ~3s with all CACHED + identical manifest digest.
 
-Plan 03-01 (prior wave): TF infra applied live, 12 AWS resources in account 851725411875/ap-northeast-1. D-22 closed. Live outputs:
+Plan 03-02 (prior wave): 5 files / 3 commits. Apple-Store light widget polish satisfies WID-01..06 + DEM-03 with 5 record-button state classes + 30s heartbeat + AGENTCORE_WSS_URL placeholder.
+
+Plan 03-01 (Wave 1): TF infra applied live, 12 AWS resources in account 851725411875/ap-northeast-1. D-22 closed. Live outputs:
   - agentcore_exec_role_arn = arn:aws:iam::851725411875:role/hera-agentcore-exec-prod
   - agentcore_log_group_name = /aws/bedrock-agentcore/hera-agent
   - ecr_repo_url = 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent
@@ -20,18 +22,18 @@ Plan 03-01 (prior wave): TF infra applied live, 12 AWS resources in account 8517
   - widget_cloudfront_distribution_id = E10K3B1L8PQ9EC
   - widget_s3_bucket_name = hera-widget-prod
 
-Wave 2: 03-03 (bin/push-image.sh) — unblocked by 03-01 ECR output. Wave 3: 03-04 (CDK AgentCore stack + smoke) — needs all of 03-01/02/03; will set AGENTCORE_WSS_URL env var or wire it to a terraform output, then invoke bin/build-widget.sh as deploy step 3 (D-25).
-Status: Plan 03-02 complete. All 30 must_haves truths verified via node script (8 palette tokens, 5 button states, 5 WID-06 verbatim strings, 4 transcript color tokens, AGENTCORE_WSS_URL placeholder in app.js + build-widget.sh, AudioWorkletNode preserved, 30s heartbeat, prefers-reduced-motion override, 56px button height). Zero deviations.
-Last activity: 2026-05-06 — Plan 03-02 executed in 3 tasks / ~22 min. Task 1 commit `011395f` (rewrite frontend/index.html + extract styles.css), Task 2 commit `95ae987` (rewrite frontend/app.js with 5-state machine + WID-06 + heartbeat + placeholder), Task 3 commit `6a57d95` (bin/build-widget.sh + .gitignore dist/). audio-capture-worklet.js untouched (last commit 109c686 Phase 2). Em-dash characters in error strings preserved verbatim from UI-SPEC.
+Wave 3: 03-04 (CDK AgentCore stack + smoke) — now unblocked by all of 03-01/02/03. Will run `cdk deploy hera-agentcore --context image_tag=5e574b3` (referencing the live manifest pushed in this plan), capture agentcore_wss_url from CDK outputs, then `AGENTCORE_WSS_URL=<url> bin/build-widget.sh` to inject + sync + invalidate, then bin/smoke-deploy.sh end-to-end gate.
+Status: Plan 03-03 complete. All acceptance criteria + verification + idempotency gates passed live. Zero deviations.
+Last activity: 2026-05-06 — Plan 03-03 executed in 3 tasks / ~28 min. Task 1 commit `66959e8` (bin/push-image.sh), Task 2 commit `5e574b3` (RUNBOOK Phase 3 section), Task 3 inline-executed live ECR push (image now lives at hera-agent:5e574b3 multi-arch manifest list with both arm64+amd64 children). Cold ARM64 buildx ~16 min wall-time including ML deps download (numba/scipy/llvmlite/onnxruntime/transformers fresh per arch).
 
-Progress: [██████████████████░░] 50%
+Progress: [████████████████████] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: ~26 min
-- Total execution time: ~3.9 hours
+- Total execution time: ~4.4 hours
 
 **By Phase:**
 
@@ -39,13 +41,13 @@ Progress: [██████████████████░░] 50%
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
 | 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 2/4 | ~72 min | ~36 min |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 3/4 | ~100 min | ~33 min |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 8 plans: 01-02 (~14 min), 01-03 (~50 min, 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 0 deviations), 02-03 (~7 min, 0 deviations), 02-02 (~78 min, 4 auto-fix deviations — live Sonic AGT-04 gate), 03-01 (~50 min, 5 tasks split across two executor invocations; 0 deviations), 03-02 (~22 min, 3 tasks, 0 deviations — pure file-write + verify + commit loop because UI-SPEC contract was already locked and Plan 03-01 outputs were already live).
-- Trend: Plan 03-02 was the fastest plan in Phase 3 because the planner front-loaded all hard decisions into UI-SPEC.md (locked at commit a71b70a) and verbatim copy/CSS-token blocks into the action sections; executor work reduced to file-write + automated verify + atomic commit. Pattern repeats for any future plan that satisfies (a) verbatim contract pre-locked, (b) all upstream deploy outputs already live, (c) verify automated provided in `<verify>` block. Plan 03-03 (bin/push-image.sh against the already-live ECR repo) should follow the same shape; Plan 03-04 (CDK + smoke) will reintroduce live-AWS variance.
+- Last 9 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min, live Sonic AGT-04 gate), 03-01 (~50 min, 5 tasks split across two executor invocations), 03-02 (~22 min, file-write + verify + commit loop), 03-03 (~28 min, 2 file-writes + ~16 min cold ARM64 buildx + ~3s idempotent re-push verify).
+- Trend: Plan 03-03 confirmed the "verbatim contract + already-live upstream outputs => fast executor" pattern from Plan 03-02. The 28-min duration is dominated by the 16-min cold buildx wall-time, NOT executor decision-making — file-write + commit + verify loop took only ~5 min. Plan 03-04 (CDK + smoke) will reintroduce live-AWS variance because cdk deploy has provider drift surface (AgentCore is preview-grade) and the smoke gate is end-to-end browser-equivalent.
 
 *Updated after each plan completion*
 
@@ -110,6 +112,12 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 03-02: bin/build-widget.sh writes via temp file + mv (`sed ... > tmp; mv tmp file`) instead of `sed -i`. Portable across BSD (macOS) and GNU sed without the `-i ''` BSD quirk. Two post-sed sanity gates: (1) `__AGENTCORE_WSS_URL__` placeholder must be gone, (2) `ws://localhost:8080` localhost dev URL must be gone — either gate failure exits 3 before s3 sync.
 - Plan 03-02: CloudFront invalidation targets the 4 specific paths (/index.html /app.js /styles.css /audio-capture-worklet.js) instead of /*. Stays below the 1000-free-paths/month CloudFront threshold; Phase 4 cost-control work reuses this pattern.
 - Plan 03-02: audio-capture-worklet.js byte-for-byte preserved from Phase 2 (`git diff` empty; last touched commits 109c686 + 72f6236 + f8238c8). The 16 kHz Int16 LE capture path with anti-alias LPF + cursor-based decimation is the wire-contract baseline; Phase 3 polish wraps UX around it without touching the audio path.
+- Plan 03-03: bin/push-image.sh ships --provenance=false AND --sbom=false flags. BuildKit v0.11+ defaults emit OCI in-toto attestation manifests (application/vnd.in-toto+json) which ECR's manifest validator rejects with UnsupportedMediaTypeException. Both flags are MANDATORY for ECR-compatible push; the script is the canonical example of the AWS-published ECR-compatible buildx invocation for any future image we publish to AWS ECR.
+- Plan 03-03: Image tag = `git rev-parse --short HEAD` ONLY (no :latest). Plan 03-01 created the ECR repo with image_tag_mutability=IMMUTABLE so :latest would be rejected by ECR with ImageTagAlreadyExistsException on the second push. To deploy a new image, operator commits first so SHA differs — git history IS the deploy audit trail.
+- Plan 03-03: Idempotent buildx builder bootstrap pattern: `docker buildx inspect hera-builder >/dev/null || docker buildx create --name hera-builder --driver docker-container --use`. Without the inspect-or-create check, a second run errors with "builder already exists". Pattern carries forward to any operator script that uses a named buildx instance.
+- Plan 03-03: Live ECR push verified end-to-end against account 851725411875 / ap-northeast-1. Manifest list digest sha256:95d7d51e52e4e53a38a23f692d25cc0809e223628342852f027da2079ea6b43a tagged `5e574b3` references arm64 manifest sha256:1241bd9... + amd64 manifest sha256:5b034d2... (verified via `aws ecr batch-get-image --accepted-media-types application/vnd.docker.distribution.manifest.list.v2+json | jq '.manifests[].platform.architecture'` returning both `arm64` and `amd64`). AGT-08 same-artifact contract from Phase 2 → Phase 3 is now live. Plan 03-04 cdk deploy will reference exactly this manifest.
+- Plan 03-03: Idempotency-by-content for IMMUTABLE ECR repos — re-pushing the same SHA tag is safe because Docker registry is content-addressable; ECR only rejects DIFFERENT manifest with same tag, not same-manifest re-push. Verified live: second-run completed in ~3s, all build steps `CACHED`, identical manifest digest, exit 0. The script is therefore safe to re-run from RUNBOOK as part of "if anything looks off, just paste step 2 again".
+- Plan 03-03: ECR scan-on-push status was `None` immediately after push for both per-arch manifests (`aws ecr describe-image-scan-findings` returned `ScanNotFoundException`). ECR Basic scan is asynchronous and lands minutes-to-hours later; surfacing scan results is Phase 4 OBS-01..03 territory (T-03-03-06 disposition: `accept (Phase 4)`). Not a Plan 03-03 gate — image tags + manifest list + idempotency are the Plan 03-03 acceptance.
 
 ### Pending Todos
 
@@ -135,12 +143,12 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-06
-Stopped at: Plan 03-02 complete. 5 files / 3 commits / 0 deviations / ~22 min. frontend/index.html + frontend/styles.css + frontend/app.js polished to UI-SPEC contract; bin/build-widget.sh ready as Plan 03-04 deploy step 3 (D-25). Apple-Store light palette (8 colors), 5 record-button states with visual differentiation, 5 WID-06 error trigger handlers verbatim from UI-SPEC, 30s heartbeat for agent-timeout, AGENTCORE_WSS_URL placeholder with typeof guard so docker-compose local-dev path remains unchanged. bin/build-widget.sh has executable bit + bash -n syntax-valid + `command -v` preflight for aws/sed/terraform + sed-replace into dist/widget/ build copy + two sanity gates (placeholder gone + localhost dev URL gone) + `aws s3 sync --delete` + `aws cloudfront create-invalidation` on 4 specific paths. audio-capture-worklet.js byte-for-byte unchanged from Phase 2 (last touched 109c686). All 30 must_haves truths verified via node script (palette tokens, button states, WID-06 strings, transcript colors, placeholder, AudioWorkletNode, heartbeat, prefers-reduced-motion, 56px button-h). Wave 1 of Phase 3 closed.
+Stopped at: Plan 03-03 complete. 2 files / 2 commits + 1 live execution / 0 deviations / ~28 min. bin/push-image.sh paste-style operator script (Task 1, commit 66959e8) + RUNBOOK Phase 3 deploy section (Task 2, commit 5e574b3) + live ECR push (Task 3 inline-executed automation-first; image now lives at hera-agent:5e574b3). All three Phase-3-Plan-03 verification gates passed live: (1) `aws ecr describe-images --query 'imageDetails[].imageTags' --output json` returns exactly `[["5e574b3"]]`; (2) manifest list mediaType `application/vnd.docker.distribution.manifest.list.v2+json` with both `arm64` and `amd64` child platforms; (3) idempotent re-run (~3s, all CACHED, identical digest sha256:95d7d51e...). Wave 2 of Phase 3 closed.
 
-Next: launch Plan 03-03 Wave 2 (bin/push-image.sh multi-arch buildx push to ECR + RUNBOOK Phase 3 deploy section). 03-03 is unblocked by Plan 03-01's ECR output (`ecr_repo_url=851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent`). After 03-03, Wave 3 (03-04 CDK + smoke) requires all three prior plans to be live. Plan 03-04 will:
-  1. `cdk deploy hera-agentcore --context image_tag=$(git rev-parse --short HEAD)` (CDK reads ECR image URI + agentcore_exec_role_arn from terraform outputs).
-  2. Capture `agentcore_wss_url` from CDK output (or write back to a terraform output).
-  3. `AGENTCORE_WSS_URL=<url> bin/build-widget.sh` to inject + sync + invalidate.
-  4. `bin/smoke-deploy.sh` to verify the full end-to-end voice loop against the live CloudFront URL with at least one KB-backed product reply.
+Next: launch Plan 03-04 Wave 3 (CDK Python AgentCore stack + smoke gate). 03-04 is now unblocked by all of 03-01 (TF infra live), 03-02 (widget ready), 03-03 (image at ECR). Plan 03-04 will:
+  1. `cdk deploy hera-agentcore --context image_tag=5e574b3` — CDK reads `agentcore_exec_role_arn` + `agentcore_log_group_name` from terraform outputs, references the ECR image at `851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3`. (Or whatever the new short SHA is at execution time — operator commits first per D-25.)
+  2. Capture `agentcore_wss_url` from CDK outputs (`dist/cdk-outputs.json`).
+  3. `AGENTCORE_WSS_URL=<url> bin/build-widget.sh` to inject into the widget + S3 sync + CloudFront invalidate.
+  4. `bin/smoke-deploy.sh` end-to-end smoke against the live CloudFront URL with at least one KB-backed product reply.
 
-Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-03-PLAN.md
+Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-04-PLAN.md
