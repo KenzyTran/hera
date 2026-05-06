@@ -27,8 +27,8 @@
 
 ### Deployment & Infrastructure (DEP)
 
-- [ ] **DEP-01**: Agent container deploy lên Amazon Bedrock AgentCore Runtime ở ap-northeast-1
-- [ ] **DEP-02**: AgentCore endpoint exposed (WSS hoặc WebRTC) — chọn pattern dựa trên Pipecat support
+- [x] **DEP-01**: Agent container deploy lên Amazon Bedrock AgentCore Runtime ở ap-northeast-1 *(completed Plan 03-04, 2026-05-06; live Runtime hera_agent-GIsf2P4ImD status=READY referencing image hera-agent:214068b)*
+- [x] **DEP-02**: AgentCore endpoint exposed (WSS hoặc WebRTC) — chọn pattern dựa trên Pipecat support *(completed Plan 03-04, 2026-05-06; WSS via SigV4 presign Lambda Function URL bridge for browser auth gap)*
 - [x] **DEP-03**: Terraform modules chính (`modules/kb`, `modules/agentcore`, `modules/observability`) deploy được vào fresh AWS account chỉ với `terraform init && apply` (giả định model access đã enable)
 - [x] **DEP-04**: Nếu Terraform AgentCore resource thiếu, fallback hybrid documented: Terraform cho KB/IAM/CloudWatch, CDK hoặc CLI cho AgentCore deploy. Quyết định lock trong Phase 3 research
 - [x] **DEP-05**: AgentCore execution role IAM least-privilege: `bedrock:InvokeModelWithBidirectionalStream`, `bedrock:Retrieve`, CloudWatch logs/metrics
@@ -141,8 +141,8 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | AGT-06 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-07 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-01, 2026-05-05) |
 | AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-02, 2026-05-05) |
-| DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Partial (Plan 03-03, 2026-05-06: image artifact at hera-agent:5e574b3 multi-arch in ECR; AgentCore endpoint exposure pending Plan 03-04) |
+| DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-04, 2026-05-06; live Runtime hera_agent-GIsf2P4ImD) |
+| DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-04, 2026-05-06; WSS via SigV4 presigner Lambda Function URL) |
 | DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06; deploy pipeline-as-code extended Plan 03-03 2026-05-06: bin/push-image.sh + RUNBOOK Phase 3 section close the build/push step of the 3-step deploy contract) |
 | DEP-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | DEP-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |

@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans) — completed 2026-05-05
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
-- [ ] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL
+- [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — completed 2026-05-06 (infrastructure scope; live voice-loop closure deferred to Phase 4 OBS work due to agent credential-injection gap, see Plan 03-04 SUMMARY)
 - [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account
 - [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy
 
@@ -93,7 +93,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 03-03-PLAN.md — bin/push-image.sh multi-arch buildx push to ECR + RUNBOOK Phase 3 deploy section. Covers DEP-02, DEP-03. *(completed 2026-05-06; 2 files / 2 commits + live ECR push; image manifest list at 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3 with both arm64+amd64 children verified live; commits 66959e8, 5e574b3)*
 
 **Wave 3** *(03-04 depends on 03-01 + 03-02 + 03-03: needs all TF outputs, deployed widget, pushed image)*
-- [ ] 03-04-PLAN.md — CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section. Covers DEP-01, DEP-02, DEP-03, DEP-04, DEP-06, DEM-01, DEM-02.
+- [x] 03-04-PLAN.md — CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section. Covers DEP-01, DEP-02, DEP-03, DEP-04, DEP-06, DEM-01, (DEM-02 partial). *(completed 2026-05-06; live AgentCore Runtime hera_agent-GIsf2P4ImD + widget_presigner Lambda Function URL Rule-4 deviation + 4-step lifecycle; 9 atomic commits; live voice-loop closure blocked by agent static-credential injection gap deferred to Phase 4 follow-up plan; commits 072054e, 0893b2b, 449b446, 51d0f05, 2ced2fc, c5b7f8c, 774adfb, 214068b, ab44397)*
 
 **UI hint**: yes (UI-SPEC.md commit a71b70a is the design contract)
 

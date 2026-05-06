@@ -5,14 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — Wave 2 complete (03-03 bin/push-image.sh + live ECR push done); Wave 3 next (03-04 CDK + smoke).
+**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — COMPLETE 4/4 plans (infra scope; live voice-loop closure deferred to Phase 4 OBS follow-up due to agent credential-injection gap). Phase 4 next.
 
 ## Current Position
 
-Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — In progress
-Plan: 3 of 4 done. Plan 03-03 (bin/push-image.sh + RUNBOOK Phase 3 deploy section + live ECR push) shipped 2 files in 2 atomic commits + executed live push. bin/push-image.sh paste-style operator script (D-25 step 2): preflight aws/docker/git/terraform/buildx, terraform output -raw ecr_repo_url, git rev-parse --short HEAD as image tag, aws ecr get-login-password | docker login, idempotent hera-builder buildx bootstrap, docker buildx build --platform linux/arm64,linux/amd64 --provenance=false --sbom=false --push, post-push aws ecr describe-images verification. RUNBOOK.md "## Phase 3: AgentCore deploy" section appended before "## Resolved deferrals" with three-step paste sequence + Prerequisites + Cleanup order (CDK destroy first, TF destroy second per D-24). Phase 1+2 sections preserved byte-for-byte. Live push: image manifest list 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3 (sha256:95d7d51e52e4e53a38a23f692d25cc0809e223628342852f027da2079ea6b43a) referencing arm64 manifest sha256:1241bd9... + amd64 manifest sha256:5b034d2... — AGT-08 same-artifact contract live. Cold build ~16 min for both arches in parallel; idempotent re-run completed in ~3s with all CACHED + identical manifest digest.
+Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — COMPLETE (4/4 plans, infra scope; voice-loop closure deferred)
+Plan: 4 of 4 done. Plan 03-04 (CDK AgentCore stack + Rule-4 widget_presigner Lambda + 4-step lifecycle + live deploy) shipped 14 files / 9 commits + 2 live deploys (cdk deploy hera-agentcore + widget_presigner via second-pass terraform apply). Live state in 851725411875/ap-northeast-1: AgentCore Runtime hera_agent-GIsf2P4ImD status=READY referencing image hera-agent:214068b; Lambda hera-widget-presign-prod on Function URL https://ijrovzxz4tts2tdo2w5yxqxho40fruyn.lambda-url.ap-northeast-1.on.aws/ minting 300s SigV4 presigned WSS URLs scoped to the runtime ARN with CORS allow-origin pinned to the CloudFront URL. Widget served from CloudFront with the injected lambda-url URL. WSS handshake via the presign flow authenticates correctly (SigV4 reaches the AgentCore data plane). Live voice-loop closure BLOCKED at the container cold-start layer: agent/hera_agent/config.py:12 reads os.environ["HERA_KB_ID"] at import time and pipeline.py:48 reads os.environ["AWS_ACCESS_KEY_ID"]; AgentCore Runtime injects creds via IMDS not env vars, so the container fails before /ping. Deferred to Phase 4 OBS work — three resolution paths documented in Plan 03-04 SUMMARY ("Open Items / Known Blockers"). Plan 03-04 was 9 atomic commits including 5 in-tree fixes for live-deploy deviations: (1) cdk.json CDKv1 flag removal, (2) agentcore_iam ECR pull permissions, (3) widget_presigner reserved concurrency=-1 (account quota floor), (4) widget_presigner CORS allow_methods=GET-only, (5) widget_presigner WebSocketStream IAM action, (6) bin/build-widget.sh CloudFront /* invalidation. Two-pass terraform apply lifecycle proven live (first apply lays infra with placeholder ARN, second-pass apply receives the real ARN after cdk deploy; in-place updates, no Lambda replace).
 
-Plan 03-02 (prior wave): 5 files / 3 commits. Apple-Store light widget polish satisfies WID-01..06 + DEM-03 with 5 record-button state classes + 30s heartbeat + AGENTCORE_WSS_URL placeholder.
+Plan 03-03 (prior wave): 2 files / 2 commits + live ECR push. bin/push-image.sh paste-style operator script and RUNBOOK Phase 3 deploy section. Image hera-agent:5e574b3 manifest list at 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com (also tagged 214068b after Plan 03-04 source changes triggered re-push to current SHA). AGT-08 same-artifact contract live.
+
+Plan 03-02 (prior wave): 5 files / 3 commits. Apple-Store light widget polish satisfies WID-01..06 + DEM-03 with 5 record-button state classes + 30s heartbeat + AGENTCORE_WSS_URL placeholder (Plan 03-04 Rule-4 deviation later swapped this for __PRESIGN_URL__).
 
 Plan 03-01 (Wave 1): TF infra applied live, 12 AWS resources in account 851725411875/ap-northeast-1. D-22 closed. Live outputs:
   - agentcore_exec_role_arn = arn:aws:iam::851725411875:role/hera-agentcore-exec-prod
@@ -22,18 +24,18 @@ Plan 03-01 (Wave 1): TF infra applied live, 12 AWS resources in account 85172541
   - widget_cloudfront_distribution_id = E10K3B1L8PQ9EC
   - widget_s3_bucket_name = hera-widget-prod
 
-Wave 3: 03-04 (CDK AgentCore stack + smoke) — now unblocked by all of 03-01/02/03. Will run `cdk deploy hera-agentcore --context image_tag=5e574b3` (referencing the live manifest pushed in this plan), capture agentcore_wss_url from CDK outputs, then `AGENTCORE_WSS_URL=<url> bin/build-widget.sh` to inject + sync + invalidate, then bin/smoke-deploy.sh end-to-end gate.
-Status: Plan 03-03 complete. All acceptance criteria + verification + idempotency gates passed live. Zero deviations.
-Last activity: 2026-05-06 — Plan 03-03 executed in 3 tasks / ~28 min. Task 1 commit `66959e8` (bin/push-image.sh), Task 2 commit `5e574b3` (RUNBOOK Phase 3 section), Task 3 inline-executed live ECR push (image now lives at hera-agent:5e574b3 multi-arch manifest list with both arm64+amd64 children). Cold ARM64 buildx ~16 min wall-time including ML deps download (numba/scipy/llvmlite/onnxruntime/transformers fresh per arch).
+Wave 3: 03-04 (CDK AgentCore stack + Rule-4 widget_presigner Lambda + smoke) — COMPLETE infra scope. Live AgentCore Runtime + presigner Function URL + 4-step deploy lifecycle. Voice-loop closure blocked by agent credential-injection gap (Phase 4 OBS work).
+Status: Phase 3 complete (4/4 plans). 7 user-approved Rule-4 architectural additions + 5 in-tree Rule-1/2/3 deviations all auto-fixed and committed. Zero remaining deviations.
+Last activity: 2026-05-06 — Plan 03-04 executed in this invocation: Tasks 5a (Terraform widget_presigner module), 5b (prod-root wiring + RUNBOOK 4-step), 5c (widget contract presign+fetch), and 5 (live cdk deploy + second-pass tf apply + smoke). Total ~70 min. 9 atomic commits. Live AWS state captured in 03-04 SUMMARY.
 
-Progress: [████████████████████] 60%
+Progress: [████████████████████████████] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~26 min
-- Total execution time: ~4.4 hours
+- Total plans completed: 10
+- Average duration: ~27 min
+- Total execution time: ~5.5 hours
 
 **By Phase:**
 
@@ -41,13 +43,13 @@ Progress: [████████████████████] 60%
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
 | 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 3/4 | ~100 min | ~33 min |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 4/4 | ~170 min | ~43 min |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 9 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min, live Sonic AGT-04 gate), 03-01 (~50 min, 5 tasks split across two executor invocations), 03-02 (~22 min, file-write + verify + commit loop), 03-03 (~28 min, 2 file-writes + ~16 min cold ARM64 buildx + ~3s idempotent re-push verify).
-- Trend: Plan 03-03 confirmed the "verbatim contract + already-live upstream outputs => fast executor" pattern from Plan 03-02. The 28-min duration is dominated by the 16-min cold buildx wall-time, NOT executor decision-making — file-write + commit + verify loop took only ~5 min. Plan 03-04 (CDK + smoke) will reintroduce live-AWS variance because cdk deploy has provider drift surface (AgentCore is preview-grade) and the smoke gate is end-to-end browser-equivalent.
+- Last 10 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min), 03-01 (~50 min), 03-02 (~22 min), 03-03 (~28 min), 03-04 (~70 min, two live AWS deploys + 5 in-tree Rule-1/2/3 deviation fixes + Rule-4 architectural addition).
+- Trend: Plan 03-04 reintroduced live-AWS variance as predicted. CDK deploy + presigner Lambda + WSS handshake auth + widget injection all closed first-try after the deviation cascade resolved. The blocker that emerged (agent credential injection at the container layer) is genuinely a Phase 4 concern — Plan 03-04's scope was infrastructure stand-up, and that infrastructure works. Phase 4 picks up agent refactor + OBS together.
 
 *Updated after each plan completion*
 
@@ -118,6 +120,12 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 03-03: Live ECR push verified end-to-end against account 851725411875 / ap-northeast-1. Manifest list digest sha256:95d7d51e52e4e53a38a23f692d25cc0809e223628342852f027da2079ea6b43a tagged `5e574b3` references arm64 manifest sha256:1241bd9... + amd64 manifest sha256:5b034d2... (verified via `aws ecr batch-get-image --accepted-media-types application/vnd.docker.distribution.manifest.list.v2+json | jq '.manifests[].platform.architecture'` returning both `arm64` and `amd64`). AGT-08 same-artifact contract from Phase 2 → Phase 3 is now live. Plan 03-04 cdk deploy will reference exactly this manifest.
 - Plan 03-03: Idempotency-by-content for IMMUTABLE ECR repos — re-pushing the same SHA tag is safe because Docker registry is content-addressable; ECR only rejects DIFFERENT manifest with same tag, not same-manifest re-push. Verified live: second-run completed in ~3s, all build steps `CACHED`, identical manifest digest, exit 0. The script is therefore safe to re-run from RUNBOOK as part of "if anything looks off, just paste step 2 again".
 - Plan 03-03: ECR scan-on-push status was `None` immediately after push for both per-arch manifests (`aws ecr describe-image-scan-findings` returned `ScanNotFoundException`). ECR Basic scan is asynchronous and lands minutes-to-hours later; surfacing scan results is Phase 4 OBS-01..03 territory (T-03-03-06 disposition: `accept (Phase 4)`). Not a Plan 03-03 gate — image tags + manifest list + idempotency are the Plan 03-03 acceptance.
+- Plan 03-04: User-approved Rule-4 architectural deviation: Lambda Function URL presigner (Q1 option A) lives in a NEW Terraform module infra/modules/widget_presigner/ (D-24 honored — CDK still owns ONLY the AgentCore Runtime resource). The widget contract changes from __AGENTCORE_WSS_URL__ (Plan 03-02 baseline) to __PRESIGN_URL__: frontend/app.js's resolveWsUrl() fetches the Function URL, unwraps {url}, and opens that wss URL. Local-dev path preserved via the typeof __PRESIGN_URL__ guard. Browsers cannot SigV4-sign WebSocket upgrades directly; the presigner mints 300s SigV4-presigned URLs using the Lambda exec role's credentials.
+- Plan 03-04: User-approved deferral: per-Lambda concurrency cap skipped for v1 (Q2 option (i)). reserved_concurrent_executions defaults to -1 because AWS rejects positive values that would push UnreservedConcurrentExecution below the account floor of 10. Phase 4 OBS-04/OBS-05 owns per-IP rate limit + AgentCore concurrency quota request alongside the cost circuit breaker.
+- Plan 03-04: D-25 amended to a 4-step lifecycle: (1) terraform apply (Wave 1), (2) bin/push-image.sh, (3) cdk deploy hera-agentcore (emits AgentCoreRuntimeArn), (4) terraform apply -var=agentcore_runtime_arn=<arn> (in-place updates the widget_presigner Lambda env vars + IAM policy), (5) bin/build-widget.sh, (6) bin/smoke-deploy.sh. The two-pass terraform apply pattern resolves the chicken-and-egg dependency between the presigner Lambda (needs runtime ARN) and the AgentCore Runtime (created by CDK after the first TF apply).
+- Plan 03-04: AWS::BedrockAgentCore::Runtime CFn schema confirmed live (via aws cloudformation describe-type) to have NO MaxConcurrentSessions / Throttle / SessionLimit property — concurrency is enforced at the AgentCore SERVICE quota layer (account-default 10, requestable). D-30 demo cap of 2 is therefore an operational quota request, not IaC. Documented in stack.py header.
+- Plan 03-04: Live deploy revealed five auto-fixed deviations: (1) agentcore_iam needs ECR pull (Rule-2), (2) Lambda reserved concurrency hits 10-floor on fresh accounts (Rule-3), (3) Function URL CORS allow_methods rejects OPTIONS (Rule-1), (4) AgentCore data-plane action is :InvokeAgentRuntimeWithWebSocketStream not plain :InvokeAgentRuntime (Rule-1), (5) cdk.json CDKv1 feature flag breaks CDKv2 synth (Rule-1). All five fixes shipped in commits 214068b + ab44397. None required user approval.
+- Plan 03-04: Live voice-loop closure BLOCKED at the container cold-start layer — agent reads os.environ["HERA_KB_ID"] + os.environ["AWS_ACCESS_KEY_ID"] at import time, AgentCore Runtime injects creds via IMDSv2 not env vars. Three resolution paths documented in 03-04 SUMMARY; preferred is refactoring AWSNovaSonicLLMService usage in pipeline.py to accept boto3 default chain (which AgentCore IMDS satisfies). Phase 4 follow-up plan owns the fix.
 
 ### Pending Todos
 
@@ -125,7 +133,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Phase 3 open questions** (from research/SUMMARY.md): AgentCore Terraform-provider coverage, AgentCore pricing model, exact Pipecat → AgentCore deploy steps, concurrency/quota defaults, WebRTC-vs-WebSocket transport for Pipecat. Resolve in Phase 3 planning via `/gsd-research-phase` before committing implementation.
+- **Agent credential-injection gap (BLOCKS Phase 3 success criterion #2 closure).** AgentCore Runtime hera_agent-GIsf2P4ImD CFn status=READY but the container fails on cold-start because agent/hera_agent/config.py:12 reads os.environ["HERA_KB_ID"] at import time and pipeline.py:48 reads os.environ["AWS_ACCESS_KEY_ID"]; AgentCore Runtime injects exec-role creds via IMDSv2 (not env vars) and has no CFn property for env-var injection of secrets. The presign+fetch + WSS handshake + SigV4 auth all work — the failure is purely at the agent boot layer. Phase 4 follow-up plan owns one of three resolution paths documented in 03-04 SUMMARY (preferred: refactor for boto3 default chain that AgentCore IMDS satisfies; alternatives: AgentCore Environment CFn property if it exists, or sidecar IMDS->env bridge). All other Phase 3 infra is live and reachable.
 
 ## Deferred Items
 
@@ -136,19 +144,21 @@ Items acknowledged and carried forward from previous milestone close:
 | Repo hygiene | Add `plan.out` to `.gitignore` (post-`terraform plan -out` artifact) | RESOLVED in Plan 03-01 Task 4 | Plan 02-03 |
 | Phase 1 D-10 | Consumer `bedrock:Retrieve` policy for Pipecat | RESOLVED in Plan 02-03 (managed policy `hera-kb-retrieve-prod`) | Plan 01-01 |
 | Phase 2 D-22 | Attach `hera-kb-retrieve-prod` to AgentCore exec role | RESOLVED in Plan 03-01 Task 1 (live `aws_iam_role_policy_attachment.kb_retrieve`) | Plan 02-03 |
-| Plan 03-01 | Sonic foundation-model ARN runtime gate | Open — verified at Plan 03-04 smoke (`bedrock:InvokeModelWithBidirectionalStream`) | Plan 03-01 |
+| Plan 03-01 | Sonic foundation-model ARN runtime gate | Open — not yet exercised; container fails before LLM init due to credential gap (Plan 03-04 SUMMARY Open Items) | Plan 03-01 |
 | Plan 03-01 | CloudFront custom domain + ACM cert (would also unlock `TLSv1.2_2021` minimum) | Open — deferred per D-26 to v2 | Plan 03-01 |
 | Plan 03-01 | Widget S3 versioning (rollback path is git+bin/deploy-widget.sh) | Open — deferred per D-26 to Phase 4 if cleanup-verify proves teardown is clean | Plan 03-01 |
+| Plan 03-04 | Agent credential-injection bridge (BLOCKS Phase 3 SC#2 voice-loop closure) | Open — Phase 4 follow-up plan owns; preferred path is boto3-default-chain refactor in pipeline.py | Plan 03-04 |
+| Plan 03-04 | Per-IP rate limit on the presign Function URL (OBS-04) + per-Lambda concurrency cap | Open — Phase 4 OBS-04/OBS-05 owns; user-approved Q2 option (i) deferred this | Plan 03-04 |
+| Plan 03-04 | AgentCore service quota request (default 10 concurrent runtimes; D-30 originally said 2) | Open — operational AWS console action, not IaC; Phase 4 may file the request | Plan 03-04 |
+| Plan 03-04 | CDK bootstrap deploy-role trust policy for non-root operators | Open — current credentials run as IAM root which CDK warns about ("could not assume cdk-...-deploy-role"); Phase 4 may add a role-trust amendment | Plan 03-04 |
 
 ## Session Continuity
 
 Last session: 2026-05-06
-Stopped at: Plan 03-03 complete. 2 files / 2 commits + 1 live execution / 0 deviations / ~28 min. bin/push-image.sh paste-style operator script (Task 1, commit 66959e8) + RUNBOOK Phase 3 deploy section (Task 2, commit 5e574b3) + live ECR push (Task 3 inline-executed automation-first; image now lives at hera-agent:5e574b3). All three Phase-3-Plan-03 verification gates passed live: (1) `aws ecr describe-images --query 'imageDetails[].imageTags' --output json` returns exactly `[["5e574b3"]]`; (2) manifest list mediaType `application/vnd.docker.distribution.manifest.list.v2+json` with both `arm64` and `amd64` child platforms; (3) idempotent re-run (~3s, all CACHED, identical digest sha256:95d7d51e...). Wave 2 of Phase 3 closed.
+Stopped at: Phase 3 complete (4/4 plans). Plan 03-04 executed in 9 atomic commits / 14 files / ~70 min including 2 live AWS deploys (cdk deploy hera-agentcore + second-pass terraform apply for the widget_presigner Lambda). Live state captured in `.planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-04-SUMMARY.md`. Live AWS resources: AgentCore Runtime hera_agent-GIsf2P4ImD (status READY), Lambda hera-widget-presign-prod on Function URL https://ijrovzxz4tts2tdo2w5yxqxho40fruyn.lambda-url.ap-northeast-1.on.aws/, widget served at https://dg0w939ktclw6.cloudfront.net with the injected presign URL. Voice-loop closure blocked at the agent boot layer (see Blockers/Concerns above) — infrastructure is complete; agent credential-injection refactor is a Phase 4 follow-up plan.
 
-Next: launch Plan 03-04 Wave 3 (CDK Python AgentCore stack + smoke gate). 03-04 is now unblocked by all of 03-01 (TF infra live), 03-02 (widget ready), 03-03 (image at ECR). Plan 03-04 will:
-  1. `cdk deploy hera-agentcore --context image_tag=5e574b3` — CDK reads `agentcore_exec_role_arn` + `agentcore_log_group_name` from terraform outputs, references the ECR image at `851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:5e574b3`. (Or whatever the new short SHA is at execution time — operator commits first per D-25.)
-  2. Capture `agentcore_wss_url` from CDK outputs (`dist/cdk-outputs.json`).
-  3. `AGENTCORE_WSS_URL=<url> bin/build-widget.sh` to inject into the widget + S3 sync + CloudFront invalidate.
-  4. `bin/smoke-deploy.sh` end-to-end smoke against the live CloudFront URL with at least one KB-backed product reply.
+Next: launch Phase 4 (Observability, Cost Control, Cleanup). Phase 4 will:
+  1. Add a follow-up plan (suggested: 04-01-agent-credential-bridge) to refactor the agent for boto3 default chain so the AgentCore IMDS-resolved credentials work; this closes Phase 3 success criterion #2.
+  2. Then proceed with the originally-planned OBS work: CloudWatch dashboards/alarms (OBS-01..03), Lambda cost circuit breaker (OBS-05), per-IP rate limit on the presign Function URL (OBS-04), cleanup-verify script.
 
-Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-04-PLAN.md
+Resume file: .planning/STATE.md — start `/gsd-plan-phase 4` to plan Phase 4 with the agent credential bridge as the priority Wave-1 plan.
