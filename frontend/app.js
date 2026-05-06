@@ -1,209 +1,314 @@
-// Hera Phase 2 - browser <-> agent WebSocket client.
-//
-// Capture path: getUserMedia -> AudioContext -> AudioWorkletNode (downsample
-// to 16 kHz Int16 mono) -> binary WS frame to ws://localhost:8080/ws.
-//
-// Playback path: WS binary frame (24 kHz Int16 mono) -> Int16Array decode ->
-// Float32 normalize -> AudioBuffer at 24 kHz -> sequential AudioBufferSourceNode
-// queue (avoids clicks/dropouts on multi-frame responses).
-//
-// Patterns 6 + 7 from research/02-RESEARCH.md, verbatim.
+// Hera Phase 3 - polished web widget client.
+// Capture/playback paths unchanged from Phase 2 (AudioWorklet 16 kHz Int16 LE
+// in / 24 kHz Int16 LE out / sequential AudioBuffer playback queue). What's
+// new in Phase 3 is the 5-state record-button machine, the 5 WID-06 error
+// branches wired to D-28 trigger events, and the AGENTCORE_WSS_URL build-time
+// placeholder per D-27.
 
-const WS_URL = "ws://localhost:8080/ws";
+// Build-time replacement target: bin/build-widget.sh runs
+// `sed "s|__AGENTCORE_WSS_URL__|${AGENTCORE_WSS_URL}|g"` on a build copy
+// before the s3 sync. The source file commits with the local-dev URL so
+// `docker compose up` keeps working unchanged (CONTEXT.md D-27 Local dev unchanged).
+const WS_URL = (typeof __AGENTCORE_WSS_URL__ !== "undefined")
+  ? "__AGENTCORE_WSS_URL__"
+  : "ws://localhost:8080/ws";
 
-const statusEl = document.getElementById("status");
-const recordBtn = document.getElementById("recordBtn");
+// 30s heartbeat per D-28 agent-timeout trigger event.
+const HEARTBEAT_MS = 30000;
+
+// DOM
+const statusEl     = document.getElementById("status");
+const recordBtn    = document.getElementById("recordBtn");
 const transcriptEl = document.getElementById("transcript");
+const micMutedEl   = document.getElementById("micMuted");
 
-let ws = null;
-let captureCtx = null;
-let captureNode = null;
+// Connection state
+let ws            = null;
+let captureCtx    = null;
+let captureNode   = null;
 let captureSource = null;
-let mediaStream = null;
-let playbackCtx = null;
-let nextStart = 0;
-let recording = false;
+let mediaStream   = null;
+let playbackCtx   = null;
+let nextStart     = 0;
+let recording     = false;
+let agentTimeoutTimer = null;
+let inboundBinarySeen = false;
+let placeholderEmitted = false; // strip the empty-state placeholder on first append
 
-function setStatus(text, cls) {
-  statusEl.textContent = text;
-  statusEl.className = "status" + (cls ? " " + cls : "");
+// State machine: idle | connecting | listening | speaking | error
+const STATES = ["idle", "connecting", "listening", "speaking", "error"];
+const BTN_LABELS = {
+  idle:       "Record",
+  connecting: "Connecting...",
+  listening:  "Recording (click to stop)",
+  speaking:   "Agent speaking",
+  error:      "Retry",
+};
+const PILL_LABELS = {
+  disconnected: "disconnected",
+  connecting:   "connecting",
+  connected:    "connected",
+  recording:    "recording",
+  error:        "error",
+};
+const PILL_FOR_STATE = {
+  idle:       "disconnected",
+  connecting: "connecting",
+  listening:  "recording",
+  speaking:   "connected",
+  error:      "error",
+};
+
+let state = "idle";
+
+function setState(next) {
+  if (!STATES.includes(next)) throw new Error("invalid state: " + next);
+  state = next;
+  // Button class swap (single class triggers per-state CSS)
+  recordBtn.className = "btn btn-" + next;
+  recordBtn.textContent = BTN_LABELS[next];
+  recordBtn.disabled = (next === "speaking");
+  recordBtn.setAttribute("aria-pressed", next === "listening" ? "true" : "false");
+  recordBtn.setAttribute("aria-busy",    next === "connecting" ? "true" : "false");
+  recordBtn.setAttribute("aria-disabled", next === "speaking" ? "true" : "false");
+  // Status pill follows state.
+  setPill(PILL_FOR_STATE[next]);
 }
 
-function appendTranscript(line) {
-  transcriptEl.textContent += line + "\n";
+function setPill(pillState) {
+  statusEl.textContent = PILL_LABELS[pillState];
+  statusEl.className = "status " + pillState;
+}
+
+function nowHHMMSS() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `[${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}]`;
+}
+
+function appendLine(kind, text) {
+  if (!placeholderEmitted) {
+    transcriptEl.textContent = "";
+    placeholderEmitted = true;
+  }
+  // Build a span so per-line color tokens apply (UI-SPEC Transcript line format).
+  const span = document.createElement("span");
+  span.className = "line-" + kind; // line-user | line-agent | line-system | line-error
+  span.textContent = `${nowHHMMSS()} ${text}\n`;
+  transcriptEl.appendChild(span);
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+// WID-06 error trigger map (CONTEXT.md D-28 verbatim copy)
+const WID06 = {
+  micPermissionDenied: "Allow microphone access in your browser to start.",
+  wsConnectFailed:     "Couldn't reach the agent — check your connection and retry.",
+  agentTimeout:        "The agent didn't respond in time — try again.",
+  micMuted:            "Microphone is muted — unmute to continue.",
+  micUnmuted:          "Microphone unmuted.",
+  getUserMediaUnsupported: "Microphone needs HTTPS. Open this page over https:// or use Chrome/Edge on localhost.",
+};
+
+function fail(kind, message) {
+  appendLine("error", "Error: " + message);
+  setState("error");
+  // Force-stop capture on any error.
+  stopCapture();
+}
+
+// --- Heartbeat (D-28 trigger: agent-timeout = 30s WS heartbeat with no inbound binary frame) ---
+function armHeartbeat() {
+  clearHeartbeat();
+  inboundBinarySeen = false;
+  agentTimeoutTimer = setTimeout(() => {
+    if (!inboundBinarySeen) {
+      fail("agent-timeout", WID06.agentTimeout);
+      if (ws && ws.readyState <= 1) ws.close(4000, "agent-timeout");
+    }
+  }, HEARTBEAT_MS);
+}
+
+function clearHeartbeat() {
+  if (agentTimeoutTimer) {
+    clearTimeout(agentTimeoutTimer);
+    agentTimeoutTimer = null;
+  }
 }
 
 function waitForOpen(socket) {
   return new Promise((resolve, reject) => {
     if (socket.readyState === WebSocket.OPEN) return resolve();
-    const onOpen = () => { cleanup(); resolve(); };
-    const onError = (ev) => { cleanup(); reject(ev); };
-    const onClose = (ev) => { cleanup(); reject(ev); };
+    const onOpen  = ()    => { cleanup(); resolve(); };
+    const onErr   = (ev)  => { cleanup(); reject(ev); };
+    const onClose = (ev)  => { cleanup(); reject(ev); };
     function cleanup() {
-      socket.removeEventListener("open", onOpen);
-      socket.removeEventListener("error", onError);
+      socket.removeEventListener("open",  onOpen);
+      socket.removeEventListener("error", onErr);
       socket.removeEventListener("close", onClose);
     }
-    socket.addEventListener("open", onOpen, { once: true });
-    socket.addEventListener("error", onError, { once: true });
+    socket.addEventListener("open",  onOpen,  { once: true });
+    socket.addEventListener("error", onErr,   { once: true });
     socket.addEventListener("close", onClose, { once: true });
   });
 }
 
 async function connect() {
-  setStatus("connecting...");
   ws = new WebSocket(WS_URL);
   ws.binaryType = "arraybuffer";
 
-  // Reset playback queue on each new connection.
-  if (!playbackCtx) {
-    playbackCtx = new AudioContext({ sampleRate: 24000 });
-  }
+  if (!playbackCtx) playbackCtx = new AudioContext({ sampleRate: 24000 });
 
   ws.onopen = () => {
-    setStatus("connected", "connected");
-    appendTranscript("[ws] connected to " + WS_URL);
+    appendLine("system", "Connected to " + WS_URL);
   };
 
   ws.onclose = (ev) => {
-    setStatus("disconnected");
-    appendTranscript("[ws] closed code=" + ev.code + " reason=" + (ev.reason || "(none)"));
+    clearHeartbeat();
     stopCapture();
-    // Tear down the playback AudioContext so resources do not leak across
-    // reconnects. nextStart is module-level scheduling state for the
-    // current context; reset it so the next connect() starts cleanly.
     if (playbackCtx) {
       const ctx = playbackCtx;
       playbackCtx = null;
       nextStart = 0;
       ctx.close().catch((e) => console.warn("playbackCtx close failed", e));
     }
+    if (ev.code !== 1000 && state !== "error") {
+      // D-28 trigger: ws-connect-failed = onclose with code != 1000.
+      fail("ws-connect-failed", WID06.wsConnectFailed);
+    } else if (state !== "error") {
+      setState("idle");
+      appendLine("system", "Disconnected.");
+    }
   };
 
-  ws.onerror = (ev) => {
-    setStatus("error", "error");
-    appendTranscript("[ws] error (see DevTools console for details)");
-    console.error("ws error", ev);
+  ws.onerror = () => {
+    // D-28 trigger: ws-connect-failed = ws.onerror.
+    if (state !== "error") fail("ws-connect-failed", WID06.wsConnectFailed);
   };
 
   ws.onmessage = (event) => {
     if (typeof event.data === "string") {
-      // Control / transcript text frame from Pipecat.
-      appendTranscript("[text] " + event.data);
+      // Pipecat control text frame - surface as system line for visibility.
+      appendLine("system", event.data);
       return;
     }
-    // Binary frame: 24 kHz mono Int16 PCM. Schedule sequentially so multi-
-    // frame responses play without clicks/dropouts.
+    inboundBinarySeen = true;
+    armHeartbeat();
+    // Bump UX state to "speaking" on first audio chunk; flip back to listening
+    // after the playback queue drains.
+    if (state === "listening") setState("speaking");
     const int16 = new Int16Array(event.data);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
-    const buffer = playbackCtx.createBuffer(1, float32.length, 24000);
-    buffer.copyToChannel(float32, 0);
+    const f32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) f32[i] = int16[i] / 32768;
+    const buf = playbackCtx.createBuffer(1, f32.length, 24000);
+    buf.copyToChannel(f32, 0);
     const src = playbackCtx.createBufferSource();
-    src.buffer = buffer;
+    src.buffer = buf;
     src.connect(playbackCtx.destination);
     const startAt = Math.max(playbackCtx.currentTime, nextStart);
     src.start(startAt);
-    nextStart = startAt + buffer.duration;
+    nextStart = startAt + buf.duration;
+    src.onended = () => {
+      if (state === "speaking" && playbackCtx && nextStart <= playbackCtx.currentTime + 0.05) {
+        setState("listening");
+      }
+    };
   };
 }
 
 async function startCapture() {
   if (recording) return;
 
-  // Resume playback context (browser autoplay policy: needs user gesture).
-  if (playbackCtx && playbackCtx.state === "suspended") {
-    await playbackCtx.resume();
-  }
+  if (playbackCtx && playbackCtx.state === "suspended") await playbackCtx.resume();
 
+  // D-28 trigger: mic-permission-denied = getUserMedia reject. Caller fail() handles.
   mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-    },
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
   });
 
-  // captureCtx defaults to the device's native rate (often 48 kHz). The
-  // worklet downsamples to 16 kHz before posting to main thread.
+  // D-28 trigger: mic-muted = MediaStreamTrack.muted event.
+  for (const track of mediaStream.getAudioTracks()) {
+    track.addEventListener("mute", () => {
+      micMutedEl.hidden = false;
+      appendLine("error", WID06.micMuted);
+    });
+    track.addEventListener("unmute", () => {
+      micMutedEl.hidden = true;
+      appendLine("system", WID06.micUnmuted);
+    });
+  }
+
   captureCtx = new AudioContext();
   await captureCtx.audioWorklet.addModule("audio-capture-worklet.js");
-
   captureSource = captureCtx.createMediaStreamSource(mediaStream);
   captureNode = new AudioWorkletNode(captureCtx, "capture-processor");
   captureSource.connect(captureNode);
 
-  let droppedFrames = 0;
+  let dropped = 0;
   captureNode.port.onmessage = (e) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(e.data); // raw 16 kHz Int16 LE PCM
-      return;
-    }
-    droppedFrames += 1;
-    if (droppedFrames === 1 || droppedFrames % 25 === 0) {
-      console.warn("[mic] WS not OPEN; dropped frame", droppedFrames);
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) { ws.send(e.data); return; }
+    dropped += 1;
+    if (dropped === 1 || dropped % 25 === 0) console.warn("[mic] WS not OPEN; dropped frame", dropped);
   };
 
   recording = true;
-  recordBtn.textContent = "Recording (click to stop)";
-  recordBtn.classList.add("recording");
-  setStatus("recording", "connected");
-  appendTranscript("[mic] capture started @ " + captureCtx.sampleRate + " Hz native, 16000 Hz wire");
+  armHeartbeat();
+  appendLine("system", `Mic capture started @ ${captureCtx.sampleRate} Hz native, 16000 Hz wire.`);
 }
 
 function stopCapture() {
   if (!recording) return;
   recording = false;
-  recordBtn.textContent = "Record";
-  recordBtn.classList.remove("recording");
-  if (captureNode) { captureNode.disconnect(); captureNode = null; }
+  micMutedEl.hidden = true;
+  if (captureNode)   { captureNode.disconnect();   captureNode   = null; }
   if (captureSource) { captureSource.disconnect(); captureSource = null; }
-  if (captureCtx) { captureCtx.close(); captureCtx = null; }
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((t) => t.stop());
-    mediaStream = null;
-  }
-  appendTranscript("[mic] capture stopped");
+  if (captureCtx)    { captureCtx.close();         captureCtx    = null; }
+  if (mediaStream)   { mediaStream.getTracks().forEach((t) => t.stop()); mediaStream = null; }
+  appendLine("system", "Mic capture stopped.");
 }
 
 async function init() {
-  // Probe getUserMedia availability (some browsers / non-HTTPS origins block it).
+  // D-28 trigger: getUserMedia unsupported (non-HTTPS origin).
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus("getUserMedia unsupported", "error");
-    appendTranscript("[init] navigator.mediaDevices.getUserMedia is unavailable. Use Chrome/Edge over http://localhost or HTTPS.");
+    fail("getusermedia-unsupported", WID06.getUserMediaUnsupported);
+    recordBtn.disabled = true;
     return;
   }
 
+  setState("idle");
   recordBtn.disabled = false;
-  recordBtn.textContent = "Record";
 
   recordBtn.addEventListener("click", async () => {
+    if (state === "speaking") return; // disabled
+    if (state === "error") {
+      // Reset to idle and let user retry.
+      placeholderEmitted = true; // keep the error history visible - do not wipe transcript
+      setState("idle");
+      return;
+    }
+    if (state === "listening") {
+      stopCapture();
+      if (ws && ws.readyState <= 1) ws.close(1000, "user-stop");
+      setState("idle");
+      return;
+    }
+    // state === "idle" -> connect + capture.
+    setState("connecting");
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       try {
         await connect();
-        // Block until WS handshake completes; do not start capture early.
         await waitForOpen(ws);
-      } catch (e) {
-        setStatus("ws error", "error");
-        appendTranscript("[ws] failed to open before capture; aborting");
-        console.error("ws open error", e);
+      } catch {
+        fail("ws-connect-failed", WID06.wsConnectFailed);
         return;
       }
     }
-    if (recording) {
-      stopCapture();
-    } else {
-      try {
-        await startCapture();
-      } catch (e) {
-        // Mic permission denied or device unavailable. Surface clearly; do
-        // not silently retry (per AGENTS.md root-cause discipline).
-        setStatus("mic error", "error");
-        appendTranscript("[mic] error: " + e.message);
-        console.error("mic error", e);
-      }
+    setState("listening");
+    try {
+      await startCapture();
+    } catch (e) {
+      // getUserMedia reject branch -> mic-permission-denied (D-28 trigger).
+      fail("mic-permission-denied", WID06.micPermissionDenied);
+      console.error("mic error", e);
     }
   });
 }
