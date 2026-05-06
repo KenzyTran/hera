@@ -3,74 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hera Voice Agent (Local Dev)</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 720px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-      color: #222;
-    }
-    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
-    .subtitle { color: #666; margin-top: 0; }
-    .status {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      background: #eee;
-      font-size: 0.85rem;
-    }
-    .status.connected { background: #cfe9d4; color: #1a5e2a; }
-    .status.error { background: #f4cccc; color: #8b1a1a; }
-    button {
-      font-size: 1rem;
-      padding: 0.6rem 1.2rem;
-      margin: 1rem 0;
-      cursor: pointer;
-      border: 1px solid #888;
-      border-radius: 4px;
-      background: #fff;
-    }
-    button.recording {
-      background: #e74c3c;
-      color: #fff;
-      border-color: #c0392b;
-    }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-    #transcript {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: #fafafa;
-      min-height: 8rem;
-      max-height: 24rem;
-      overflow-y: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.85rem;
-      white-space: pre-wrap;
-    }
-    .hint { color: #888; font-size: 0.85rem; margin-top: 1rem; }
-  </style>
+  <title>Hera Voice Agent</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Hera Voice Agent</h1>
-  <p class="subtitle">Phase 2 local dev. Talks to Amazon Nova 2 Sonic and the Phase 1 KB.</p>
+  <div role="region" aria-label="demo notice" class="banner">
+    <p class="banner-body">Instructor demo. Daily cost capped at $5/day. For your own deployment, <a href="#" aria-disabled="true" title="Workshop publishes in Phase 5">follow the workshop</a>.</p>
+  </div>
 
-  <p>Status: <span id="status" class="status">disconnected</span></p>
+  <main class="card">
+    <h1>Hera Voice Agent</h1>
+    <p class="subtitle">Apple Store assistant on Amazon Bedrock Nova 2 Sonic.</p>
 
-  <button id="recordBtn" disabled>Click to allow mic</button>
+    <p class="status-row">Status: <span id="status" class="status" role="status" aria-live="polite">disconnected</span></p>
 
-  <p class="hint">
-    Allow the microphone permission, click Record, then ask:
-    "Do you have MacBook Pro?" - the agent should answer in under 3 seconds.
-  </p>
+    <button id="recordBtn" class="btn btn-idle" type="button" disabled aria-pressed="false">Click to allow mic</button>
+    <p id="micMuted" class="mic-muted-label" hidden>mic muted</p>
 
-  <div id="transcript">(transcript / control frames will appear here)</div>
+    <p class="hint">Allow microphone access, click Record, then ask: "Do you have MacBook Pro?" - the agent answers in under 3 seconds.</p>
+
+    <div id="transcript" role="log" aria-live="polite" aria-atomic="false" class="transcript">(transcript will appear here once you start recording)</div>
+  </main>
 
   <script src="app.js"></script>
 </body>
