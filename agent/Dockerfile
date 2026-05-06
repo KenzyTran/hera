@@ -37,6 +37,12 @@ RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 ENV PATH="/app/.venv/bin:$PATH"
+# Prod-default config baked into image so AgentCore Runtime (no env injection)
+# uses sane defaults. docker-compose.yml overrides win in dev (Docker semantics:
+# container env > image ENV). Do NOT bake AWS credentials here — those come
+# from env (local) or IMDSv2 (AgentCore exec role).
+ENV HERA_KB_ID=BKXE19AH89
+ENV AWS_REGION=ap-northeast-1
 EXPOSE 8080
 
 # Health probe matches AgentCore Runtime contract (GET /ping returning Healthy).
