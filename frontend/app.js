@@ -5,13 +5,22 @@
 // branches wired to D-28 trigger events, and the AGENTCORE_WSS_URL build-time
 // placeholder per D-27.
 
-// Build-time replacement target: bin/build-widget.sh runs
-// `sed "s|__AGENTCORE_WSS_URL__|${AGENTCORE_WSS_URL}|g"` on a build copy
-// before the s3 sync. The source file commits with the local-dev URL so
-// `docker compose up` keeps working unchanged (CONTEXT.md D-27 Local dev unchanged).
-const WS_URL = (typeof __AGENTCORE_WSS_URL__ !== "undefined")
-  ? "__AGENTCORE_WSS_URL__"
-  : "ws://localhost:8080/ws";
+// Build-time replacement target (Plan 03-04 Rule-4 deviation): the browser
+// cannot SigV4-sign a WSS upgrade directly, so the widget fetches a
+// short-lived presigned URL from a Lambda Function URL before opening the
+// WebSocket. PRESIGN_URL is the Function URL; bin/build-widget.sh
+// sed-replaces __PRESIGN_URL__ in the dist/ build copy. The source file
+// commits with the local-dev sentinel so `docker compose up` keeps working
+// unchanged via the typeof guard (CONTEXT.md D-27 Local dev unchanged).
+//
+// Local dev: PRESIGN_URL is undefined -> WS_LOCAL_DEV_URL is used directly
+// against the local Pipecat agent at ws://localhost:8080/ws.
+// Production: PRESIGN_URL points at the Function URL; connect() fetches
+// {url} from it then opens that wss://.
+const PRESIGN_URL = (typeof __PRESIGN_URL__ !== "undefined")
+  ? "__PRESIGN_URL__"
+  : null;
+const WS_LOCAL_DEV_URL = "ws://localhost:8080/ws";
 
 // 30s heartbeat per D-28 agent-timeout trigger event.
 const HEARTBEAT_MS = 30000;
@@ -152,14 +161,31 @@ function waitForOpen(socket) {
   });
 }
 
+async function resolveWsUrl() {
+  // Local dev path: no presign URL configured -> use the local-dev sentinel.
+  if (!PRESIGN_URL) return WS_LOCAL_DEV_URL;
+  // Production path: fetch a short-lived presigned WSS URL from the Lambda
+  // Function URL. Failures here flow through the existing ws-connect-failed
+  // WID-06 branch (D-28 trigger).
+  const resp = await fetch(PRESIGN_URL, { method: "GET", cache: "no-store" });
+  if (!resp.ok) throw new Error("presign fetch failed: HTTP " + resp.status);
+  const body = await resp.json();
+  if (!body.url) throw new Error("presign response missing url");
+  return body.url;
+}
+
 async function connect() {
-  ws = new WebSocket(WS_URL);
+  // Fetch the WSS URL FIRST (presign call); only then open the socket.
+  // A presign-fetch failure raises and is caught by the click handler's
+  // try/catch -> fail("ws-connect-failed", ...) (D-28 trigger).
+  const wsUrl = await resolveWsUrl();
+  ws = new WebSocket(wsUrl);
   ws.binaryType = "arraybuffer";
 
   if (!playbackCtx) playbackCtx = new AudioContext({ sampleRate: 24000 });
 
   ws.onopen = () => {
-    appendLine("system", "Connected to " + WS_URL);
+    appendLine("system", "Connected.");
   };
 
   ws.onclose = (ev) => {

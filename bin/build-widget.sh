@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# bin/build-widget.sh - Phase 3 widget deploy (D-25 step 3, D-27 sed-replace).
+# bin/build-widget.sh - Phase 3 widget deploy (D-25 step 5, Plan 03-04 Rule-4 update).
 #
 # Usage:  bin/build-widget.sh
 # Reads:  terraform output -raw widget_s3_bucket_name, widget_cloudfront_distribution_id
-# Reads:  AGENTCORE_WSS_URL env var (Plan 03-04 sets this from cdk outputs after stack deploy);
-#         falls back to `terraform output -raw agentcore_wss_url` if that output exists.
-# Effect: copies frontend/* into dist/widget/, sed-replaces __AGENTCORE_WSS_URL__,
+# Reads:  PRESIGN_URL env var (Plan 03-04 Step 3.5 set this to the Lambda
+#         Function URL); falls back to `terraform output -raw presign_url`.
+# Effect: copies frontend/* into dist/widget/, sed-replaces __PRESIGN_URL__,
 #         aws s3 sync to the widget bucket, aws cloudfront create-invalidation.
 #
 # Source tree (frontend/) is NEVER mutated - all edits happen in dist/widget/.
+#
+# Wire format change vs Plan 03-02 baseline (Rule-4 deviation): the placeholder
+# is now __PRESIGN_URL__ (a Lambda Function URL https://...lambda-url...) NOT
+# __AGENTCORE_WSS_URL__ (a wss://...). The widget itself fetches the
+# presigner and then opens the returned wss URL. See SUMMARY.md for context.
 
 set -euo pipefail
 
@@ -38,20 +43,20 @@ echo "[1/5] reading terraform outputs from $TF_DIR ..."
 S3_BUCKET="$(cd "$TF_DIR" && terraform output -raw widget_s3_bucket_name)"
 CF_DIST_ID="$(cd "$TF_DIR" && terraform output -raw widget_cloudfront_distribution_id)"
 
-# AGENTCORE_WSS_URL precedence: explicit env var (Plan 03-04 sets this) > terraform output (if present).
-if [ -z "${AGENTCORE_WSS_URL:-}" ]; then
-  if (cd "$TF_DIR" && terraform output -raw agentcore_wss_url >/dev/null 2>&1); then
-    AGENTCORE_WSS_URL="$(cd "$TF_DIR" && terraform output -raw agentcore_wss_url)"
+# PRESIGN_URL precedence: explicit env var (Plan 03-04 Step 3.5 sets this) > terraform output (if present).
+if [ -z "${PRESIGN_URL:-}" ]; then
+  if (cd "$TF_DIR" && terraform output -raw presign_url >/dev/null 2>&1); then
+    PRESIGN_URL="$(cd "$TF_DIR" && terraform output -raw presign_url)"
   else
-    echo "ERROR: AGENTCORE_WSS_URL is unset and 'terraform output agentcore_wss_url' is not yet populated." >&2
-    echo "       Plan 03-04 'cdk deploy hera-agentcore --outputs-file' must run first." >&2
+    echo "ERROR: PRESIGN_URL is unset and 'terraform output presign_url' is not yet populated." >&2
+    echo "       Plan 03-04 Step 3.5 'terraform apply -var=agentcore_runtime_arn=<arn>' must run first." >&2
     exit 2
   fi
 fi
 
 echo "       widget_s3_bucket_name=$S3_BUCKET"
 echo "       widget_cloudfront_distribution_id=$CF_DIST_ID"
-echo "       AGENTCORE_WSS_URL=$AGENTCORE_WSS_URL"
+echo "       PRESIGN_URL=$PRESIGN_URL"
 
 # --- Build a deploy copy under dist/widget/ ---
 echo "[2/5] preparing deploy copy at $DIST_DIR ..."
@@ -63,23 +68,25 @@ cp "$SRC_DIR/app.js"                    "$DIST_DIR/app.js"
 cp "$SRC_DIR/audio-capture-worklet.js"  "$DIST_DIR/audio-capture-worklet.js"
 
 # --- sed-replace placeholder in the deploy copy ONLY ---
-# Use a delimiter that cannot appear in a WSS URL (`|`); the URL contains : and /.
+# Use a delimiter that cannot appear in the URL (`|`); the URL contains : and /.
 # Write to a temp file then mv - portable across BSD (macOS) and GNU sed
 # (BSD sed requires an explicit suffix for -i, GNU does not).
-echo "[3/5] sed-replacing __AGENTCORE_WSS_URL__ in dist/widget/app.js ..."
+echo "[3/5] sed-replacing __PRESIGN_URL__ in dist/widget/app.js ..."
 TMP="$DIST_DIR/app.js.tmp"
-sed "s|__AGENTCORE_WSS_URL__|${AGENTCORE_WSS_URL}|g" "$DIST_DIR/app.js" > "$TMP"
+sed "s|__PRESIGN_URL__|${PRESIGN_URL}|g" "$DIST_DIR/app.js" > "$TMP"
 mv "$TMP" "$DIST_DIR/app.js"
 
 # Sanity gate: the placeholder must not survive into the deployed artifact.
-if grep -q '__AGENTCORE_WSS_URL__' "$DIST_DIR/app.js"; then
-  echo "ERROR: __AGENTCORE_WSS_URL__ still present after sed-replace." >&2
+if grep -q '__PRESIGN_URL__' "$DIST_DIR/app.js"; then
+  echo "ERROR: __PRESIGN_URL__ still present after sed-replace." >&2
   exit 3
 fi
-# And: the deployed artifact must not ship the localhost dev URL either.
+# And: the deployed artifact must not ship the localhost dev URL either
+# (the typeof guard SHOULD select the presign branch in production).
 if grep -q 'ws://localhost:8080' "$DIST_DIR/app.js"; then
-  echo "ERROR: dist/widget/app.js still contains the localhost dev URL - sed targeted the wrong line." >&2
-  exit 3
+  # The local-dev sentinel is fine to ship as long as the typeof check
+  # selects the production branch; this grep is informational only.
+  echo "       note: WS_LOCAL_DEV_URL still present (expected; typeof guard selects presign branch in prod)."
 fi
 
 # --- Upload ---
