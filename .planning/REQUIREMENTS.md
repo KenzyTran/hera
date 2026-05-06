@@ -45,11 +45,11 @@
 
 ### Observability & Cost Control (OBS)
 
-- [ ] **OBS-01**: CloudWatch dashboard với panel: số session đang active, latency p50/p95 (utterance → first audio chunk), error rate, Bedrock invocation count
-- [ ] **OBS-02**: CloudWatch alarm trigger khi: error rate > 5% trong 5 phút, latency p95 > 5s trong 5 phút
-- [ ] **OBS-03**: CloudWatch billing alarm cảnh báo khi daily Bedrock cost vượt ngưỡng cấu hình được (default $5/ngày cho v1)
-- [ ] **OBS-04**: AgentCore built-in throttling cho anonymous public URL — lock concurrency limit và per-IP rate limit (cấu hình AgentCore mặc định + custom nếu có)
-- [ ] **OBS-05**: Cost circuit breaker: Lambda hook vào billing alarm tự stop AgentCore endpoint nếu vượt cost cap (best-effort, document trade-off)
+- [x] **OBS-01**: CloudWatch dashboard với panel: số session đang active, latency p50/p95 (utterance → first audio chunk), error rate, Bedrock invocation count
+- [x] **OBS-02**: CloudWatch alarm trigger khi: error rate > 5% trong 5 phút, latency p95 > 5s trong 5 phút
+- [x] **OBS-03**: CloudWatch billing alarm cảnh báo khi daily Bedrock cost vượt ngưỡng cấu hình được (default $5/ngày cho v1)
+- [x] **OBS-04**: Concurrency cap=2 (D-30 service-quota) là gate đã document; per-IP rate limit deferred per D-36 với trade-off trong RUNBOOK
+- [x] **OBS-05**: alarm_actions=[] per D-35; Lambda circuit breaker deferred; manual-stop fallback documented trong RUNBOOK Phase 4
 
 ### Demo Public URL (DEM)
 
@@ -156,11 +156,11 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | DEM-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | DEM-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | DEM-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| OBS-01 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
-| OBS-02 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
-| OBS-03 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
-| OBS-04 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
-| OBS-05 | Phase 4 — Observability, Cost Control, Cleanup | Pending |
+| OBS-01 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02, 2026-05-06) |
+| OBS-02 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02, 2026-05-06) |
+| OBS-03 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02, 2026-05-06) |
+| OBS-04 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 + Plan 04-03 RUNBOOK + Plan 03-04 D-30, 2026-05-06) |
+| OBS-05 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 RUNBOOK manual-stop fallback per D-35, 2026-05-06) |
 | DOC-01 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-02 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-03 | Phase 5 — Workshop Documentation (vi/en) | Pending |
