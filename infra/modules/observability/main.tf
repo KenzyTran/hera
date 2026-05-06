@@ -170,3 +170,22 @@ resource "aws_cloudwatch_metric_alarm" "latency_p95" {
   extended_statistic = "p95"
   dimensions         = { Resource = var.agentcore_runtime_arn }
 }
+
+# --- Billing alarm: us-east-1 only (AWS/Billing service constraint) ---
+resource "aws_cloudwatch_metric_alarm" "billing" {
+  provider = aws.us_east_1
+
+  alarm_name          = "${var.name_prefix}-billing-${var.env}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  threshold           = var.billing_threshold_usd
+  alarm_description   = "Estimated AWS charges > $${var.billing_threshold_usd}/day cap (D-29 banner copy hardcode)"
+  treat_missing_data  = "missing"
+  alarm_actions       = []
+
+  metric_name = "EstimatedCharges"
+  namespace   = "AWS/Billing"
+  period      = 21600
+  statistic   = "Maximum"
+  dimensions  = { Currency = "USD" }
+}
