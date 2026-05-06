@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans) — completed 2026-05-05
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
-- [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — completed 2026-05-06 (infrastructure scope; live voice-loop closure deferred to Phase 4 OBS work due to agent credential-injection gap, see Plan 03-04 SUMMARY)
-- [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account
+- [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY)
+- [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **NEW Wave-1 priority:** ship the agent protocol-bridge follow-up plan (suggested `04-XX-agent-protocol-bridge`) that closes Phase 3 SC#2 by exposing `POST /invocations` per AgentCore HTTP protocol contract — Plan 03-05 closed the credential gap but surfaced a separate routing gap that out-scopes Phase 3.
 - [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy
 
 ## Phase Details
@@ -95,6 +95,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Wave 3** *(03-04 depends on 03-01 + 03-02 + 03-03: needs all TF outputs, deployed widget, pushed image)*
 - [x] 03-04-PLAN.md — CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section. Covers DEP-01, DEP-02, DEP-03, DEP-04, DEP-06, DEM-01, (DEM-02 partial). *(completed 2026-05-06; live AgentCore Runtime hera_agent-GIsf2P4ImD + widget_presigner Lambda Function URL Rule-4 deviation + 4-step lifecycle; 9 atomic commits; live voice-loop closure blocked by agent static-credential injection gap deferred to Phase 4 follow-up plan; commits 072054e, 0893b2b, 449b446, 51d0f05, 2ced2fc, c5b7f8c, 774adfb, 214068b, ab44397)*
 
+**Wave 4** *(03-05 depends on 03-04: needs the live AgentCore Runtime with the credential-injection blocker exposed)*
+- [x] 03-05-PLAN.md — Agent credential bridge (gap-closure): 3-file fix for AgentCore IMDSv2 + no-env-injection contract: lazy-default config (`os.environ.get` with prod defaults), boto3 default credential chain in `build_llm()`, Dockerfile `ENV HERA_KB_ID + AWS_REGION` bake-in. Container now survives cold-start under no-env-vars conditions. *(completed 2026-05-06T07:00Z; 3 source-code commits + 1 live-deploy evidence empty-commit + 1 metadata commit; image hera-agent:5f21e36 multi-arch on ECR; AgentCore Runtime updated in place to version=2 status=READY; AgentCore invocation moved 424 → 404 (proves credential gap closed); commits 0242c01, 5ebc650, 5f21e36, f5a6b1c)*. **Closes the credential bridge; Phase 3 SC#2 (live browser voice loop) deferred to a Phase 4 protocol-bridge follow-up plan due to a NEW gap discovered during this plan: AgentCore HTTP protocol calls `POST /invocations` per Bedrock convention while the FastAPI app exposes only `GET /ping` + `WebSocket /ws`.**
+
 **UI hint**: yes (UI-SPEC.md commit a71b70a is the design contract)
 
 ### Phase 4: Observability, Cost Control, Cleanup
@@ -131,8 +134,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 3/4 | Wave 2 complete (03-03 live ECR push: hera-agent:5e574b3 multi-arch); Wave 3 next (03-04 CDK + smoke) | - |
-| 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Plans complete; SC#2 (live voice loop) deferred to Phase 4 protocol-bridge follow-up — see 03-05-SUMMARY | 2026-05-06 |
+| 4. Observability, Cost Control, Cleanup | 0/TBD | Protocol-bridge follow-up plan needed (closes Phase 3 SC#2) | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
 
 ## Notes on Phase Shape
