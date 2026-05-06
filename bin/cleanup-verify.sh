@@ -93,7 +93,102 @@ _check_gone "AgentCore Runtime hera_agent-GIsf2P4ImD" \
 _check_gone "CFn stack hera-agentcore" \
   aws cloudformation describe-stacks --stack-name hera-agentcore --region "${REGION}"
 
-# (Tasks 2 + 3 of this plan extend with checks 7-19 + final summary.)
+# --- 7. CW log group /aws/bedrock-agentcore/hera-agent ---
+_check_count_zero "CW log group /aws/bedrock-agentcore/hera-agent" \
+  env MSYS_NO_PATHCONV=1 aws logs describe-log-groups \
+    --log-group-name-prefix /aws/bedrock-agentcore/hera-agent \
+    --region "${REGION}" \
+    --query 'logGroups | length(@)' --output text
+
+# --- 8. CW log group /aws/lambda/hera-widget-presign-prod ---
+_check_count_zero "CW log group /aws/lambda/hera-widget-presign-prod" \
+  env MSYS_NO_PATHCONV=1 aws logs describe-log-groups \
+    --log-group-name-prefix /aws/lambda/hera-widget-presign-prod \
+    --region "${REGION}" \
+    --query 'logGroups | length(@)' --output text
+
+# --- 9. IAM role hera-agentcore-exec-prod ---
+_check_gone "IAM role hera-agentcore-exec-prod" \
+  aws iam get-role --role-name hera-agentcore-exec-prod
+
+# --- 10. IAM role hera-widget-presign-prod-exec ---
+_check_gone "IAM role hera-widget-presign-prod-exec" \
+  aws iam get-role --role-name hera-widget-presign-prod-exec
+
+# --- 11. IAM role hera-kb-service-role (A5 resolved 2026-05-06: actual name
+# from `terraform state show module.knowledge_base.aws_iam_role.kb_service_role`
+# is hera-kb-service-role, NOT hera-kb-service-prod). ---
+_check_gone "IAM role hera-kb-service-role" \
+  aws iam get-role --role-name hera-kb-service-role
+
+# --- 12. IAM policy hera-kb-retrieve-prod ---
+_check_count_zero "IAM policy hera-kb-retrieve-prod" \
+  aws iam list-policies --scope Local \
+    --query "Policies[?PolicyName=='hera-kb-retrieve-prod'] | length(@)" --output text
+
+# --- 13. ECR repo hera-agent ---
+_check_gone "ECR repo hera-agent" \
+  aws ecr describe-repositories --repository-names hera-agent --region "${REGION}"
+
+# --- 14. CloudFront distribution E10K3B1L8PQ9EC ---
+_check_gone "CloudFront distribution E10K3B1L8PQ9EC" \
+  aws cloudfront get-distribution --id E10K3B1L8PQ9EC
+
+# --- 15. S3 widget bucket hera-widget-prod ---
+_check_gone "S3 widget bucket hera-widget-prod" \
+  aws s3api head-bucket --bucket hera-widget-prod --region "${REGION}"
+
+# --- 16. Lambda hera-widget-presign-prod ---
+_check_gone "Lambda hera-widget-presign-prod" \
+  aws lambda get-function --function-name hera-widget-presign-prod --region "${REGION}"
+
+# --- 17. Billing alarm hera-billing-prod (us-east-1) ---
+_check_count_zero "Billing alarm hera-billing-prod (us-east-1)" \
+  aws cloudwatch describe-alarms \
+    --alarm-names hera-billing-prod \
+    --region "${BILLING_REGION}" \
+    --query 'MetricAlarms | length(@)' --output text
+
+# --- 18. Op alarm hera-error-rate-prod (ap-northeast-1) ---
+_check_count_zero "Op alarm hera-error-rate-prod" \
+  aws cloudwatch describe-alarms \
+    --alarm-names hera-error-rate-prod \
+    --region "${REGION}" \
+    --query 'MetricAlarms | length(@)' --output text
+
+# --- 18b. Op alarm hera-latency-p95-prod (ap-northeast-1) ---
+_check_count_zero "Op alarm hera-latency-p95-prod" \
+  aws cloudwatch describe-alarms \
+    --alarm-names hera-latency-p95-prod \
+    --region "${REGION}" \
+    --query 'MetricAlarms | length(@)' --output text
+
+# --- 19. Dashboard hera-prod ---
+_check_gone "Dashboard hera-prod" \
+  aws cloudwatch get-dashboard --dashboard-name hera-prod --region "${REGION}"
+
+# --- final summary + cleanup-contract hints on FAIL ---
+TOTAL=$((PASS_COUNT + FAIL_COUNT))
 echo "----------------------------------------"
-echo "Partial run (Task 1 of 04-03): ${PASS_COUNT} pass / ${FAIL_COUNT} fail (6 of 19 checks)"
-exit 0  # Task 1 only ships 6 checks; final exit code logic ships in Task 2.
+echo "cleanup-verify: ${PASS_COUNT}/${TOTAL} resources verified clean"
+
+if [[ "${FAIL_COUNT}" -gt 0 ]]; then
+  echo "" >&2
+  echo "FAIL: ${FAIL_COUNT} resource(s) still exist." >&2
+  echo "" >&2
+  echo "Hints:" >&2
+  echo "  - Did you run 'cdk destroy hera-agentcore' BEFORE 'terraform destroy'?" >&2
+  echo "    (D-24 cleanup-contract: CDK owns AgentCore Runtime which holds the IAM" >&2
+  echo "    exec role TF tries to delete.)" >&2
+  echo "  - ECR repo 'hera-agent' still exists with image tags?" >&2
+  echo "    Run 'aws ecr batch-delete-image --repository-name hera-agent --image-ids" >&2
+  echo "    imageTag=<tag>' for each remaining tag, or set var.force_delete=true and" >&2
+  echo "    re-run terraform destroy." >&2
+  echo "  - CloudFront distribution still exists?" >&2
+  echo "    terraform destroy may have been interrupted during the 15-30 min" >&2
+  echo "    disable-then-delete cycle. Re-run terraform destroy." >&2
+  exit 1
+fi
+
+echo "OK (cleanup): all hera resources removed"
+exit 0
