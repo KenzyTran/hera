@@ -42,7 +42,7 @@ variable "presign_ttl_seconds" {
 }
 
 variable "reserved_concurrent_executions" {
-  description = "Lambda reserved concurrency cap. v1 = 5 for blast-radius bounding (anonymous public Function URL has no auth)."
+  description = "Lambda reserved concurrency cap. -1 = unreserved (Lambda default; no per-function cap). Setting > 0 reserves account capacity; AWS enforces a 10-concurrency floor for UnreservedConcurrentExecution, so on a fresh account where the quota is 10, any positive value raises InvalidParameterValueException. Default -1 = defer the per-IP / per-function cap to Phase 4 OBS-04/OBS-05 per user-approved Plan 03-04 Task 5 Q2 option (i)."
   type        = number
-  default     = 5
+  default     = -1
 }

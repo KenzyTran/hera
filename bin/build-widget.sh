@@ -94,12 +94,14 @@ echo "[4/5] aws s3 sync -> s3://$S3_BUCKET/ ..."
 aws s3 sync "$DIST_DIR/" "s3://$S3_BUCKET/" --delete --no-progress
 
 # --- Invalidate CloudFront ---
-# Cache: 4 paths total - invalidate /index.html /app.js /styles.css /audio-capture-worklet.js
-# rather than /* so we stay below the 1000-free-paths/month threshold.
+# CloudFront free tier = 1000 paths/month. /* counts as ONE invalidation path
+# so it's well within free tier even for daily deploys. The multi-path form
+# was failing on Windows bash with InvalidArgument; /* is simpler and works
+# cross-platform.
 echo "[5/5] aws cloudfront create-invalidation --distribution-id $CF_DIST_ID ..."
 aws cloudfront create-invalidation \
   --distribution-id "$CF_DIST_ID" \
-  --paths "/index.html" "/app.js" "/styles.css" "/audio-capture-worklet.js" \
+  --paths "/*" \
   --no-cli-pager >/dev/null
 
 echo "OK: widget deployed."

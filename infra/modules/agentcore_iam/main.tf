@@ -51,7 +51,7 @@ resource "aws_cloudwatch_log_group" "agentcore" {
   retention_in_days = 30
 }
 
-# --- Inline policy: Sonic bidi-stream + scoped CloudWatch logs/metrics ---
+# --- Inline policy: Sonic bidi-stream + scoped CloudWatch logs/metrics + ECR pull ---
 data "aws_iam_policy_document" "agentcore_inline" {
 
   statement {
@@ -59,6 +59,33 @@ data "aws_iam_policy_document" "agentcore_inline" {
     effect    = "Allow"
     actions   = ["bedrock:InvokeModelWithBidirectionalStream"]
     resources = [var.sonic_model_arn]
+  }
+
+  # ECR pull for AgentCore container image. Required by AgentCore Runtime
+  # CFn validation (CREATE_FAILED with "Access denied while validating ECR
+  # URI" otherwise). GetAuthorizationToken has no resource-level scoping in
+  # IAM (the API target is the registry, not a repository) so the AWS
+  # least-privilege pattern is Resource=* with the action limited to the
+  # token call alone; the actual layer/manifest reads ARE scoped to the
+  # specific repo ARN. Same documented-exception pattern as the
+  # cloudwatch:PutMetricData statement below.
+  statement {
+    sid       = "ECRGetAuthorizationToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ECRPullHeraAgent"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+    ]
+    resources = [
+      "arn:aws:ecr:${var.region}:${var.account_id}:repository/hera-agent",
+    ]
   }
 
   statement {

@@ -55,11 +55,19 @@ resource "aws_iam_role" "presign" {
 }
 
 // --- Inline policy: invoke the AgentCore runtime + write logs to its own log group ---
+// The presigned URL is consumed at the WSS data-plane endpoint; AWS validates
+// the SigV4 signature against the role identity that signed it. The actual
+// IAM action AgentCore checks for is InvokeAgentRuntimeWithWebSocketStream
+// (NOT InvokeAgentRuntime, which is the synchronous HTTP-only request path).
+// Both are scoped to the specific runtime ARN; zero wildcards (D-13).
 data "aws_iam_policy_document" "presign_inline" {
   statement {
-    sid     = "InvokeAgentRuntime"
-    effect  = "Allow"
-    actions = ["bedrock-agentcore:InvokeAgentRuntime"]
+    sid    = "InvokeAgentRuntime"
+    effect = "Allow"
+    actions = [
+      "bedrock-agentcore:InvokeAgentRuntime",
+      "bedrock-agentcore:InvokeAgentRuntimeWithWebSocketStream",
+    ]
     resources = [
       local.invoke_resource,
       "${local.invoke_resource}/*",
@@ -127,13 +135,17 @@ resource "aws_lambda_function" "presign" {
 }
 
 // --- Function URL: anonymous public (auth=NONE), CORS locked to CloudFront origin ---
+// Note: Lambda Function URL CORS spec accepts only the 6 standard HTTP verbs
+// (GET, POST, PUT, DELETE, HEAD, PATCH) or "*" for allow_methods. OPTIONS
+// preflight is handled by Lambda automatically and must NOT be listed here
+// (CreateFunctionUrlConfig returns ValidationException on OPTIONS).
 resource "aws_lambda_function_url" "presign" {
   function_name      = aws_lambda_function.presign.function_name
   authorization_type = "NONE"
 
   cors {
     allow_origins     = [var.cors_allow_origin]
-    allow_methods     = ["GET", "OPTIONS"]
+    allow_methods     = ["GET"]
     allow_headers     = ["content-type"]
     max_age           = 300
     allow_credentials = false
