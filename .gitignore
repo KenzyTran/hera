@@ -23,3 +23,6 @@ plan.out
 # per-module validate. Only the root env (infra/envs/prod/.terraform.lock.hcl)
 # is committed for reproducibility.
 infra/modules/*/.terraform.lock.hcl
+
+# Phase 3 widget deploy artifact (bin/build-widget.sh writes here; never source).
+dist/
