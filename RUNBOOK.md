@@ -392,6 +392,32 @@ bin/build-widget.sh
 
 Plan 03-04 owns the `infra/cdk/` stack, the `dist/cdk-outputs.json` shape, and the smoke verification that follows.
 
+### Step 4: End-to-end smoke
+
+The 3 steps above can be run in one paste-block:
+
+```
+bin/smoke-deploy.sh
+```
+
+What it does:
+1. `terraform output -json > infra/envs/prod/terraform-outputs.json` (CDK reads this).
+2. `cdk deploy hera-agentcore --context image_tag=$(git rev-parse --short HEAD) --outputs-file dist/cdk-outputs.json`.
+3. Extracts `AgentCoreWssUrl` from `dist/cdk-outputs.json` and exports `AGENTCORE_WSS_URL`.
+4. `bin/build-widget.sh` (sed-injects the WSS URL, s3 syncs, invalidates CloudFront).
+5. `curl -fsS https://<cloudfront-domain>/` -- HTTPS reachability gate (DEM-01 verify).
+6. `uv run python bin/_smoke_deploy_probe.py` against `AGENTCORE_WSS_URL` -- opens WSS, streams 1s of synthetic 16 kHz Int16 silence, asserts >=1 inbound binary frame within 10s.
+
+On success the operator sees:
+```
+OK: Phase 3 smoke passed.
+    Widget URL : https://d111111abcdef.cloudfront.net
+    WSS URL    : wss://...
+    Image tag  : <git-sha>
+```
+
+If any step fails, fix at that layer and re-run -- `bin/smoke-deploy.sh` is idempotent.
+
 ### Cleanup order
 
 ```bash
