@@ -2,16 +2,25 @@
 
 import importlib
 
-import pytest
 
+def test_kb_id_defaults_to_prod(monkeypatch):
+    """KB_ID falls back to the prod default (BKXE19AH89) when HERA_KB_ID is unset.
 
-def test_kb_id_required(monkeypatch):
-    """KeyError raised when HERA_KB_ID is missing (fail-fast per AGENTS.md)."""
+    Plan 03-05 baked the prod KB id in so AgentCore Runtime (no env injection)
+    boots correctly. Local docker-compose env vars still override.
+    """
     monkeypatch.delenv("HERA_KB_ID", raising=False)
-    # Force a reimport so the module-level os.environ["HERA_KB_ID"] runs again.
     import hera_agent.config
-    with pytest.raises(KeyError, match="HERA_KB_ID"):
-        importlib.reload(hera_agent.config)
+    importlib.reload(hera_agent.config)
+    assert hera_agent.config.KB_ID == "BKXE19AH89"
+
+
+def test_kb_id_env_override(monkeypatch):
+    """HERA_KB_ID env var overrides the baked-in prod default."""
+    monkeypatch.setenv("HERA_KB_ID", "test-kb-id")
+    import hera_agent.config
+    importlib.reload(hera_agent.config)
+    assert hera_agent.config.KB_ID == "test-kb-id"
 
 
 def test_defaults_when_optional_missing(monkeypatch):

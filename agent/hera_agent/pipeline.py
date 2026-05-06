@@ -5,11 +5,14 @@ inside run_pipeline so that each connection gets its own AWSNovaSonicLLMService
 instance and its own bidi stream to Sonic.
 
 CRITICAL: AWSNovaSonicLLMService uses StaticCredentialsResolver internally. It
-does NOT follow the boto3 default credential chain - access_key_id and
-secret_access_key MUST be passed explicitly from os.environ (Pitfall B).
+does NOT follow the boto3 default credential chain (Pitfall B). However, we DO
+follow the boto3 default chain ourselves (env -> ~/.aws -> IMDSv2) and pass
+the resolved credentials in as static kwargs. This makes the same code work in
+both local docker-compose (env vars) and AgentCore Runtime (IMDSv2).
 """
 
-import os
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 from fastapi import WebSocket
 
@@ -39,15 +42,24 @@ from hera_agent.tools import TOOLS, lookup_product_handler
 
 
 def build_llm() -> AWSNovaSonicLLMService:
-    """Construct AWSNovaSonicLLMService with explicit static credentials.
+    """Construct AWSNovaSonicLLMService, bridging boto3 default chain to static creds.
 
     transition_threshold_seconds=360 rotates the bidi stream ~120s before the
     ~480s Sonic stream cap, satisfying AGT-05 transparently.
+
+    Credential resolution: boto3 default chain (env vars -> ~/.aws -> IMDSv2).
+    Resolved per-call so a long-running process picks up rotated IMDS creds.
     """
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    if credentials is None:
+        raise NoCredentialsError()
+    frozen = credentials.get_frozen_credentials()
+
     return AWSNovaSonicLLMService(
-        access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        session_token=os.getenv("AWS_SESSION_TOKEN"),
+        access_key_id=frozen.access_key,
+        secret_access_key=frozen.secret_key,
+        session_token=frozen.token,
         region=AWS_REGION,
         settings=AWSNovaSonicLLMService.Settings(
             voice=HERA_VOICE,
