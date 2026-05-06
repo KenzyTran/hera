@@ -2,6 +2,14 @@ provider "aws" {
   region = var.region
 }
 
+# Second alias for the cross-region billing alarm in infra/modules/observability.
+# AWS/Billing EstimatedCharges is only published in us-east-1; the alarm
+# resource has provider = aws.us_east_1 so it lands in the right region.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 # Caller identity for confused-deputy conditions in agentcore_iam.
 data "aws_caller_identity" "current" {}
 
@@ -51,4 +59,24 @@ module "widget_presigner" {
   account_id            = data.aws_caller_identity.current.account_id
   agentcore_runtime_arn = var.agentcore_runtime_arn
   cors_allow_origin     = module.widget_hosting.cloudfront_url
+}
+
+# Observability: CloudWatch dashboard + 2 operational alarms (ap-northeast-1)
+# + 1 billing alarm (us-east-1, AWS/Billing service constraint). Zero new
+# IAM (D-13). Wires existing module outputs as live ARNs / IDs.
+module "observability" {
+  source = "../../modules/observability"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  region                     = var.region
+  account_id                 = data.aws_caller_identity.current.account_id
+  agentcore_log_group_name   = module.agentcore_iam.log_group_name
+  agentcore_runtime_arn      = var.agentcore_runtime_arn
+  presigner_function_name    = module.widget_presigner.function_name
+  cloudfront_distribution_id = module.widget_hosting.cloudfront_distribution_id
+  # billing_threshold_usd / error_rate_threshold_pct / latency_p95_threshold_ms / sonic_model_id all use module defaults
 }

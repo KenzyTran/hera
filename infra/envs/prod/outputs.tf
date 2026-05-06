@@ -67,3 +67,13 @@ output "presign_url" {
   description = "Public Lambda Function URL the widget fetches to mint a SigV4-presigned WSS URL for the AgentCore Runtime (Plan 03-04 Rule-4 deviation). Browser fetches this anonymously over HTTPS; response is {\"url\": \"wss://...\"} valid for 5 min. bin/build-widget.sh sed-injects this into __PRESIGN_URL__."
   value       = module.widget_presigner.presign_url
 }
+
+output "observability_dashboard_url" {
+  description = "AWS console URL for the Phase 4 CloudWatch dashboard. RUNBOOK Phase 4 dashboard walkthrough section embeds this."
+  value       = module.observability.dashboard_url
+}
+
+output "observability_billing_alarm_arn" {
+  description = "us-east-1 billing alarm ARN ($5/day cap, D-29). Phase 5 workshop content references for screenshot."
+  value       = module.observability.billing_alarm_arn
+}
