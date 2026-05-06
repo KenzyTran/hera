@@ -22,27 +22,25 @@ Hera là một workshop FCJ (First Cloud Journey) song ngữ vi/en hướng dẫ
 <!-- Validated in Phase 1 (Knowledge Base Foundation) — 2026-05-05 -->
 - ✓ Bedrock Knowledge Base dùng S3 Vectors + Titan v2 embeddings (1024-dim float32 cosine), chứa Apple product catalog + stock list (Apple Watch S11, iPhone 13 Pro Max, MacBook Pro M4) — KB-01..KB-06; live KB `BKXE19AH89` in `ap-northeast-1`, validated end-to-end with `aws bedrock-agent-runtime retrieve` returning top score 0.86 for "iPhone 13 Pro Max stock"
 
+<!-- Validated in Phase 2 (Pipecat Voice Agent — Local) — 2026-05-05 -->
+- ✓ Pipecat 1.1.0 agent code (Python 3.12, FastAPI /ping + /ws) chạy local + container, kết nối Nova 2 Sonic + KB tool `lookup_product` end-to-end. AGT-01..AGT-08 validated; multi-arch container (linux/arm64+amd64) ready cho ECR; AGT-04 latency gate live (LATENCY_MS=0 < 3000ms); IAM consumer policy `hera-kb-retrieve-prod` shipped (D-22 deferred attachment to Phase 3).
+
+<!-- Validated in Phase 3 (AgentCore Deploy + Web Widget + Public Demo URL) — 2026-05-06 -->
+- ✓ Container deployed to Amazon Bedrock AgentCore Runtime (`hera_agent-GIsf2P4ImD` in ap-northeast-1), web widget polished (Apple Store light theme, 5-state record button, 5 verbatim WID-06 error strings, 30s heartbeat), public CloudFront URL `https://dg0w939ktclw6.cloudfront.net` live with HSTS + nosniff. DEP-01..06, WID-01..06, DEM-01..03 validated. Rule-4 architectural deviation: Lambda widget_presigner mints SigV4-presigned WSS URLs (browsers can't sign WS upgrades directly).
+
+<!-- Validated in Phase 4 (Observability, Cost Control, Cleanup) — 2026-05-06 -->
+- ✓ Phase 3 SC#2 closed: `POST /invocations` static-envelope stub deployed; AgentCore data-plane invoke returns statusCode=200; AgentCore Runtime promoted to version=3 (image hera-agent:7e72b66 multi-arch). CloudWatch dashboard `hera-prod` live in ap-northeast-1 with 5 panels; 2 op alarms (error rate >5%/5min via metric_query arithmetic, latency p95 >5s/5min via extended_statistic) + 1 billing alarm in us-east-1 via second provider alias ($5/day cap, alarm_actions=[] per D-35). bin/cleanup-verify.sh ships 19 read-only resource checks (verify-only per D-39, no Cost Explorer per D-38). Zero new IAM. OBS-01..05 validated; 5 deferred-by-design items (browser smoke, billing-alerts toggle, workshop-close cleanup, 24h Cost Explorer paste, D-30 quota request) tracked in 04-HUMAN-UAT.md — none blocking.
+
 ### Active
 
 <!-- Phạm vi v1, tất cả là hypothesis cho đến khi ship. -->
 
-**Hệ thống voice chatbot:**
-- [ ] Voice loop end-to-end: browser microphone → AgentCore endpoint (WebSocket hoặc WebRTC) → Pipecat agent code → Nova 2 Sonic (Bedrock bidirectional) → audio response phát lại trong browser
-- [ ] Sonic gọi tool `lookup_product()` vào Knowledge Base Retrieve API để trả lời câu hỏi sản phẩm
-- [ ] Pipecat 1.1.0 agent code (Python ≥3.11) đóng gói container và deploy vào **Bedrock AgentCore Runtime** ở ap-northeast-1
-- [ ] AgentCore Runtime chịu trách nhiệm session/connection/scaling/observability — KHÔNG tự quản ECS, ALB, VPC custom networking
-- [ ] Web widget UI: trang HTML/JS tối giản với nút record, AudioWorklet 16kHz PCM Int16, kết nối tới AgentCore endpoint qua WSS (hoặc WebRTC nếu region hỗ trợ)
-- [ ] IaC modules deploy được vào real AWS account: Bedrock KB (`s3_vectors_storage_configuration`), S3 Vectors bucket+index, AgentCore Runtime resource, IAM least-privilege roles, CloudWatch dashboards
-- [ ] Ưu tiên Terraform `~> 6.27`; nếu Terraform chưa hỗ trợ AgentCore resource, fallback hybrid (Terraform cho KB/IAM/S3 + AWS CDK hoặc CLI cho AgentCore deploy)
-- [ ] CloudWatch dashboards + alarms: số session, latency p50/p95, error rate, Bedrock cost
-- [ ] URL public của instructor demo: anonymous access + AgentCore built-in throttling + CloudWatch billing alarm cắt session khi vượt ngưỡng
-- [ ] Cleanup chapter có verification scripts: destroy stack + check Cost Explorer + verify không còn AgentCore endpoint / KB / S3 Vectors index chạy
+**Workshop docs (Hugo, vi + en) — Phase 5 owns:**
 
-**Workshop docs (Hugo, vi + en):**
 - [ ] Phần 1 — Introduction: voice AI là gì, Nova Sonic vs ElevenLabs, vì sao dùng Bedrock AgentCore Runtime, kiến trúc hera
 - [ ] Phần 2 — Preparation: AWS account setup, enable Bedrock Nova 2 Sonic + AgentCore model access, install Terraform + AWS CLI + uv (Python)
-- [ ] Phần 3 — Hands-on: từng bước build (KB + S3 Vectors → Pipecat agent code local test → AgentCore deploy → web widget) — mỗi bước có code snippet và screenshot
-- [ ] Phần 4 — Cleanup: tear down + verify Cost Explorer
+- [ ] Phần 3 — Hands-on: từng bước build (KB + S3 Vectors → Pipecat agent code local test → AgentCore deploy → web widget + observability) — mỗi bước có code snippet và screenshot
+- [ ] Phần 4 — Cleanup: 3-step quy trinh (cdk destroy → terraform destroy → bin/cleanup-verify.sh) + 24h Cost Explorer $0 paste-line
 - [ ] Phần 5 — Summary: cost breakdown, mở rộng hướng nào tiếp (Twilio, multi-language, multi-agent, RAG sâu hơn)
 
 ### Out of Scope (v1)
@@ -136,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-05 — Phase 1 (Knowledge Base Foundation) complete. Live KB BKXE19AH89 in ap-northeast-1 indexed and queryable; KB-01..KB-06 validated. Three IaC deviations hardened during live run (S3 Vectors non-filterable metadata, data_source replace lifecycle, verify-kb.sh fail-fast preflight).*
+*Last updated: 2026-05-06 — Phases 1-4 complete (4/5 phases shipped). Live system: KB `BKXE19AH89`, AgentCore Runtime `hera_agent-GIsf2P4ImD` v3, widget `https://dg0w939ktclw6.cloudfront.net`, CloudWatch dashboard `hera-prod` + 3 alarms cross-region, `bin/cleanup-verify.sh`. 34/34 system requirements validated (KB+AGT+DEP+WID+OBS+DEM); only Phase 5 docs (DOC-01..12) remain. Phase 4 Wave 1 closed Phase 3 SC#2 (POST /invocations stub + cdk redeploy + smoke probe returns 200). Phase 5 next: bilingual workshop docs vi/en for the system that already runs.*

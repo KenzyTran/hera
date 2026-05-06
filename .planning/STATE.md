@@ -5,12 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — 5/5 plans complete; verifier-pending; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan. Phase 4 next.
+**Current focus:** Phase 4 — Observability, Cost Control, Cleanup — 3/3 plans complete; verifier passed 5/5 SC + closed Phase 3 SC#2; code-review clean; 5 deferred items in 04-HUMAN-UAT.md (none blocking). Phase 5 (Workshop Documentation vi/en) next.
 
 ## Current Position
 
-Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — 5/5 plans complete; verifier-pending; SC#2 deferred to Phase 4 protocol-bridge follow-up plan
-Plan: 5 of 5 done. Plan 03-05 (agent credential bridge for AgentCore IMDSv2) shipped 3 source-code commits (0242c01 lazy KB_ID config defaults, 5ebc650 boto3 default credential chain in build_llm(), 5f21e36 Dockerfile ENV bake-in for HERA_KB_ID + AWS_REGION) + 1 live-deploy evidence empty-commit (f5a6b1c) capturing the image push + cdk redeploy that the previous executor performed before the protocol-bridge gap surfaced. Live state in 851725411875/ap-northeast-1 unchanged from Plan 03-04 except: image now hera-agent:5f21e36 (multi-arch); AgentCore Runtime hera_agent-GIsf2P4ImD updated in place to version=2 status=READY with ContainerUri=hera-agent:5f21e36. Local docker run + curl /ping returns Healthy WITH NO ENV VARS SET (proves the Dockerfile ENV bake-in carries the cold-start path that AgentCore Runtime walks). AgentCore invocation moved from 424 (was: container crashed on import) to 404 (now: container alive but FastAPI /ws does not match AgentCore HTTP protocol's /invocations route) — credential fix is proven correct AND a NEW protocol-bridge gap is surfaced. Phase 3 SC#2 (live browser voice loop) deliberately left OPEN per user-approved cost-conscious decision (Q1 (a) + Q2 (a) on 2026-05-06): Hera is a learning demo, not production; running another cdk deploy + Bedrock streaming smoke just to confirm a known failure mode would burn budget without learning anything new. Live AWS state preserved (NO teardown) so Phase 4 protocol-bridge follow-up plan can ship the /invocations endpoint on top without re-creation cost.
+Phase: 4 of 5 (Observability, Cost Control, Cleanup) — 3/3 plans complete; verifier passed 5/5 SC + closed Phase 3 SC#2; code-review clean
+Plan: 3 of 3 done. Plan 04-01 (protocol bridge) closed Phase 3 SC#2: agent/hera_agent/main.py adds POST /invocations static-envelope stub per AgentCore HTTP protocol contract; live ECR push (hera-agent:7e72b66 multi-arch) + in-place cdk redeploy (AgentCore Runtime hera_agent-GIsf2P4ImD version=2 → version=3 status=READY, ContainerUri=hera-agent:7e72b66) + AgentCore data-plane invoke-agent-runtime smoke probe returns statusCode=200 with body {"agent":"hera-pipecat-sonic","status":"running","model":"amazon.nova-sonic-v1:0"}. Voice loop continues on /ws unchanged. RUNBOOK Phase 4 protocol-bridge deploy section + ROADMAP Phase 3 SC#2 closure + Phase 4 SC#2/SC#3 D-35/D-36 wording realignment landed in same commit as Task 3. 4 atomic commits (7e72b66, 9c5db62, 5037f1f, b33f062). Old image hera-agent:5f21e36 retained on ECR for rollback.
+
+Plan 04-02 (observability) shipped infra/modules/observability/ (4-file shape, configuration_aliases=[aws.us_east_1]) + 1 CloudWatch dashboard hera-prod with 5 panels (active sessions, latency p50/p95, error rate via metric_query arithmetic, Bedrock invocations+tokens, billing widget cross-region from us-east-1) + 2 operational alarms in ap-northeast-1 (hera-error-rate-prod 5%/5min, hera-latency-p95-prod 5000ms/5min) + 1 billing alarm hera-billing-prod in us-east-1 via second provider alias (D-29 $5/day cap, alarm_actions=[] per D-35, treat_missing_data=missing). Live terraform apply with -var=agentcore_runtime_arn=$(jq -r .[\"hera-agentcore\"].AgentCoreRuntimeArn dist/cdk-outputs.json) preserved presigner Lambda's AGENTCORE_RUNTIME_ARN env var (D-25 4-step lifecycle honored — option A chosen over B which would have broken voice loop). 2 benign in-place changes accepted (CloudFront TLSv1 -> TLSv1.2_2021, S3 bucket policy jsonencode reorder). Zero new IAM. RUNBOOK Phase 4 observability walkthrough section + OBS-04 (D-36 no per-IP rate limit; AgentCore concurrency cap=2 is the gate) + OBS-05 (D-35 manual-stop fallback; no SNS hook) trade-offs documented. 7 atomic commits (488b36f, d448a88, cbb3121, 9b12a29, cced9a1, e1c13dd, 8421fe4). Cost ~$0/mo (free tier covers 1 dashboard + 10 alarms).
+
+Plan 04-03 (cleanup-verify) shipped bin/cleanup-verify.sh (executable; `bash -n` PASS; 19 read-only AWS resource checks via two helper functions _check_gone (alternation regex covering ResourceNotFound|NoSuchEntity|NotFound|RepositoryNotFound|NoSuchDistribution|NoSuchBucket|does not exist|404) and _check_count_zero (length(@) query); MSYS_NO_PATHCONV=1 prefix on log-group calls per PITFALL G.8; D-24 cleanup-contract hint baked into FAIL message with CDK-first ordering, ECR force_delete suggestion, CloudFront 15-30min disable-then-delete don't-interrupt warning). Verify-only (D-39 — operator destroys; script verifies; zero state mutation). RUNBOOK Phase 4 Cleanup quy trinh section: 3-step paste-style (cdk destroy hera-agentcore --force → terraform destroy -auto-approve → bash bin/cleanup-verify.sh) + 24h-deferred Cost Explorer $0 paste-line (D-38 — RUNBOOK only, NOT in script). A5 [needs-verification] resolved: KB service role exact name `hera-kb-service-role` (not the plan stub `-prod`), Rule-1 deviation documented in 04-03 SUMMARY. A4 [needs-verification] resolved: GONE_REGEX alternation already covers both NotFound and NotFoundException spellings. 4 atomic commits (4ed3764, 00f8806, 1ccaff0, 09ba38d). Zero live AWS work; pure script + docs.
+
+Phase 4 verifier: status=human_needed (5/5 SC verified + 5 deferred items captured in 04-HUMAN-UAT.md) — user approved phase close (none of the deferred items block; all are design-time deferrals or workshop-close events). Code review status=clean (0 critical, 0 warning). REQUIREMENTS.md OBS-01..05 flipped from `[ ]` to `[x]` (commit 74e45a1 — verifier flagged hygiene drift; addressed before phase close). 04-VERIFICATION.md committed at 8195fc7. 04-REVIEW.md committed at 5ae7d59.
 
 Plan 03-04 (prior wave): 14 files / 9 commits + 2 live deploys (cdk deploy hera-agentcore + widget_presigner via second-pass terraform apply). AgentCore Runtime stand-up + widget_presigner Lambda (Rule-4 architectural deviation) + 4-step lifecycle (terraform apply → push-image → cdk deploy → second-pass terraform apply → build-widget → smoke). Voice-loop closure was BLOCKED by the agent credential-injection gap that Plan 03-05 just closed; the protocol-bridge gap that emerged in its place is the new Phase 4 work. Plan 03-04 was 9 atomic commits including 5 in-tree fixes for live-deploy deviations: (1) cdk.json CDKv1 flag removal, (2) agentcore_iam ECR pull permissions, (3) widget_presigner reserved concurrency=-1 (account quota floor), (4) widget_presigner CORS allow_methods=GET-only, (5) widget_presigner WebSocketStream IAM action, (6) bin/build-widget.sh CloudFront /* invalidation.
 
@@ -26,19 +32,21 @@ Plan 03-01 (Wave 1): TF infra applied live, 12 AWS resources in account 85172541
   - widget_cloudfront_distribution_id = E10K3B1L8PQ9EC
   - widget_s3_bucket_name = hera-widget-prod
 
-Wave 3: 03-04 (CDK AgentCore stack + Rule-4 widget_presigner Lambda + smoke) — COMPLETE infra scope.
-Wave 4: 03-05 (agent credential bridge for AgentCore IMDSv2) — COMPLETE credential scope; protocol-bridge gap surfaced and handed off to Phase 4.
-Status: Phase 3 — 5/5 plans complete; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan due to a NEW gap discovered during Plan 03-05's live deploy: AgentCore Runtime HTTP protocol invokes the container at POST /invocations per Bedrock convention, but the FastAPI app exposes only GET /ping + WebSocket /ws. The credential fix (Plan 03-05) is proven correct (424 → 404, container starts cleanly under no-env-vars); the remaining gap is a separate routing/protocol concern that is out of Plan 03-05's 3-file scope.
-Last activity: 2026-05-06 — Plan 03-05 closed in this invocation: Tasks 1-3 source-code commits by previous executor (config.py lazy defaults, pipeline.py boto3 default chain, Dockerfile ENV bake-in), Task 4 empty-commit evidence (f5a6b1c) for the live cdk redeploy + image push that was already done, Task 5 SUMMARY/STATE/ROADMAP by this invocation. ~25 min total.
+Wave 3 (Phase 3): 03-04 (CDK AgentCore stack + Rule-4 widget_presigner Lambda + smoke) — COMPLETE infra scope.
+Wave 4 (Phase 3): 03-05 (agent credential bridge for AgentCore IMDSv2) — COMPLETE credential scope; protocol-bridge gap surfaced and handed off to Phase 4.
+Wave 1 (Phase 4): 04-01 (protocol bridge — POST /invocations stub) — COMPLETE; closes Phase 3 SC#2.
+Wave 2 (Phase 4): 04-02 (observability module + 1 dashboard + 3 alarms cross-region) + 04-03 (cleanup-verify.sh + RUNBOOK cleanup section) — COMPLETE; sequential due to RUNBOOK.md overlap.
+Status: Phase 4 — 3/3 plans complete; verifier 5/5 SC verified (status=human_needed for 5 design-time deferrals captured in 04-HUMAN-UAT.md, none blocking); code review clean. Phase 5 (Workshop Documentation vi/en) is next.
+Last activity: 2026-05-06 — Phase 4 closed in this invocation. Plan 04-01: 4 commits (route stub + live ECR push + cdk redeploy + smoke probe + RUNBOOK/ROADMAP edits + SUMMARY). Plan 04-02: 7 commits (4-file module + dashboard/op alarms/billing alarm + prod-root wiring + live terraform apply with -var=agentcore_runtime_arn + RUNBOOK + SUMMARY). Plan 04-03: 4 commits (script skeleton + 19 checks + RUNBOOK cleanup section + SUMMARY). Phase-level: 04-VERIFICATION.md + REQUIREMENTS.md hygiene fix + 04-HUMAN-UAT.md + 04-REVIEW.md (code review clean) + ROADMAP/STATE updates.
 
-Progress: [██████████████████████████████░░░░░░░░░░░░] 58%
+Progress: [████████████████████████████████████░░░░░░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: ~27 min
-- Total execution time: ~5.9 hours
+- Total plans completed: 14
+- Average duration: ~28 min
+- Total execution time: ~7.3 hours
 
 **By Phase:**
 
@@ -47,12 +55,12 @@ Progress: [███████████████████████
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
 | 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | ~195 min | ~39 min |
-| 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
+| 4. Observability, Cost Control, Cleanup | 3/3 | ~85 min | ~28 min |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 11 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min), 03-01 (~50 min), 03-02 (~22 min), 03-03 (~28 min), 03-04 (~70 min, two live AWS deploys + 5 in-tree Rule-1/2/3 deviation fixes + Rule-4 architectural addition), 03-05 (~25 min, gap-closure 3-file fix + 1 live cdk redeploy by previous executor + cost-conscious closure when a NEW protocol-bridge gap surfaced).
-- Trend: Plan 03-05 was a tight gap-closure plan that did exactly what it scoped (3 source files, container survives cold-start, version=2 ships). The protocol-bridge gap that emerged is a NEW finding requiring Phase 4 ownership; closing 03-05 cleanly here preserves demo budget so Phase 4 can spend that cost on the actual fix. Pattern emerging: Phase 3 live-AWS work surfaces one architectural gap per plan, and the cost-conscious closure rule (don't run another billable smoke just to confirm a known failure) is the right discipline for a learning demo.
+- Last 14 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min), 03-01 (~50 min), 03-02 (~22 min), 03-03 (~28 min), 03-04 (~70 min), 03-05 (~25 min), 04-01 (~50 min, route stub + live ECR push + cdk redeploy + smoke probe — closed Phase 3 SC#2), 04-02 (~22 min, observability module + 1 dashboard + 3 alarms cross-region + benign drift accept), 04-03 (~16 min, autonomous bash + RUNBOOK), phase-close housekeeping ~10 min (REQUIREMENTS hygiene + HUMAN-UAT + VERIFICATION + REVIEW + ROADMAP/STATE).
+- Trend: Phase 4 ran clean. Plan 04-01 closed Phase 3 SC#2 in one wave. Plan 04-02's terraform plan surfaced D-25 4-step lifecycle drift (presigner ARN var) which would have broken voice loop if applied as-is — the executor caught it and surfaced 3 options; user chose option A (re-plan with -var=agentcore_runtime_arn) preserving voice loop. Plan 04-03's A5 [needs-verification] resolution caught a Rule-1 deviation (KB role name `hera-kb-service-role` not `-prod`) before the script could ship a wrong check. Pattern: every Phase 4 plan surfaced exactly one drift / deviation that the discipline (terraform plan inspection + [needs-verification] gates) caught before live-state corruption.
 
 *Updated after each plan completion*
 
@@ -137,11 +145,16 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 4 protocol-bridge plan (closes Phase 3 SC#2).** Suggested name `04-XX-agent-protocol-bridge`. Refactor agent's HTTP entry point to expose `POST /invocations` per AgentCore HTTP protocol contract; mine `awslabs/agentcore-samples/.../06-bi-directional-streaming/04-pipecat-sonic-ws` for the canonical Pipecat-on-AgentCore bidi-streaming pattern; verify with a single bin/smoke-deploy.sh run against the existing live runtime; close SC#2 with browser approval.
+- **5 Phase 4 deferred items (none blocking; all in 04-HUMAN-UAT.md):**
+  1. Live browser voice loop test on https://dg0w939ktclw6.cloudfront.net/ (visible-to-instructor closure of Phase 3 SC#2; data-plane already closed via Plan 04-01 smoke).
+  2. Tick "Receive CloudWatch Billing Alerts" in account Billing Preferences (RESEARCH A1; one-time per account; alarm sits INSUFFICIENT_DATA until done).
+  3. First organic `bash bin/cleanup-verify.sh` run at workshop close.
+  4. 24h-deferred Cost Explorer $0 paste-line per D-38.
+  5. AgentCore service-quota concurrency cap=2 request (D-30 operational console action).
 
 ### Blockers/Concerns
 
-- **Phase 3 SC#2 protocol-bridge gap (BLOCKS Phase 3 final close).** AgentCore Runtime hera_agent-GIsf2P4ImD version=2 status=READY; container starts cleanly under cold-start (Plan 03-05 fix verified); presign+WSS handshake + SigV4 auth all work. AgentCore data-plane reaches the container but returns HTTP 404 because the runtime's HTTP protocol invokes `POST /invocations` per Bedrock convention while the FastAPI app exposes only `GET /ping` + `WebSocket /ws`. The 404 is the smoking gun that the credential gap is closed AND a separate routing/protocol gap exists. Phase 4 follow-up plan owns the fix (suggested: `04-XX-agent-protocol-bridge`). Live AWS state preserved (no teardown) so Phase 4 can apply the fix in place.
+- None. Phase 4 closed cleanly. Phase 3 SC#2 closed by Plan 04-01. All operational deferrals documented in 04-HUMAN-UAT.md.
 
 ## Deferred Items
 
@@ -155,21 +168,22 @@ Items acknowledged and carried forward from previous milestone close:
 | Plan 03-01 | Sonic foundation-model ARN runtime gate | Open — not yet exercised; container fails before LLM init due to credential gap (Plan 03-04 SUMMARY Open Items) | Plan 03-01 |
 | Plan 03-01 | CloudFront custom domain + ACM cert (would also unlock `TLSv1.2_2021` minimum) | Open — deferred per D-26 to v2 | Plan 03-01 |
 | Plan 03-01 | Widget S3 versioning (rollback path is git+bin/deploy-widget.sh) | Open — deferred per D-26 to Phase 4 if cleanup-verify proves teardown is clean | Plan 03-01 |
-| Plan 03-04 | Agent credential-injection bridge (BLOCKS Phase 3 SC#2 voice-loop closure) | RESOLVED in Plan 03-05 (3-file fix: lazy KB_ID config, boto3 default chain in build_llm(), Dockerfile ENV bake-in; image hera-agent:5f21e36 live on AgentCore Runtime version=2) | Plan 03-04 |
-| Plan 03-04 | Per-IP rate limit on the presign Function URL (OBS-04) + per-Lambda concurrency cap | Open — Phase 4 OBS-04/OBS-05 owns; user-approved Q2 option (i) deferred this | Plan 03-04 |
-| Plan 03-04 | AgentCore service quota request (default 10 concurrent runtimes; D-30 originally said 2) | Open — operational AWS console action, not IaC; Phase 4 may file the request | Plan 03-04 |
-| Plan 03-04 | CDK bootstrap deploy-role trust policy for non-root operators | Open — current credentials run as IAM root which CDK warns about ("could not assume cdk-...-deploy-role"); Phase 4 may add a role-trust amendment | Plan 03-04 |
-| Plan 03-05 | Agent protocol-bridge gap (BLOCKS Phase 3 SC#2 final close): AgentCore HTTP protocol calls `POST /invocations`, FastAPI app exposes only `/ping` + `/ws` | Open — Phase 4 follow-up plan owns; suggested name `04-XX-agent-protocol-bridge`; reference repo `awslabs/agentcore-samples/.../06-bi-directional-streaming/04-pipecat-sonic-ws` is the canonical bridge pattern | Plan 03-05 |
-| Plan 03-05 | Browser-driven voice-loop verification on https://dg0w939ktclw6.cloudfront.net/ | Open — deferred per user-approved Q2 (a) cost-conscious decision; failure mode is already understood (404 from protocol mismatch); will close as part of the Phase 4 protocol-bridge plan smoke | Plan 03-05 |
-| Plan 03-05 | Sonic foundation-model ARN runtime gate (carried from Plan 03-01) | Open — container now starts but AgentCore can't route to it; gate will run once the protocol bridge ships and Sonic actually init-streams | Plan 03-05 |
+| Plan 03-04 | Agent credential-injection bridge (BLOCKS Phase 3 SC#2 voice-loop closure) | RESOLVED in Plan 03-05 (3-file fix) | Plan 03-04 |
+| Plan 03-04 | Per-IP rate limit on the presign Function URL (OBS-04) + per-Lambda concurrency cap | RESOLVED in Plan 04-02 / 04-03 RUNBOOK as documented trade-off per D-36 (AgentCore concurrency cap=2 is the gate; per-IP rate-limit deferred to v2 with WAF/token-bucket) | Plan 03-04 |
+| Plan 03-04 | AgentCore service quota request (default 10 concurrent runtimes; D-30 originally said 2) | Open — operational AWS console action; carried forward in 04-HUMAN-UAT.md item #5 | Plan 03-04 |
+| Plan 03-04 | CDK bootstrap deploy-role trust policy for non-root operators | Open — current credentials run as IAM root which CDK warns about; not blocking; carried into Phase 5 backlog | Plan 03-04 |
+| Plan 03-05 | Agent protocol-bridge gap (BLOCKS Phase 3 SC#2 final close): AgentCore HTTP protocol calls `POST /invocations`, FastAPI app exposes only `/ping` + `/ws` | RESOLVED in Plan 04-01 (POST /invocations static-envelope stub deployed; AgentCore data-plane invoke returns 200; Runtime version=3 status=READY) | Plan 03-05 |
+| Plan 03-05 | Browser-driven voice-loop verification on https://dg0w939ktclw6.cloudfront.net/ | Open — visible-to-instructor closure; data-plane already closed via Plan 04-01 smoke; carried in 04-HUMAN-UAT.md item #1 | Plan 03-05 |
+| Plan 03-05 | Sonic foundation-model ARN runtime gate (carried from Plan 03-01) | Open — gate runs when end-to-end Sonic stream is exercised (browser test); carried implicitly in 04-HUMAN-UAT item #1 | Plan 03-05 |
+| Plan 04-02 | RESEARCH A1 — operator must tick "Receive CloudWatch Billing Alerts" in Billing Preferences | Open — one-time per-account console action; carried in 04-HUMAN-UAT.md item #2 | Plan 04-02 |
+| Plan 04-02 | RESEARCH A3 — TimeToFirstToken metric emission for bidi Sonic | Deferred — TTFT panel not added to dashboard to avoid empty widget; can ship in a follow-up if metric proves emitted | Plan 04-02 |
+| Plan 04-03 | First organic cleanup-verify.sh run + 24h Cost Explorer $0 paste-line | Open — workshop-close events; carried in 04-HUMAN-UAT.md items #3 + #4 | Plan 04-03 |
 
 ## Session Continuity
 
 Last session: 2026-05-06
-Stopped at: Phase 3 — 5/5 plans complete; verifier-pending; SC#2 deferred. Plan 03-05 closed in this invocation: 3 source-code commits by previous executor (0242c01 lazy KB_ID config defaults, 5ebc650 boto3 default chain in build_llm(), 5f21e36 Dockerfile ENV bake-in for HERA_KB_ID + AWS_REGION); 1 live-deploy evidence empty-commit (f5a6b1c) recording the image push + cdk redeploy that previous executor performed (image hera-agent:5f21e36 multi-arch on ECR; AgentCore Runtime hera_agent-GIsf2P4ImD updated in place to version=2 status=READY); 1 metadata commit (this commit) shipping SUMMARY + STATE + ROADMAP. Total ~25 min. Plan SUMMARY at `.planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-05-SUMMARY.md`. Live AWS state preserved (NO teardown): AgentCore Runtime hera_agent-GIsf2P4ImD version=2 status=READY, Lambda hera-widget-presign-prod on Function URL https://ijrovzxz4tts2tdo2w5yxqxho40fruyn.lambda-url.ap-northeast-1.on.aws/, widget at https://dg0w939ktclw6.cloudfront.net. Phase 3 SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because a NEW gap surfaced during Plan 03-05's live deploy: AgentCore HTTP protocol calls POST /invocations (Bedrock convention) while the FastAPI app exposes only GET /ping + WebSocket /ws. Per user-approved Q1 (a) + Q2 (a) on 2026-05-06 (cost-conscious closure: Hera is a learning demo, not production), no further cdk deploys / image rebuilds / Bedrock streaming smoke costs in Plan 03-05 — that budget belongs to Phase 4.
+Stopped at: Phase 4 closed cleanly. Live AWS state: AgentCore Runtime hera_agent-GIsf2P4ImD version=3 status=READY ContainerUri=hera-agent:7e72b66 (Plan 04-01 promoted from version=2/5f21e36); Lambda hera-widget-presign-prod with AGENTCORE_RUNTIME_ARN env var preserved (Plan 04-02 option A re-plan); CloudWatch dashboard hera-prod live in ap-northeast-1; 2 op alarms `hera-error-rate-prod` + `hera-latency-p95-prod` live in ap-northeast-1 (state OK); 1 billing alarm `hera-billing-prod` live in us-east-1 (state INSUFFICIENT_DATA — 24h propagation pending billing-alerts toggle per A1); zero new IAM roles. Widget at https://dg0w939ktclw6.cloudfront.net (CloudFront E10K3B1L8PQ9EC TLS bumped to TLSv1.2_2021 as benign drift accept). Phase 4 SC#1..5 verified; Phase 3 SC#2 closed by Plan 04-01 (data-plane invoke returns 200; visible-to-instructor browser smoke deferred to 04-HUMAN-UAT.md item #1). 04-VERIFICATION.md (8195fc7) + 04-HUMAN-UAT.md (74e45a1) + 04-REVIEW.md (5ae7d59 — code review clean) committed.
 
-Next: launch Phase 4 (Observability, Cost Control, Cleanup). Phase 4 will:
-  1. Wave 1: ship `04-XX-agent-protocol-bridge` plan to refactor the agent's HTTP entry point to expose `POST /invocations` per AgentCore HTTP protocol contract. Mine `awslabs/agentcore-samples/.../06-bi-directional-streaming/04-pipecat-sonic-ws` for the canonical Pipecat-on-AgentCore bidi-streaming pattern. Verify with one bin/smoke-deploy.sh run against the existing live runtime + browser approval. This closes Phase 3 SC#2.
-  2. Then proceed with the originally-planned OBS work: CloudWatch dashboards/alarms (OBS-01..03), Lambda cost circuit breaker (OBS-05), per-IP rate limit on the presign Function URL (OBS-04), cleanup-verify script.
+Next: launch Phase 5 (Workshop Documentation vi/en). Phase 5 ships 5 chapters in vi+en mirrored at `content/{vi,en}/` covering Phần 1 Introduction → Phần 5 Cleanup, plus a CI parity check. Phase 5 docs trail Phases 1-4 because they need real screenshots and verified snippets — all of which exist now (live KB BKXE19AH89, live AgentCore Runtime hera_agent-GIsf2P4ImD version=3, live CloudFront widget, live observability dashboard, working bin/cleanup-verify.sh).
 
-Resume file: .planning/STATE.md — start `/gsd-plan-phase 4` to plan Phase 4 with the agent protocol bridge as the priority Wave-1 plan.
+Resume file: .planning/STATE.md — start `/gsd-discuss-phase 5` (CONTEXT.md does not exist for Phase 5 yet) or `/gsd-plan-phase 5` if you want to skip discuss.
