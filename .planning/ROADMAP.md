@@ -86,7 +86,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 4 plans
 
 **Wave 1** *(parallel: 03-01 TF infra modules, 03-02 frontend widget — file-disjoint)*
-- [ ] 03-01-PLAN.md — Terraform modules (agentcore_iam + widget_hosting + ecr) + prod root extension. Closes D-22 KB policy attachment. Covers DEP-03, DEP-04, DEP-05, DEP-06, WID-01, DEM-01.
+- [x] 03-01-PLAN.md — Terraform modules (agentcore_iam + widget_hosting + ecr) + prod root extension. Closes D-22 KB policy attachment. Covers DEP-03, DEP-04, DEP-05, DEP-06, WID-01, DEM-01. *(completed 2026-05-06; 12 AWS resources live in 851725411875/ap-northeast-1: hera-agentcore-exec-prod role + KB attachment + log group, hera-agent ECR repo IMMUTABLE+scan-on-push, hera-widget-prod S3 + CloudFront E10K3B1L8PQ9EC at https://dg0w939ktclw6.cloudfront.net; commits 4529fa1, 7817942, 8f7e7f6, f8ba30a, adf966c)*
 - [ ] 03-02-PLAN.md — Polished frontend widget (Apple-Store light per UI-SPEC) + bin/build-widget.sh sed-injection script. Covers WID-01, WID-02, WID-03, WID-04, WID-05, WID-06, DEM-03.
 
 **Wave 2** *(03-03 depends on 03-01: needs ECR repo URL output)*
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/4 | Not started | - |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 1/4 | Wave 1 in progress (03-01 complete; 03-02 next) | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
 

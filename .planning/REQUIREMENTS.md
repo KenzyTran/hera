@@ -29,14 +29,14 @@
 
 - [ ] **DEP-01**: Agent container deploy lên Amazon Bedrock AgentCore Runtime ở ap-northeast-1
 - [ ] **DEP-02**: AgentCore endpoint exposed (WSS hoặc WebRTC) — chọn pattern dựa trên Pipecat support
-- [ ] **DEP-03**: Terraform modules chính (`modules/kb`, `modules/agentcore`, `modules/observability`) deploy được vào fresh AWS account chỉ với `terraform init && apply` (giả định model access đã enable)
-- [ ] **DEP-04**: Nếu Terraform AgentCore resource thiếu, fallback hybrid documented: Terraform cho KB/IAM/CloudWatch, CDK hoặc CLI cho AgentCore deploy. Quyết định lock trong Phase 3 research
-- [ ] **DEP-05**: AgentCore execution role IAM least-privilege: `bedrock:InvokeModelWithBidirectionalStream`, `bedrock:Retrieve`, CloudWatch logs/metrics
-- [ ] **DEP-06**: Region cấu hình qua Terraform variable, default `ap-northeast-1`, hỗ trợ override sang `us-east-1` cho dev
+- [x] **DEP-03**: Terraform modules chính (`modules/kb`, `modules/agentcore`, `modules/observability`) deploy được vào fresh AWS account chỉ với `terraform init && apply` (giả định model access đã enable)
+- [x] **DEP-04**: Nếu Terraform AgentCore resource thiếu, fallback hybrid documented: Terraform cho KB/IAM/CloudWatch, CDK hoặc CLI cho AgentCore deploy. Quyết định lock trong Phase 3 research
+- [x] **DEP-05**: AgentCore execution role IAM least-privilege: `bedrock:InvokeModelWithBidirectionalStream`, `bedrock:Retrieve`, CloudWatch logs/metrics
+- [x] **DEP-06**: Region cấu hình qua Terraform variable, default `ap-northeast-1`, hỗ trợ override sang `us-east-1` cho dev
 
 ### Web Widget (WID)
 
-- [ ] **WID-01**: Trang HTML/JS tối giản (single file hoặc 2-3 file), không framework, host được trên S3+CloudFront hoặc GitHub Pages
+- [x] **WID-01**: Trang HTML/JS tối giản (single file hoặc 2-3 file), không framework, host được trên S3+CloudFront hoặc GitHub Pages
 - [ ] **WID-02**: Nút record dùng `navigator.mediaDevices.getUserMedia` + AudioWorklet capture 16kHz mono PCM Int16
 - [ ] **WID-03**: Audio gửi qua binary WS frames (không base64) tới AgentCore endpoint
 - [ ] **WID-04**: Audio response từ AgentCore (24kHz PCM) phát lại qua `AudioContext` + buffer queue, không lag/dropout với câu trả lời 30s
@@ -53,7 +53,7 @@
 
 ### Demo Public URL (DEM)
 
-- [ ] **DEM-01**: Public HTTPS URL của instructor demo accessible từ internet, ACM cert valid
+- [x] **DEM-01**: Public HTTPS URL của instructor demo accessible từ internet, ACM cert valid
 - [ ] **DEM-02**: Anonymous access — không cần login, nhưng có throttling/rate limit để chống abuse
 - [ ] **DEM-03**: Banner trên trang ghi "This is an instructor demo. Cost capped at $X/day. For your own deployment, follow the workshop."
 
@@ -143,17 +143,17 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | AGT-08 | Phase 2 — Pipecat Voice Agent (Local) | Complete (Plan 02-02, 2026-05-05) |
 | DEP-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | DEP-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEP-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| WID-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEP-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
+| DEP-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
+| DEP-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
+| DEP-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
+| WID-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | WID-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | WID-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | WID-04 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | WID-05 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | WID-06 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
-| DEM-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
+| DEM-01 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Complete (Plan 03-01, 2026-05-06) |
 | DEM-02 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | DEM-03 | Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL | Pending |
 | OBS-01 | Phase 4 — Observability, Cost Control, Cleanup | Pending |

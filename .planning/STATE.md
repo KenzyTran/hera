@@ -5,23 +5,30 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — Plans approved; ready to execute.
+**Current focus:** Phase 3 — AgentCore Deploy + Web Widget + Public Demo URL — Wave 1 in progress (03-01 done; 03-02 next).
 
 ## Current Position
 
-Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — Ready to execute
-Plan: 0 of 4. Wave structure: Wave 1 = {03-01 TF infra (agentcore_iam + widget_hosting + ecr modules; closes D-22 KB policy attachment), 03-02 frontend widget (Apple-Store light per UI-SPEC + bin/build-widget.sh sed-injection)} — file-disjoint, parallel; Wave 2 = {03-03 bin/push-image.sh multi-arch buildx → ECR + RUNBOOK Phase 3 deploy section} — depends on 03-01 ECR repo URL output; Wave 3 = {03-04 CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section} — depends on 03-01 + 03-02 + 03-03. All 15 REQ-IDs covered (DEP-01..06, WID-01..06, DEM-01..03). All CONTEXT.md decisions D-22..D-30 mapped. RESEARCH.md was SKIPPED (researcher subagent timed out; user chose skip-research path). Planner tagged AgentCore-specific facts in 03-04 as `[needs-verification]` and routed to bin/smoke-deploy.sh runtime gate.
-Status: `/gsd-plan-phase 3` complete. Plan-checker returned VERIFICATION PASSED with 3 non-blocking advisory warnings: (1) plans 03-01 (12 files) + 03-04 (10 files) at upper bound of recommended scope — split documented as fallback if executor reports context exhaustion; (2) trust-policy principal in 03-01 Task 1 is `bedrock-agentcore.amazonaws.com` with documented fallback to `bedrock.amazonaws.com` if MalformedPolicyDocument is raised — by-design `[needs-verification]` gate; (3) S3 widget bucket uses force_destroy=true with git+redeploy as rollback substitute instead of versioning per D-26 — equivalent rollback path documented. Next: `/gsd-execute-phase 3`.
-Last activity: 2026-05-06 — `/gsd-plan-phase 3` produced 4 PLAN.md files (03-01, 03-02, 03-03, 03-04) in 3 waves. Researcher timed out and was skipped; planner read CONTEXT.md + UI-SPEC.md + REQUIREMENTS.md + STATE.md only and tagged AgentCore-specific facts as `[needs-verification]` with documented diagnostic commands (`aws cloudformation describe-type ...`) the executor runs at the per-plan checkpoints. Plan-checker verified all 15 REQ-IDs covered, all D-22..D-30 decisions mapped, threat models present in all 4 plans (zero-wildcard IAM, OAC on CloudFront, immutable ECR tags, WSS TLS, scoped CloudWatch ARNs), no emojis, uv-only Python, no `pip install`. ROADMAP.md updated with wave structure annotations + plan count 0/TBD → 0/4.
+Phase: 3 of 5 (AgentCore Deploy + Web Widget + Public Demo URL) — In progress
+Plan: 1 of 4 done. Plan 03-01 (TF infra: agentcore_iam + widget_hosting + ecr modules) applied live in account 851725411875/ap-northeast-1. 12 AWS resources created, 0 destroyed. D-22 closed (hera-kb-retrieve-prod attached to AgentCore exec role). D-13 verified (zero IAM wildcards except documented cloudwatch:PutMetricData exception scoped via cloudwatch:namespace=hera/agentcore condition). Live outputs ready for downstream plans:
+  - agentcore_exec_role_arn = arn:aws:iam::851725411875:role/hera-agentcore-exec-prod
+  - agentcore_log_group_name = /aws/bedrock-agentcore/hera-agent
+  - ecr_repo_url = 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent
+  - widget_cloudfront_url = https://dg0w939ktclw6.cloudfront.net
+  - widget_cloudfront_distribution_id = E10K3B1L8PQ9EC
+  - widget_s3_bucket_name = hera-widget-prod
+Wave 1 remaining: 03-02 (frontend widget Apple-Store light per UI-SPEC + bin/build-widget.sh sed-injection — file-disjoint with 03-01, can start now). Wave 2: 03-03 (bin/push-image.sh) — unblocked by 03-01 ECR output. Wave 3: 03-04 (CDK AgentCore stack + smoke) — needs all of 03-01/02/03.
+Status: Plan 03-01 complete. Verifier-style 5-gate check passed (KB attachment, ECR mutability, CloudFront cert+headers, S3 PAB, IAM zero-wildcard inline). Next: launch 03-02 (frontend widget) — file-disjoint with 03-01 so it could have run in parallel; can run sequentially now or be paired with 03-03 in next executor wave.
+Last activity: 2026-05-06 — Plan 03-01 executed in 5 tasks. Tasks 1-4 (modules + prod-root wiring) by prior executor; Task 5 (terraform apply 12 adds + 5 acceptance gates against live AWS) by current executor. CloudFront distribution wall-clock 2m50s (faster than the 8-15min D-26 estimate). AgentCore trust principal `bedrock-agentcore.amazonaws.com` accepted first try — Pitfall-I fallback to `bedrock.amazonaws.com` not triggered. Sonic foundation-model ARN `amazon.nova-sonic-v1:0` accepted at IAM-policy create time (only ARN syntax validated; runtime InvokeModelWithBidirectionalStream is the actual gate, deferred to Plan 03-04 smoke). One AWS-side observation documented: CloudFront `MinimumProtocolVersion` silently downgrades from `TLSv1.2_2021` to `TLSv1` when `CloudFrontDefaultCertificate=true` (default `*.cloudfront.net` cert maximizes client reach). HTTPS still enforced via `viewer_protocol_policy=redirect-to-https`; HSTS + nosniff headers verified live via curl -I.
 
-Progress: [████████████████░░░░] 40%
+Progress: [█████████████████░░░] 45%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: ~27 min
-- Total execution time: ~2.65 hours
+- Total execution time: ~3.5 hours
 
 **By Phase:**
 
@@ -29,13 +36,13 @@ Progress: [████████████████░░░░] 40%
 |-------|-------|-------|----------|
 | 1. Knowledge Base Foundation | 3/3 | ~69 min | ~23 min |
 | 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | — | — |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 1/4 | ~50 min | ~50 min |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | — | — |
 | 5. Workshop Documentation (vi/en) | 0/TBD | — | — |
 
 **Recent Trend:**
-- Last 6 plans: 01-02 (~14 min, 3 tasks, 11 files — network-error resume), 01-03 (~50 min, 5 tasks, 2 deliverables + 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 3 tasks, 16 files, 0 deviations — pure greenfield Python with mocked boto3), 02-03 (~7 min, 3 tasks, 7 files, 0 auto-fix deviations — IaC plan against live AWS), 02-02 (~78 min, 5 tasks, 12 files, 4 auto-fix deviations — container + frontend + live Bedrock Nova 2 Sonic AGT-04 gate against KB BKXE19AH89; ~21 min spent on cold Pipecat ML deps download in Docker build, ~30 min on Plan-02-01 latent-issue debugging via live Sonic introspection)
-- Trend: live-AWS audio-loop plans cost the most wall-clock (78 min) because the loop spans Docker build + WS transport + Pipecat pipeline + bidi stream to Sonic + tool execution against KB - debugging requires running each layer end-to-end. Plan 02-02 surfaced two latent Plan-02-01 issues (missing serializer; greet-kickoff race) that unit tests with MagicMock could not catch. The smoke-gate-as-acceptance pattern is what made these visible: AGT-04 gate refused to pass without root-causing the underlying audio-flow break.
+- Last 7 plans: 01-02 (~14 min), 01-03 (~50 min, 3 deviation-fix iterations against live AWS), 02-01 (~5 min, 0 deviations), 02-03 (~7 min, 0 deviations), 02-02 (~78 min, 4 auto-fix deviations — live Sonic AGT-04 gate), 03-01 (~50 min, 5 tasks split across two executor invocations — Tasks 1-4 modules + wiring, Task 5 live apply with 12 adds 0 destroys; 0 deviations; CloudFront 2m50s wall-clock; Pitfall-I fallback not triggered).
+- Trend: Plan 03-01 followed the same shape as Plan 01-03 (TF apply against live AWS) but with zero deviations — the planner's `[needs-verification]` tags + 5-gate acceptance check absorbed all the runtime uncertainty (trust principal, model ARN syntax, CloudFront cert downgrade quirk) without forcing iteration. The empty-commit-with-outputs-in-body pattern for Task 5 captured the deploy event in git history despite zero source diff. Phase 3 average will rise as Plans 03-03 (multi-arch buildx push) and 03-04 (CDK + smoke) introduce more wall-clock.
 
 *Updated after each plan completion*
 
@@ -85,6 +92,14 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Plan 02-02: `AWSNovaSonicLLMService` only triggers a greet when the LLMContext ENDS with a `Role.USER` message at session-setup time (sent as `interactive=True`). Plan 02-01's on_client_connected handler used role="developer" added AFTER the session-setup race - the message arrived too late and Sonic never greeted. Fix: pre-seed `LLMContext(messages=[{"role": "user", "content": "Hello."}], tools=TOOLS)` at construction time so `_finish_connecting_if_context_available`'s initial run sees the kickoff message.
 - Plan 02-02: docker-compose.yml uses `${VAR:?msg}` REQUIRED-syntax for AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, HERA_KB_ID — surfaces friendly fail-fast error before container starts (T-02-02-04). Env-var values are double-quoted because the planner-specified messages contain `:` characters that would otherwise break YAML scalar parsing.
 - Plan 02-02: AGT-04 latency target is now PROGRAMMATICALLY GATED via `bin/smoke-voice.sh` (exits 0 only on `LATENCY_MS<3000`). Operator inspection is no longer the gate. Live result against Bedrock Nova 2 Sonic in ap-northeast-1 + KB BKXE19AH89: `LATENCY_MS=0` (Sonic's first inbound binary frame arrived essentially synchronously with end-of-send during the 1s silence streaming phase).
+- Plan 03-01: AgentCore trust principal `bedrock-agentcore.amazonaws.com` accepted on first apply (NOT `bedrock.amazonaws.com` — Phase-1 Pitfall-I principal differs at the AgentCore layer). Confused-deputy mitigated via `aws:SourceAccount=851725411875` + `AWS:SourceArn ArnLike arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/*`. Live role: `arn:aws:iam::851725411875:role/hera-agentcore-exec-prod`.
+- Plan 03-01: D-22 (Phase 2 deferral) closed live — `aws_iam_role_policy_attachment.kb_retrieve` attaches `arn:aws:iam::851725411875:policy/hera-kb-retrieve-prod` to the AgentCore exec role. `aws iam list-attached-role-policies --role-name hera-agentcore-exec-prod` confirms.
+- Plan 03-01: Sonic foundation-model ARN `arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.nova-sonic-v1:0` flagged `[needs-verification]` in PLAN.md; IAM-policy `aws:CreatePolicy` validates ARN syntax only, not model existence. Runtime gate is Plan 03-04 smoke (`bedrock:InvokeModelWithBidirectionalStream`). If smoke fails, override `module.agentcore_iam.sonic_model_arn` at the prod root after `aws bedrock list-foundation-models --by-output-modality SPEECH --region ap-northeast-1` resolves the verified id.
+- Plan 03-01: D-13 zero-wildcard verified live — Python regex sweep across `infra/**/*.tf` finds exactly one wildcard at `infra/modules/agentcore_iam/main.tf:87` = the documented `cloudwatch:PutMetricData` Resource=* exception, gated by `cloudwatch:namespace = hera/agentcore` StringEquals condition. AWS-published least-privilege pattern (PutMetricData has no resource-level scoping in IAM).
+- Plan 03-01: ECR repo `hera-agent` shipped with `imageTagMutability=IMMUTABLE` — Plan 03-03 push-script must NOT pass `:latest` (immutable rejects retag). Lifecycle policy keeps last 5 untagged images. `force_delete=false` — Phase 4 cleanup-verify must explicitly `aws ecr delete-repository --force` to protect pushed images from accidental `terraform destroy`.
+- Plan 03-01: CloudFront `MinimumProtocolVersion` silently downgrades from `TLSv1.2_2021` (set in TF) to `TLSv1` (returned by API) when `CloudFrontDefaultCertificate=true`. AWS-side override: default `*.cloudfront.net` cert maximizes client reach. HTTPS-only still enforced via `viewer_protocol_policy=redirect-to-https`. Custom-domain ACM cert (deferred per D-26) would unlock `TLSv1.2_2021` minimum. Documented behavior, not a regression.
+- Plan 03-01: Widget hosting verified live — S3 `hera-widget-prod` PAB all-true, CloudFront `E10K3B1L8PQ9EC` `Status=Deployed` in 2m50s (faster than the 8-15min D-26 estimate), HSTS `max-age=31536000; includeSubDomains` + `X-Content-Type-Options: nosniff` headers active (verified via `curl -I` returning HTTP/1.1 403 from S3 NoSuchKey through OAC — empty bucket is correct, Plans 03-02/03-04 populate). Live URL: `https://dg0w939ktclw6.cloudfront.net`.
+- Plan 03-01: Empty-commit-with-outputs-in-body pattern established for live deploy events — `git commit --allow-empty -m "feat(03-01): apply terraform live..."` with full output capture + acceptance-gate results in body. Captures deploy event in git history while preserving per-task atomic-commit contract; works because terraform state file + plan.out are gitignored.
 
 ### Pending Todos
 
@@ -100,11 +115,15 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Repo hygiene | Add `plan.out` to `.gitignore` (post-`terraform plan -out` artifact) | Open | Plan 02-03 |
+| Repo hygiene | Add `plan.out` to `.gitignore` (post-`terraform plan -out` artifact) | RESOLVED in Plan 03-01 Task 4 | Plan 02-03 |
 | Phase 1 D-10 | Consumer `bedrock:Retrieve` policy for Pipecat | RESOLVED in Plan 02-03 (managed policy `hera-kb-retrieve-prod`) | Plan 01-01 |
+| Phase 2 D-22 | Attach `hera-kb-retrieve-prod` to AgentCore exec role | RESOLVED in Plan 03-01 Task 1 (live `aws_iam_role_policy_attachment.kb_retrieve`) | Plan 02-03 |
+| Plan 03-01 | Sonic foundation-model ARN runtime gate | Open — verified at Plan 03-04 smoke (`bedrock:InvokeModelWithBidirectionalStream`) | Plan 03-01 |
+| Plan 03-01 | CloudFront custom domain + ACM cert (would also unlock `TLSv1.2_2021` minimum) | Open — deferred per D-26 to v2 | Plan 03-01 |
+| Plan 03-01 | Widget S3 versioning (rollback path is git+bin/deploy-widget.sh) | Open — deferred per D-26 to Phase 4 if cleanup-verify proves teardown is clean | Plan 03-01 |
 
 ## Session Continuity
 
-Last session: 2026-05-05
-Stopped at: Phase 3 UI-SPEC approved. `/gsd:ui-phase 3` produced 03-UI-SPEC.md, commit a71b70a. Apple-Store light design system locked: palette (`#0071e3` / `#f5f5f7` / `#ffffff` / `#e74c3c`), 4 type sizes (14/16/20/28) × 2 weights (400/600), 4/8/16/24/32/48 spacing scale (+56px record-button height for WCAG 2.5.5), 5 record-button states with full per-state color/background/border/aria-label spec, color-coded transcript (user `#0071e3`, agent `#1d1d1f`, system `#86868b`), 5 WID-06 error strings, instructor-demo banner verbatim, zero registries (no npm / no CDN / no Google Fonts — vanilla HTML/CSS/JS). UI-checker APPROVED 6 dimensions (Dim 2 non-blocking FLAG: focal point implicit — planner should declare record button as primary focal point explicitly). Earlier: `/gsd:discuss-phase 3` produced 03-CONTEXT.md (D-24..D-30) and 03-DISCUSSION-LOG.md, commit 5c0f31b. Hybrid TF + CDK Python IaC split locked. 3-step deploy lifecycle locked. S3+CloudFront widget hosting locked. $5/day banner cap + 2-concurrent throttling locked. D-22 (Phase 2 deferral) closes here when policy attachment lands in Phase 3 IAM module. Next: `/gsd-plan-phase 3` (researcher must resolve research/SUMMARY.md open questions #1, #3, #4, #6 around AgentCore Terraform support, deploy steps, concurrency knob, KB tool helper).
-Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-UI-SPEC.md
+Last session: 2026-05-06
+Stopped at: Plan 03-01 complete. 12 AWS resources live in account 851725411875/ap-northeast-1 (1 IAM role + 1 inline + 1 attachment + 1 log group + 1 ECR + 1 lifecycle + 1 S3 + 1 PAB + 1 OAC + 1 CF distribution + 1 CF response-headers + 1 S3 bucket policy). All 5 Plan 03-01 acceptance gates passed (D-22 KB attachment, ECR IMMUTABLE+scan, CloudFront default cert+Deployed status, S3 PAB all-true, IAM zero-wildcard sweep). One AWS-side observation: CloudFront `MinimumProtocolVersion` API-side downgrade `TLSv1.2_2021 → TLSv1` when default cert is used (HTTPS still enforced via redirect-to-https). Live URLs ready for Wave 2/3 consumption: `ecr_repo_url=851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent`, `widget_cloudfront_url=https://dg0w939ktclw6.cloudfront.net`, `widget_cloudfront_distribution_id=E10K3B1L8PQ9EC`, `agentcore_exec_role_arn=arn:aws:iam::851725411875:role/hera-agentcore-exec-prod`. Next: launch Plan 03-02 (frontend widget Apple-Store light per UI-SPEC + bin/build-widget.sh sed-injection). 03-02 is file-disjoint with 03-01 (touches `frontend/` + `bin/build-widget.sh` only — no infra/ overlap) so it could have run in parallel with 03-01; runs sequentially now since 03-01 already landed. After 03-02, Wave 2 (03-03 push-image.sh) and Wave 3 (03-04 CDK + smoke) follow.
+Resume file: .planning/phases/03-agentcore-deploy-web-widget-public-demo-url/03-02-PLAN.md
