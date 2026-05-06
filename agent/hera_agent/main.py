@@ -1,8 +1,9 @@
 """FastAPI entrypoint for the Hera Pipecat agent.
 
-Exposes two routes on port 8080:
-- GET /ping       : AgentCore Runtime health check (returns {"status":"Healthy"}).
-- WebSocket /ws   : Pipecat voice pipeline. One pipeline per connection.
+Exposes three routes on port 8080:
+- GET  /ping        : AgentCore Runtime health check (returns {"status":"Healthy"}).
+- POST /invocations : AgentCore HTTP data-plane stub. Voice loop runs on /ws.
+- WebSocket /ws     : Pipecat voice pipeline. One pipeline per connection.
 
 This single-app shape matches the AgentCore HTTP service contract verbatim, so
 Phase 3 deploys without a transport refactor.
@@ -11,6 +12,7 @@ Phase 3 deploys without a transport refactor.
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 from hera_agent.pipeline import run_pipeline
@@ -31,6 +33,18 @@ async def ping() -> dict:
         "status": "Healthy",
         "time_of_last_update": _BOOT_TIME,
     }
+
+
+@app.post("/invocations")
+async def invocations() -> JSONResponse:
+    """AgentCore HTTP data-plane stub. Voice loop runs on /ws (D-31)."""
+    return JSONResponse(
+        {
+            "agent": "hera-pipecat-sonic",
+            "status": "running",
+            "model": "amazon.nova-sonic-v1:0",
+        }
+    )
 
 
 @app.websocket("/ws")
