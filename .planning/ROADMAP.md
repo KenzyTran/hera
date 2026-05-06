@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Knowledge Base Foundation** - Apple catalog ingested into Bedrock KB on S3 Vectors, queryable from CLI (3 plans) — completed 2026-05-05
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
-- [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1)**
+- [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1) — POST /invocations stub deployed; AgentCore data-plane invoke returns 200.**
 - [ ] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **Wave-1 priority:** Plan 04-01 protocol-bridge closes Phase 3 SC#2 by exposing `POST /invocations` per AgentCore HTTP protocol contract — Plan 03-05 closed the credential gap but surfaced a separate routing gap that out-scopes Phase 3.
 - [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy
 
@@ -106,8 +106,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: OBS-01, OBS-02, OBS-03, OBS-04, OBS-05
 **Success Criteria** (what must be TRUE):
   1. A CloudWatch dashboard shows active session count, latency p50/p95 (utterance → first audio chunk), error rate, and Bedrock invocation/cost metrics — populated by real traffic from Phase 3.
-  2. Operational alarms fire on threshold breach — error rate above 5% over 5 minutes and latency p95 above 5s over 5 minutes — and a billing alarm triggers SNS at the configured daily Bedrock cost cap (default $5/day).
-  3. Anonymous-public-URL abuse is bounded — AgentCore concurrency limits and per-IP rate limits are configured, and a Lambda cost circuit-breaker can stop the AgentCore endpoint when the billing alarm fires (best-effort, trade-off documented).
+  2. Operational alarms fire on threshold breach — error rate above 5% over 5 minutes and latency p95 above 5s over 5 minutes — and a billing alarm transitions to ALARM at the configured daily Bedrock cost cap (default $5/day). Billing alarm has alarm_actions=[] per D-35 (no SNS / email / Lambda — best-effort trade-off documented in RUNBOOK Phase 4 manual-stop fallback).
+  3. Anonymous-public-URL abuse is bounded — AgentCore concurrency cap=2 (D-30, operational service-quota request) is the documented gate; per-IP rate limit on the presigner Function URL is deferred per D-36 with trade-off documented in RUNBOOK; a Lambda cost circuit-breaker is deferred per D-35 with manual-stop fallback documented in RUNBOOK (best-effort trade-off accepted).
   4. Running `terraform destroy` from a freshly-cloned repo on a clean AWS account leaves no Bedrock KB, no S3 Vectors index, no AgentCore endpoint, no log groups, no orphaned IAM roles — verified by an automated `cleanup-verify.sh` script that exits non-zero if anything is left behind.
   5. Cost Explorer shows $0 ongoing spend 24 hours after destroy, confirmed by the cleanup verification script.
 **Plans:** 3 plans
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Plans complete; SC#2 closed by Plan 04-01 (Phase 4 Wave 1 — protocol-bridge) | 2026-05-06 |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 0/3 | Plans drafted (04-01 protocol-bridge Wave 1 BLOCKING; 04-02 observability + 04-03 cleanup-verify Wave 2 parallel) | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
 

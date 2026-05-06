@@ -484,6 +484,85 @@ cd infra/envs/prod && terraform destroy && cd ../..
 
 Cleanup verification script (`cleanup-verify.sh`) is Phase 4 work.
 
+## Phase 4: Protocol-bridge deploy
+
+Closes Phase 3 SC#2 by exposing `POST /invocations` on the live container per the
+AgentCore HTTP protocol contract. The voice loop continues on `/ws` unchanged;
+`/invocations` is a static-envelope stub (D-31, RESEARCH section A — canonical
+awslabs Pipecat-on-AgentCore sample shape).
+
+### Step 1: Local rebuild + curl verify gate (D-32 — run BEFORE pushing image)
+
+```bash
+cd agent && docker build -t hera-agent:local-test . && cd ..
+docker run --rm -d --name hera-test -p 8080:8080 hera-agent:local-test
+curl -fsS -X POST http://localhost:8080/invocations \
+  -H "Content-Type: application/json" -d '{"prompt":"healthcheck"}'
+# Expect: HTTP 200 + {"agent":"hera-pipecat-sonic","status":"running","model":"amazon.nova-sonic-v1:0"}
+curl -fsS http://localhost:8080/ping  # /ping unchanged: {"status":"Healthy",...}
+docker stop hera-test
+```
+
+### Step 2: Multi-arch ECR push (reuses bin/push-image.sh)
+
+```bash
+NEW_TAG=$(git rev-parse --short HEAD)
+bash bin/push-image.sh
+aws ecr describe-images --repository-name hera-agent \
+  --image-ids imageTag=$NEW_TAG --region ap-northeast-1 \
+  --query 'imageDetails[0].imageManifest' --output text | head -20
+```
+
+### Step 3: cdk deploy in-place (version=2 -> version=3)
+
+```bash
+(cd infra/envs/prod && terraform output -json > terraform-outputs.json)
+mkdir -p dist
+(cd infra/cdk && uv run cdk deploy hera-agentcore \
+  --context "image_tag=$NEW_TAG" \
+  --outputs-file dist/cdk-outputs.json \
+  --require-approval never)
+```
+
+CFn does an UPDATE_IN_PROGRESS -> UPDATE_COMPLETE; AgentCore Runtime
+`hera_agent-GIsf2P4ImD` ContainerUri swaps to the new tag; version increments
+from 2 to 3.
+
+### Step 4: SC#2 closure smoke probe (D-34)
+
+```bash
+RUNTIME_ARN=$(jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json)
+aws bedrock-agentcore invoke-agent-runtime \
+  --region ap-northeast-1 \
+  --agent-runtime-arn "$RUNTIME_ARN" \
+  --payload '{"prompt":"healthcheck"}' \
+  --content-type application/json \
+  --accept application/json \
+  /tmp/agentcore-response.json
+jq '.' /tmp/agentcore-response.json
+# Expect {"agent":"hera-pipecat-sonic","status":"running","model":"amazon.nova-sonic-v1:0"}
+```
+
+[needs-verification A2]: if running under a non-root operator profile, ensure
+the IAM identity has `bedrock-agentcore:InvokeAgentRuntime` on the runtime ARN.
+
+### Optional: browser smoke (NOT a gate per D-34)
+
+Open https://dg0w939ktclw6.cloudfront.net/ in a desktop browser. Click record,
+grant mic permission, ask "Do you have MacBook Pro?". Hear a KB-backed Apple
+Store answer. Closes SC#2 visibly to the instructor in addition to the
+data-plane smoke above.
+
+### Rollback
+
+The previous image tag `5f21e36` (Plan 03-05) stays in ECR (`imageTagMutability=IMMUTABLE`).
+To roll back the AgentCore Runtime to version=2:
+
+```bash
+(cd infra/cdk && uv run cdk deploy hera-agentcore \
+  --context "image_tag=5f21e36" --require-approval never)
+```
+
 ## Resolved deferrals
 
 The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
