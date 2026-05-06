@@ -661,6 +661,96 @@ Trade-off accepted: presigner is open; AgentCore concurrency is the gate.
 For a v2 with real public traffic, add WAF or token-bucket — explicitly out
 of scope per D-36.
 
+## Phase 4: Cleanup quy trinh
+
+Operator destroys; the script verifies (D-37, D-39). Three-step paste-style
+matches D-24 cleanup-contract: CDK first, Terraform second, verify third.
+
+### Step 1: cdk destroy hera-agentcore
+
+```bash
+(cd infra/cdk && uv run cdk destroy hera-agentcore --force)
+```
+
+CDK owns the AgentCore Runtime which holds the IAM exec role Terraform
+manages. If you reverse the order, terraform destroy fails on the role
+because policies are still attached and the role is still in use.
+
+### Step 2: terraform destroy
+
+```bash
+(cd infra/envs/prod && terraform destroy -auto-approve)
+```
+
+WARNING: This step takes 15-30 minutes on the CloudFront line (disable-then-
+delete cycle). DO NOT interrupt. If you hit Ctrl+C, the distribution stays
+in Enabled=false, Deployed=true and you must re-run terraform destroy.
+
+If `terraform destroy` fails on the ECR repo (`RepositoryNotEmptyException`):
+the repo is `imageTagMutability=IMMUTABLE` and `force_delete=false`. Either:
+- delete remaining image tags first:
+
+  ```bash
+  aws ecr batch-delete-image --repository-name hera-agent \
+    --image-ids imageTag=<tag1> imageTag=<tag2> \
+    --region ap-northeast-1
+  ```
+
+- or set `var.force_delete = true` in `infra/envs/prod` and re-run.
+
+### Step 3: bin/cleanup-verify.sh
+
+```bash
+bash bin/cleanup-verify.sh
+```
+
+Runs 19 read-only AWS API calls; prints OK / FAIL per resource; exits 0
+when all are gone. The script is verify-only; never destroys anything (D-39).
+
+If any FAIL, follow the hints printed by the script. Common causes:
+- step 1 / step 2 reversed (D-24)
+- terraform destroy interrupted during CloudFront line (15-30 min cycle)
+- ECR repo still has images (force_delete=false default)
+
+### Verify $0 ongoing cost (24h after destroy)
+
+Cost Explorer has up to 24h ingestion lag. Run the paste-line tomorrow
+morning, NOT now (D-38). Each Cost Explorer API call is $0.01 — running
+this once is fine; running it 90 times across a learner cohort costs $0.90.
+
+```bash
+# Replace YYYY-MM-DD with the actual destroy date.
+DESTROY_DATE=YYYY-MM-DD
+NEXT_DAY=$(date -d "${DESTROY_DATE} +1 day" +%Y-%m-%d 2>/dev/null || \
+           date -j -v+1d -f "%Y-%m-%d" "${DESTROY_DATE}" +"%Y-%m-%d")
+
+cat > /tmp/no-tax-credits.json <<'JSON'
+{
+  "Not": {
+    "Dimensions": {
+      "Key": "RECORD_TYPE",
+      "Values": ["Tax", "Credit", "Refund"]
+    }
+  }
+}
+JSON
+
+aws ce get-cost-and-usage \
+  --time-period "Start=${DESTROY_DATE},End=${NEXT_DAY}" \
+  --granularity DAILY \
+  --metrics BlendedCost \
+  --filter file:///tmp/no-tax-credits.json \
+  --region us-east-1 \
+  | jq '.ResultsByTime[].Total.BlendedCost.Amount'
+```
+
+Expected output: `"0"` or `"0.0000000000"` (string). Anything non-zero
+indicates a leftover billable resource — re-run `bin/cleanup-verify.sh`
+and inspect.
+
+NOTE: Cost Explorer is region-pinned to us-east-1 regardless of where
+your resources lived; the `--region us-east-1` flag is for clarity.
+
 ## Resolved deferrals
 
 The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
