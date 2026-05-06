@@ -83,8 +83,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Error states are visible and self-explanatory — mic permission denied, WS connect failure, agent timeout, mic muted indicator all display human-readable messages instead of failing silently.
   4. The IAM execution role for AgentCore is least-privilege (`bedrock:InvokeModelWithBidirectionalStream`, `bedrock:Retrieve`, CloudWatch logs/metrics scoped to the relevant ARNs — zero wildcards) and Terraform variables let region default to `ap-northeast-1` while supporting override to `us-east-1` for dev.
   5. The public demo page shows a banner stating it is an instructor demo, daily cost is capped, and learners should follow the workshop to deploy their own.
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 4 plans
+
+**Wave 1** *(parallel: 03-01 TF infra modules, 03-02 frontend widget — file-disjoint)*
+- [ ] 03-01-PLAN.md — Terraform modules (agentcore_iam + widget_hosting + ecr) + prod root extension. Closes D-22 KB policy attachment. Covers DEP-03, DEP-04, DEP-05, DEP-06, WID-01, DEM-01.
+- [ ] 03-02-PLAN.md — Polished frontend widget (Apple-Store light per UI-SPEC) + bin/build-widget.sh sed-injection script. Covers WID-01, WID-02, WID-03, WID-04, WID-05, WID-06, DEM-03.
+
+**Wave 2** *(03-03 depends on 03-01: needs ECR repo URL output)*
+- [ ] 03-03-PLAN.md — bin/push-image.sh multi-arch buildx push to ECR + RUNBOOK Phase 3 deploy section. Covers DEP-02, DEP-03.
+
+**Wave 3** *(03-04 depends on 03-01 + 03-02 + 03-03: needs all TF outputs, deployed widget, pushed image)*
+- [ ] 03-04-PLAN.md — CDK Python AgentCore stack + bin/smoke-deploy.sh end-to-end live-AWS smoke + RUNBOOK smoke section. Covers DEP-01, DEP-02, DEP-03, DEP-04, DEP-06, DEM-01, DEM-02.
+
+**UI hint**: yes (UI-SPEC.md commit a71b70a is the design contract)
 
 ### Phase 4: Observability, Cost Control, Cleanup
 **Goal**: A learner (or instructor) can see what their deployed system is doing, get woken up before a runaway bill happens, and tear everything down to verified zero ongoing AWS cost.
@@ -120,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Knowledge Base Foundation | 3/3 | Complete (verifier passed 5/5 must-haves; live KB BKXE19AH89) | 2026-05-05 |
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
-| 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/TBD | Not started | - |
+| 3. AgentCore Deploy + Web Widget + Public Demo URL | 0/4 | Not started | - |
 | 4. Observability, Cost Control, Cleanup | 0/TBD | Not started | - |
 | 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
 
