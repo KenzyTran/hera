@@ -336,6 +336,73 @@ docker image prune -f
 
 The Pipecat agent has no persistent state - D-21 mandates in-memory only - so there is nothing to back up before teardown. The Phase 1 KB and S3 buckets are untouched by these commands.
 
+## Phase 3: AgentCore deploy
+
+Three explicit paste-blocks per D-25. Each step has one job, surfaces its own
+exit code, and is idempotent enough to re-run safely.
+
+### Prerequisites
+
+- AWS credentials for account 851725411875 in shell, with IAM/ECR/S3/CloudFront/CloudWatch write rights and `bedrock-agentcore:*` permissions for `cdk deploy`.
+- Region: `ap-northeast-1` (set `export AWS_REGION=ap-northeast-1` before any step).
+- Local tools: `terraform >= 1.9`, `docker` with `buildx`, `aws` CLI v2, `node` >= 18 + `python3` >= 3.11 (for AWS CDK Python), `jq`.
+- Plan 03-01 has been applied (`terraform apply` in `infra/envs/prod/`); `terraform output -raw ecr_repo_url` returns the ECR URI.
+- Phase 2 image (`hera-agent:dev-multiarch`) has built locally at least once on this machine so buildx caches are warm.
+
+### Step 1: Apply Terraform (KB + IAM + ECR + widget hosting + log group)
+
+Already covered in earlier RUNBOOK section "Phase 1 / Phase 2 deploy". The Phase 3 modules (`agentcore_iam`, `widget_hosting`, `ecr`) are wired into the same prod root. Re-run terraform when those modules change:
+
+```bash
+cd infra/envs/prod
+terraform plan -out plan.out
+terraform apply plan.out
+```
+
+Outputs Phase 3 added: `ecr_repo_url`, `agentcore_exec_role_arn`, `agentcore_log_group_arn`, `agentcore_log_group_name`, `widget_cloudfront_url`, `widget_s3_bucket_name`, `widget_cloudfront_distribution_id`.
+
+### Step 2: Build + push the agent image to ECR
+
+```bash
+bin/push-image.sh
+```
+
+What this does (Plan 03-03):
+1. Resolves `ecr_repo_url` from terraform outputs.
+2. Computes the short git SHA - that is the only image tag (ECR repo is IMMUTABLE per Plan 03-01).
+3. `aws ecr get-login-password | docker login` against the ECR registry.
+4. Ensures a `hera-builder` buildx builder exists (idempotent).
+5. `docker buildx build --platform linux/arm64,linux/amd64 --provenance=false --sbom=false --push -t ${ECR_URL}:${GIT_SHA} ./agent`.
+6. `aws ecr describe-images --image-ids imageTag=${GIT_SHA}` confirms the manifest landed.
+
+Output ends with the `cdk deploy` line you paste into Step 3. Re-run is safe: pushing the same SHA tag twice no-ops at ECR (manifest digest already present); pushing a new SHA tag adds a new image manifest. To deploy a new image, commit your changes locally first so the SHA differs.
+
+### Step 3: Deploy AgentCore (CDK) and the widget (S3+CloudFront)
+
+```bash
+# 3a - provision/replace the AgentCore Runtime resource
+cd infra/cdk
+uv run cdk deploy hera-agentcore --context image_tag=${GIT_SHA} --outputs-file ../../dist/cdk-outputs.json --require-approval never
+cd ../..
+
+# 3b - inject the WSS URL into the widget and ship to CloudFront
+export AGENTCORE_WSS_URL=$(jq -r '."hera-agentcore".AgentCoreWssUrl' dist/cdk-outputs.json)
+bin/build-widget.sh
+```
+
+Plan 03-04 owns the `infra/cdk/` stack, the `dist/cdk-outputs.json` shape, and the smoke verification that follows.
+
+### Cleanup order
+
+```bash
+# Tear down CDK first (so the AgentCore Runtime resource releases its grip on
+# the IAM role + log group + image), then Terraform.
+cd infra/cdk && uv run cdk destroy hera-agentcore --force && cd ../..
+cd infra/envs/prod && terraform destroy && cd ../..
+```
+
+Cleanup verification script (`cleanup-verify.sh`) is Phase 4 work.
+
 ## Resolved deferrals
 
 The following items were tracked as Phase-N deferrals during earlier milestones and have since been delivered:
