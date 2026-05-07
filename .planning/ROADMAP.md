@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
 - [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1) — POST /invocations stub deployed; AgentCore data-plane invoke returns 200.**
 - [x] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **Wave-1 closed Phase 3 SC#2** via Plan 04-01 protocol-bridge (POST /invocations stub deployed; AgentCore data-plane invoke returns 200). Wave-2 shipped 1 dashboard + 3 alarms (zero new IAM, no SNS hook per D-35) + bin/cleanup-verify.sh (19 read-only checks). 5 deferred items in 04-HUMAN-UAT.md (browser smoke, billing-alerts toggle, workshop-close cleanup-verify run, 24h Cost Explorer paste-line, D-30 quota request) — none blocking. — completed 2026-05-06
-- [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — gap closure complete 2026-05-07 (Plan 05-05 closed CR-01 submodule + CR-02 instructor data + WR-02 Phần rename; pending re-verification + first organic CI build)
+- [x] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — gap closure complete 2026-05-07 (Plan 05-05 closed CR-01 submodule + CR-02 instructor data + WR-02 Phần rename; pending re-verification + first organic CI build) (completed 2026-05-07)
 
 ## Phase Details
 
@@ -142,7 +142,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. After running Phần 4 Cleanup, the learner verifies via Cost Explorer and the verification script that they have zero ongoing AWS cost.
   4. Each chapter contains the relevant top-N pitfall callouts (8-min Sonic stream cap, audio sample rate, model access enablement, HTTPS for mic, billing alarm, tool-use schema, bilingual parity, KB sync delay) at the moments the learner is about to hit them, plus copy-clean code snippets and annotated AWS console screenshots.
   5. CI enforces vi/en parity on every PR — the parity check script counts chapters and key sections per language and fails the build if they diverge.
-**Plans:** 5/5 plans executed (05-01..05-04 published content; 05-05 closed verification gaps)
+**Plans:** 5/5 plans complete
 
 **Wave 1** *(blocking — gate landing first; non-autonomous: operator confirms config.toml baseURL since git remote empty)*
 - [x] 05-01-PLAN.md — bin/check-i18n-parity.sh DOC-12 gate + workflow wire-up + config.toml replacement (D-52) + Phần 1 Introduction (vi+en) with Mermaid component + sequence diagrams (D-55) + bilingual-parity callout (D-51 #7) + 8 FCJ-template stub deletions + 1.1-prerequisites resolution (D-53). Covers DOC-01, DOC-12.
@@ -178,7 +178,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 3/3 | Complete (5/5 SC verified; closed Phase 3 SC#2 via Plan 04-01; 5 deferred items in 04-HUMAN-UAT.md, none blocking; code review clean) | 2026-05-06 |
-| 5. Workshop Documentation (vi/en) | 5/5 | Gap closure complete (Plan 05-05 closed CR-01 submodule registration + CR-02 instructor data redaction + WR-02 Phần rename; ALL GATES PASSED; bin/check-i18n-parity.sh exits 0 vi=11 en=11). Pending re-verification + first organic CI build (operator action: configure remote + push to master). | gaps closed 2026-05-07 |
+| 5. Workshop Documentation (vi/en) | 5/5 | Complete    | 2026-05-07 |
 
 ## Notes on Phase Shape
 
