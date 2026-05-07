@@ -151,7 +151,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 05-02-PLAN.md — Phần 2 Preparation (single-page; D-51 #3 model access) + Phần 3.1 Knowledge Base sub-page (D-51 #8 KB sync delay) + Phần 3.2 Pipecat Local sub-page (D-51 #1, #2, #6 — 8-min cap, sample rate, tool-use schema). All vi+en (D-49). Covers DOC-02, DOC-03, DOC-04, partial DOC-10, partial DOC-11. *(completed 2026-05-07; 4 atomic commits per D-49 ffbc109/3101e73/f488751/a06b993; 5 D-51 callouts placed; D-44 #1 image markdown reference + .gitkeep placeholder; vi=8 en=8 _index.md tree; bin/check-i18n-parity.sh exits 0)*
 
 **Wave 3** *(depends on 05-02 — shares bin/*.sh source provenance)*
-- [ ] 05-03-PLAN.md — Phần 3.3 Deploy AgentCore (D-24 hybrid IaC + D-30 quota cap=2 trade-off) + Phần 3.4 Web Widget (D-51 #4 HTTPS-for-mic) + Phần 3.5 Observability (D-51 #5 billing 24h propagation + D-35/D-36 trade-offs). 3 static/images/ placeholders for D-44 #2/#3/#4/#5 screenshots (operator captures later). Covers DOC-05, DOC-06, DOC-07, finishes DOC-10 + DOC-11.
+- [x] 05-03-PLAN.md — Phần 3.3 Deploy AgentCore (D-24 hybrid IaC + D-30 quota cap=2 trade-off) + Phần 3.4 Web Widget (D-51 #4 HTTPS-for-mic) + Phần 3.5 Observability (D-51 #5 billing 24h propagation + D-35/D-36 trade-offs). 3 static/images/ placeholders for D-44 #2/#3/#4/#5 screenshots (operator captures later). Covers DOC-05, DOC-06, DOC-07, finishes DOC-10 (8/8 D-51 callouts placed). *(completed 2026-05-07; 4 atomic commits per D-49 326b893/ffb8d01/2885030/f48d8f3; vi=11 en=11 _index.md tree; bin/check-i18n-parity.sh exits 0; 4 D-44 image refs inserted; 4 callouts placed total — 1 in 3.4 vi+en + 1 in 3.5 vi+en; submodule untouched)*
 
 **Wave 4** *(depends on 05-03 — final closure chapters)*
 - [ ] 05-04-PLAN.md — Phần 4 Cleanup (D-24 cleanup-contract + D-38 24h Cost Explorer paste-line + D-44 #6 cleanup-verify hero) + Phần 5 Summary (D-54 cost recap with ranges + DOC-09 expansion roadmap with TWIL/I18N/ADV/AUTH/THEME v2 IDs). Covers DOC-08, DOC-09.
@@ -159,7 +159,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 05-01-PLAN.md — Parity gate + config + Phần 1 Introduction (vi+en). *(complete 2026-05-07)*
 - [x] 05-02-PLAN.md — Phần 2 Preparation + Phần 3.1 KB + Phần 3.2 Pipecat Local (vi+en). *(complete 2026-05-07)*
-- [ ] 05-03-PLAN.md — Phần 3.3 Deploy + Phần 3.4 Widget + Phần 3.5 Observability (vi+en).
+- [x] 05-03-PLAN.md — Phần 3.3 Deploy + Phần 3.4 Widget + Phần 3.5 Observability (vi+en). *(complete 2026-05-07)*
 - [ ] 05-04-PLAN.md — Phần 4 Cleanup + Phần 5 Summary (vi+en).
 **UI hint**: yes
 
@@ -174,7 +174,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 3/3 | Complete (5/5 SC verified; closed Phase 3 SC#2 via Plan 04-01; 5 deferred items in 04-HUMAN-UAT.md, none blocking; code review clean) | 2026-05-06 |
-| 5. Workshop Documentation (vi/en) | 2/4 | In Progress|  |
+| 5. Workshop Documentation (vi/en) | 3/4 | In Progress (Waves 1+2+3 complete; 05-04 final wave pending) |  |
 
 ## Notes on Phase Shape
 

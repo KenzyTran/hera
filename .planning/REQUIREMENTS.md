@@ -65,12 +65,12 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 - [x] **DOC-02**: Phần 2 — Preparation (vi+en): AWS account checklist, enable Bedrock model access (Nova 2 Sonic), enable AgentCore service, install AWS CLI / Terraform / uv (Python), configure credentials, ước tính chi phí ~$X cho thời gian workshop *(completed Phase 5 Plan 05-02, 2026-05-07; content/{vi,en}/2-preparation/_index.md single-page chapter with AWS account checklist + Bedrock model access steps for Nova 2 Sonic + Titan v2 in ap-northeast-1 + tool installs (AWS CLI v2, Terraform >=1.9, uv, Docker buildx, jq) + credentials + D-54 anchored ~$2-5 USD/2-hour ballpark with post-launch-update notice; D-51 #3 model-access pitfall callout placed; D-44 #1 image markdown reference inserted; vi+en in same atomic commit per D-49)*
 - [x] **DOC-03**: Phần 3.1 (vi+en) — Build Knowledge Base: viết catalog markdown, deploy `modules/kb`, verify Retrieve API qua AWS CLI test *(completed Phase 5 Plan 05-02, 2026-05-07; content/{vi,en}/3-hands-on/3.1-knowledge-base/_index.md sub-page mirroring RUNBOOK Phase 1 First deploy + First sync + Verify + Re-index sections — terraform apply + aws s3 cp + start-ingestion-job + bin/verify-kb.sh paste-blocks; D-51 #8 KB sync delay pitfall callout at post-sync verify step; 6 Source footers per language anchored to RUNBOOK + bin/verify-kb.sh + catalog/)*
 - [x] **DOC-04**: Phần 3.2 (vi+en) — Pipecat agent code: code structure, system prompt, tool definition, run local test (Pipecat WebSocket transport, browser kết nối localhost) *(completed Phase 5 Plan 05-02, 2026-05-07; content/{vi,en}/3-hands-on/3.2-pipecat-local/_index.md sub-page with pyproject.toml + main.py + prompts.py + tools.py + pipeline.py inline quotes — AWSNovaSonicLLMService + SessionContinuationParams(transition_threshold_seconds=360) + register_function('lookup_product', cancel_on_interruption=False) + uv path + docker compose path + bin/smoke-voice.sh AGT-04 gate; 3 D-51 callouts placed: #6 tool-use schema, #1 8-min stream cap, #2 16/24kHz audio sample rate; 13 Source footers per language)*
-- [ ] **DOC-05**: Phần 3.3 (vi+en) — Deploy lên AgentCore: build container, push ECR, deploy AgentCore, verify endpoint
-- [ ] **DOC-06**: Phần 3.4 (vi+en) — Web widget: HTML/JS structure, browser microphone, kết nối AgentCore endpoint, deploy widget (S3+CloudFront hoặc GitHub Pages)
-- [ ] **DOC-07**: Phần 3.5 (vi+en) — Observability: CloudWatch dashboard walk-through, set alarm
+- [x] **DOC-05**: Phần 3.3 (vi+en) — Deploy lên AgentCore: build container, push ECR, deploy AgentCore, verify endpoint *(completed Phase 5 Plan 05-03, 2026-05-07; content/{vi,en}/3-hands-on/3.3-deploy-agentcore/_index.md sub-page mirroring RUNBOOK Phase 3 + Phase 4 protocol-bridge sections — bin/push-image.sh + cdk deploy hera-agentcore + second-pass terraform apply -var=agentcore_runtime_arn + bin/smoke-deploy.sh + POST /invocations stub paste-blocks; hybrid IaC trade-off (D-24) and concurrency cap (D-30) explicitly documented; D-44 #3 Service Quotas screenshot reference inserted; 8 Source footers per language; vi+en in same atomic commit per D-49)*
+- [x] **DOC-06**: Phần 3.4 (vi+en) — Web widget: HTML/JS structure, browser microphone, kết nối AgentCore endpoint, deploy widget (S3+CloudFront hoặc GitHub Pages) *(completed Phase 5 Plan 05-03, 2026-05-07; content/{vi,en}/3-hands-on/3.4-web-widget/_index.md sub-page covers presigner Lambda Function URL bridge (D-25 Rule-4) + bin/build-widget.sh sed-injection + S3+CloudFront deploy + 5-state record button table + verbatim WID-06 error strings + AudioWorklet 16kHz Int16 capture; D-51 #4 HTTPS-required-for-mic pitfall callout placed; D-44 #4 widget hero screenshot reference inserted; 7 Source footers per language; vi+en in same atomic commit per D-49)*
+- [x] **DOC-07**: Phần 3.5 (vi+en) — Observability: CloudWatch dashboard walk-through, set alarm *(completed Phase 5 Plan 05-03, 2026-05-07; content/{vi,en}/3-hands-on/3.5-observability/_index.md sub-page walks CloudWatch dashboard hera-prod 5 panels + 2 op alarms (hera-error-rate-prod, hera-latency-p95-prod) + 1 billing alarm hera-billing-prod cross-region us-east-1; OBS-04 (D-36 no per-IP rate limit) + OBS-05 (D-35 manual-stop fallback) trade-offs documented; D-51 #5 billing alarm 24h propagation pitfall callout placed; D-44 #2 billing toggle + #5 dashboard hero screenshot references inserted; 7 Source footers per language; vi+en in same atomic commit per D-49)*
 - [ ] **DOC-08**: Phần 4 — Cleanup (vi+en): `terraform destroy`, manual checks (Cost Explorer, list AgentCore endpoints, S3 bucket, KB), verification script
 - [ ] **DOC-09**: Phần 5 — Summary (vi+en): cost recap, hướng mở rộng (Twilio voice, multi-language, multi-agent)
-- [ ] **DOC-10**: Top 5-7 pitfall callouts ở các chapter tương ứng (8-min stream cap, sample rate, model access, HTTPS bắt buộc cho mic, billing alarm cleanup, schema tool-use, bilingual parity)
+- [x] **DOC-10**: Top 5-7 pitfall callouts ở các chapter tương ứng (8-min stream cap, sample rate, model access, HTTPS bắt buộc cho mic, billing alarm cleanup, schema tool-use, bilingual parity) *(completed Phase 5 Plan 05-03, 2026-05-07; all 8 listed D-51 pitfall callouts placed across Phases 1+2+3 chapters via Plans 05-01..05-03: #1 8-min stream cap (Phần 3.2), #2 sample rate 16/24kHz (Phần 3.2), #3 model access (Phần 2), #4 HTTPS-for-mic (Phần 3.4), #5 billing alarm 24h propagation (Phần 3.5), #6 tool-use schema (Phần 3.2), #7 bilingual parity (Phần 1), #8 KB sync delay (Phần 3.1) — 8 placed exceeds the "Top 5-7" target literally)*
 - [ ] **DOC-11**: Mỗi chapter có code snippet copy button (hugo-theme-learn shortcode hoặc custom), screenshot AWS console với annotation
 - [x] **DOC-12**: vi/en parity check chạy trong CI (script đếm số chapter mỗi lang, fail nếu lệch) *(completed Phase 5 Plan 05-01, 2026-05-07; bin/check-i18n-parity.sh ships file-count + bidirectional slug-tree parity assertions, wired into .github/workflows/deploy.yml as a pre-build step between Checkout and Setup Pages — exits 0 on parity tree (vi=6, en=6), exits 1 on injected mismatch verified live)*
 
@@ -162,16 +162,16 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | OBS-04 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 + Plan 04-03 RUNBOOK + Plan 03-04 D-30, 2026-05-06) |
 | OBS-05 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 RUNBOOK manual-stop fallback per D-35, 2026-05-06) |
 | DOC-01 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
-| DOC-02 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-03 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-04 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-05 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-06 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-07 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-02 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-02, 2026-05-07) |
+| DOC-03 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-02, 2026-05-07) |
+| DOC-04 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-02, 2026-05-07) |
+| DOC-05 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-03, 2026-05-07) |
+| DOC-06 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-03, 2026-05-07) |
+| DOC-07 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-03, 2026-05-07) |
 | DOC-08 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-09 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plans 05-01..05-03, 2026-05-07; all 8 D-51 pitfall callouts placed) |
+| DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending (operator PNG capture sweep deferred — chapter markdown image refs in place) |
 | DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
 
 **Coverage:**
