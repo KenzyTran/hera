@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
 - [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1) — POST /invocations stub deployed; AgentCore data-plane invoke returns 200.**
 - [x] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **Wave-1 closed Phase 3 SC#2** via Plan 04-01 protocol-bridge (POST /invocations stub deployed; AgentCore data-plane invoke returns 200). Wave-2 shipped 1 dashboard + 3 alarms (zero new IAM, no SNS hook per D-35) + bin/cleanup-verify.sh (19 read-only checks). 5 deferred items in 04-HUMAN-UAT.md (browser smoke, billing-alerts toggle, workshop-close cleanup-verify run, 24h Cost Explorer paste-line, D-30 quota request) — none blocking. — completed 2026-05-06
-- [x] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — completed 2026-05-07
+- [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — verification gaps_found 2026-05-07 (3 gaps: theme submodule unregistered, instructor data leaked, en chapters contain Vietnamese tokens; see 05-VERIFICATION.md)
 
 ## Phase Details
 
@@ -174,7 +174,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 3/3 | Complete (5/5 SC verified; closed Phase 3 SC#2 via Plan 04-01; 5 deferred items in 04-HUMAN-UAT.md, none blocking; code review clean) | 2026-05-06 |
-| 5. Workshop Documentation (vi/en) | 4/4 | Complete (Waves 1+2+3+4 complete; all 5 chapters published bilingual; vi=11 en=11 _index.md tree; bin/check-i18n-parity.sh exits 0) | 2026-05-07 |
+| 5. Workshop Documentation (vi/en) | 4/4 | Verification gaps_found (4/4 plans shipped; vi=11 en=11 _index.md; parity gate green — but 3 gaps block phase goal: theme submodule unregistered → CI build will fail; instructor account/runtime/KB IDs leaked in copy-paste blocks; ~30 Vietnamese tokens in English chapters. See 05-VERIFICATION.md) | gaps 2026-05-07 |
 
 ## Notes on Phase Shape
 

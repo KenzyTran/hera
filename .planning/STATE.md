@@ -5,13 +5,13 @@ milestone_name: milestone
 status: executing
 stopped_at: "Phase 5 (Workshop Documentation vi/en) context gathered (commit 1225229). 05-CONTEXT.md captures D-40..D-55 across 9 categories: chapter granularity (D-40 Phần 3 splits into 5 sub-pages 3.1-knowledge-base / 3.2-pipecat-local / 3.3-deploy-agentcore / 3.4-web-widget / 3.5-observability; D-41 Phần 1/2/4/5 stay single-page; total 28 markdown files); snippet drift discipline (D-42 inline copy-paste with footer "Source: <repo-path>" reference, no Hugo readFile shortcode, no CI extract+grep gate; D-43 footer paths repo-relative, no GitHub permalink); screenshot strategy (D-44 minimal — 3 mandatory Console UI shots [Bedrock model access, Billing Alerts toggle, AgentCore quota request] + 3 hero [widget UI, CloudWatch dashboard, cleanup-verify output] + 2-4 supporting; D-45 storage `static/images/<chapter>/`; D-46 no GIF/video); region + container path (D-47 ap-northeast-1 default for every learner snippet; D-48 learner builds + pushes own ECR via bin/push-image.sh, no instructor public-ECR fallback); vi/en authoring + parity (D-49 vi-first then en-translated in same plan/commit; D-50 minimal file-count parity via bin/check-i18n-parity.sh wired into .github/workflows/deploy.yml pre-build); pitfall callouts (D-51 hugo-theme-learn `notice` shortcode, 8 callouts inline at choke points: 8-min stream cap, sample rate, model access, HTTPS-for-mic, billing alarm, tool-use schema, bilingual parity, KB sync delay); config.toml + GitHub Pages (D-52 replace placeholders with actual Hera values; D-53 1.1-prerequisites.md repurpose-or-remove decision deferred to planner); cost recap (D-54 ranges informed by instructor's actual usage, ~$2-5 USD per 2-hour session); architecture diagram (D-55 Mermaid component + sequence inline, ASCII fallback if theme support broken). Demo budget honored — Phase 5 is docs-only, zero new AWS deploys. No SPEC.md, no checkpoint, no advisor mode. 05-CONTEXT.md + 05-DISCUSSION-LOG.md committed (1225229)."
 last_updated: "2026-05-07T11:00:00.000Z"
-last_activity: 2026-05-07 -- Plan 05-04 complete (DOC-08 + DOC-09 shipped; Phase 5 closed)
+last_activity: 2026-05-07 -- Phase 5 verifier returned gaps_found (3 gaps blocking phase goal; code review CR-01+CR-02 confirmed)
 progress:
   total_phases: 5
-  completed_phases: 5
+  completed_phases: 4
   total_plans: 18
   completed_plans: 18
-  percent: 100
+  percent: 95
 ---
 
 # Project State
@@ -63,10 +63,10 @@ Wave 1 (Phase 5): 05-01 (DOC-12 parity gate + config.toml + Phần 1 Introductio
 Wave 2 (Phase 5): 05-02 (Phần 2 Preparation + Phần 3.1 Knowledge Base + Phần 3.2 Pipecat Local — vi+en) — COMPLETE 2026-05-07.
 Wave 3 (Phase 5): 05-03 (Phần 3.3 Deploy AgentCore + Phần 3.4 Web Widget + Phần 3.5 Observability — vi+en) — COMPLETE 2026-05-07.
 Wave 4 (Phase 5): 05-04 (Phần 4 Cleanup + Phần 5 Summary — vi+en) — COMPLETE 2026-05-07.
-Status: Phase 05 COMPLETE — all 4 plans shipped; v1 milestone reached.
-Last activity: 2026-05-07 -- Plan 05-04 complete (DOC-08 + DOC-09 shipped; Phase 5 closed)
+Status: Phase 05 verification: gaps_found — 4/4 plans shipped, but verifier flagged 3 gaps blocking the phase goal: (1) themes/hugo-theme-learn submodule declared in .gitmodules but not registered in HEAD git tree → CI Hugo build will fail, GitHub Pages site cannot publish; (2) instructor account 851725411875, runtime hera_agent-GIsf2P4ImD, KB BKXE19AH89, CloudFront subdomain leaked into copy-paste blocks across content/{vi,en}/3-hands-on/3.3-3.5; (3) ~30 Vietnamese "Phần" tokens in English chapter bodies (en-track readability). See 05-VERIFICATION.md + 05-REVIEW.md (CR-01 + CR-02 + WR-02). v1 milestone deferred until gap closure.
+Last activity: 2026-05-07 -- Phase 5 verifier returned gaps_found (3 gaps); code review CR-01+CR-02+WR-02 confirmed by codebase evidence
 
-Progress: [████████████████████████████████████████████████] 100%
+Progress: [████████████████████████████████████████████░░░░] 95%
 
 ## Performance Metrics
 
