@@ -761,3 +761,189 @@ The following items were tracked as Phase-N deferrals during earlier milestones 
 
 - Remote Terraform backend (S3 versioned + DynamoDB lock) — out of v1 scope per D-11. For v1 the workshop default is local state. When the project grows past one operator, bootstrap a separate state-backend stack first, then migrate this stack with `terraform init -migrate-state`.
 - Bedrock Guardrails (PII redaction) — out of v1 per PROJECT.md.
+
+## Phase 6 — Twilio Voice Channel Setup (operator paste-style)
+
+Phase 6 ADDS phone-channel ingress to the existing v1 system. v1 web widget at https://dg0w939ktclw6.cloudfront.net + AgentCore Runtime hera_agent-GIsf2P4ImD + KB BKXE19AH89 + Phase 4 dashboard / alarms are NOT modified — phone calls and browser sessions share the AgentCore concurrency cap=2 (D-30).
+
+### Pre-flight
+
+- AWS CLI v2 + Terraform >=1.9 + jq + curl + uv + Docker Desktop with buildx (per Phase 1-5 RUNBOOK pre-flight; nothing new).
+- A Twilio account (sign up free at https://www.twilio.com/try-twilio).
+- A funded Twilio balance (~$5 covers the workshop demo + 30min testing). US local number hold ~$1.15/mo + ~$0.0085/min inbound (current 2026 Twilio US pricing per RESEARCH.md Q7).
+- A stopwatch (phone built-in clock app is fine) for the dial-in latency measurement in Step 8.
+
+### Step 1: Create Twilio account + capture credentials
+
+1. Sign up, verify email + phone, complete onboarding.
+2. Twilio Console -> Account -> API keys & tokens. Copy:
+   - Account SID (starts `AC...`)
+   - Auth Token (click "Show")
+3. Set env vars locally (NEVER commit):
+   ```bash
+   export TWILIO_ACCOUNT_SID=<paste account sid>
+   export TWILIO_AUTH_TOKEN=<paste auth token>
+   ```
+
+### Step 1.5: Create Secrets Manager secret for the Auth Token (D-67)
+
+The bridge container reads the Twilio Auth Token from Secrets Manager via App Runner runtime_environment_secrets — no token in plaintext IaC.
+
+```bash
+aws secretsmanager create-secret \
+  --name hera/twilio/auth-token \
+  --secret-string "$TWILIO_AUTH_TOKEN" \
+  --region ap-northeast-1
+# Capture the ARN:
+export TF_VAR_twilio_auth_token_secret_arn="$(aws secretsmanager describe-secret \
+  --secret-id hera/twilio/auth-token \
+  --region ap-northeast-1 \
+  --query ARN --output text)"
+echo "$TF_VAR_twilio_auth_token_secret_arn"
+```
+
+### Step 2: Buy a phone number
+
+1. Twilio Console -> Phone Numbers -> Manage -> Buy a number.
+2. Filter by capabilities: Voice. Country: US (cheapest at $1.15/mo local).
+3. Buy. Note the number (e.g., +18005551234).
+
+### Step 3: First-pass terraform apply (placeholder image)
+
+The App Runner service uses a public placeholder image on the FIRST apply (chicken-and-egg per Pattern S10). The bridge image lands in ECR in Step 4.
+
+```bash
+cd infra/envs/prod
+terraform apply \
+  -var=agentcore_runtime_arn=arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/hera_agent-GIsf2P4ImD
+```
+
+Expected: 9 resources added (App Runner service + ASC + ECR repo + lifecycle policy + 2 IAM roles + 2 IAM role policies + log group). App Runner takes ~2-4 min to reach `RUNNING` status with the placeholder image.
+
+Capture the ECR URL for the next step:
+```bash
+cd infra/envs/prod
+terraform output -raw twilio_bridge_ecr_repository_url
+```
+
+### Step 4: Build + push the real bridge image
+
+```bash
+# Working tree must be clean before pinning the SHA (WARNING-5 fix —
+# avoids tag/SHA desync if you have uncommitted changes).
+git diff --quiet && git diff --cached --quiet \
+  || { echo "ERROR: working tree dirty; commit or stash before pushing"; exit 1; }
+# Pin BRIDGE_SHA AT THE START of the push so a later commit cannot desync the tag.
+export BRIDGE_SHA="$(git rev-parse --short HEAD)"
+bash bin/push-bridge-image.sh
+echo "$BRIDGE_SHA"
+```
+
+### Step 5: Second-pass terraform apply (pin the real image SHA)
+
+```bash
+cd infra/envs/prod
+terraform apply \
+  -var=agentcore_runtime_arn=arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/hera_agent-GIsf2P4ImD \
+  -var=twilio_bridge_image_tag="$BRIDGE_SHA"
+```
+
+Expected: 1 in-place change (App Runner service `image_identifier` updates from placeholder to `851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-twilio-bridge:$BRIDGE_SHA`). App Runner deploys the new image in 2-3 min.
+
+Capture the WSS URL for Twilio:
+```bash
+cd infra/envs/prod
+export TWILIO_BRIDGE_WSS_URL="$(terraform output -raw twilio_bridge_wss_url)"
+echo "$TWILIO_BRIDGE_WSS_URL"
+# Example: wss://abc123.ap-northeast-1.awsapprunner.com/twilio
+```
+
+### Step 6: Create TwiML Bin
+
+1. Twilio Console -> Develop -> TwiML Bins -> Create new TwiML Bin.
+2. Friendly name: `hera-bridge-prod`.
+3. Paste content (REPLACE `<APP-RUNNER-WSS-URL>` with `$TWILIO_BRIDGE_WSS_URL` from Step 5):
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <Response>
+     <Connect>
+       <Stream url="<APP-RUNNER-WSS-URL>" />
+     </Connect>
+   </Response>
+   ```
+
+   DO NOT change `<Connect>` to `<Start>` — `<Start><Stream>` is unidirectional (capture-only) and outbound audio from the bridge is silently dropped (RESEARCH.md Pitfall 1).
+
+4. Save. Copy the TwiML Bin SID (starts `EH...`).
+
+### Step 7: Wire the number's voice webhook to the TwiML Bin
+
+1. Twilio Console -> Phone Numbers -> Manage -> Active numbers -> click your number.
+2. Voice & Fax -> "A call comes in" -> set to TwiML Bin -> pick `hera-bridge-prod`.
+3. Save.
+
+### Step 8: Smoke test (with stopwatch latency protocol — Phase 6 SC#1)
+
+Phase 6 SC#1 mandates the response is audible within 3 seconds of first sentence. The measurement protocol below makes the gate non-subjective (WARNING-2 fix).
+
+1. Make sure no browser session is active on the v1 widget (AgentCore concurrency cap=2 — phone competes with browser; RESEARCH.md Pitfall 7).
+2. Have a stopwatch ready (phone Clock app on the dialing phone, or laptop).
+3. Dial the Twilio number from your phone.
+4. After TwiML connects, speak: "Do you have iPhone 13 Pro Max in stock?" — START the stopwatch the instant your last syllable finishes (end-of-utterance).
+5. STOP the stopwatch the instant you hear the FIRST audible word from Hera (first response audio frame).
+6. Record the elapsed time and apply the gate:
+   - **<= 3.0 s**  -> **PASS** (record exact value in 06-04-SUMMARY.md as p50 latency).
+   - **> 3.0 s and <= 5.0 s** -> **WARN** (record value + note "above SC#1 budget but within usable demo range"; check CloudWatch logs for cold-start indicator: first-call after scale-from-zero typically ~1.5 s slower than warmed steady-state).
+   - **> 5.0 s** -> **FAIL** (do NOT proceed to REQ flips; root-cause via CloudWatch logs + retry).
+
+7. Fallback measurement (if your phone has a call-recording app): record the call, open the WAV in Audacity, count samples between end-of-utterance waveform-trough and the first response audio frame onset. At 8 kHz sampling, 24,000 samples = 3 s. Visible by waveform inspection; no math required beyond sample-count divided by 8000.
+
+8. End the call.
+
+9. Tail logs:
+   ```bash
+   aws logs tail /aws/apprunner/hera-twilio-bridge-prod --since 5m --region ap-northeast-1
+   ```
+   Expected events: `Twilio WS accepted`, `Twilio start: callSid=...`, `AgentCore upstream WSS open for callSid=...`, several `audioop.ratecv` traces (none should ERROR), `Twilio stop received; closing pumps`, `AgentCore upstream closed for callSid=...`.
+
+10. Audio quality check (Phase 6 SC#2 — no chipmunk effect): if Sonic's voice sounds high-pitched / fast, the upstream output sample rate is 24 kHz and the bridge's `SONIC_OUTPUT_RATE_HZ = 16000` constant in `infra/modules/twilio_bridge/src/bridge.py` needs updating to 24000 (D-59 open caveat from CONTEXT.md). Update + push a new image (Step 4) + second-pass apply (Step 5).
+
+11. v1 unchanged check (D-64): open https://dg0w939ktclw6.cloudfront.net in a fresh browser tab; click "record"; speak. The widget should still hold a voice loop. (If the AgentCore concurrency cap=2 is consumed by the phone call, the widget shows "agent timeout" — end the phone call first, then retry.)
+
+### Step 9: Cost watch
+
+- Twilio Console -> Usage -> Voice -> confirm <$0.10 spent for the test call (US local: $0.0085/min × 5 min = $0.0425).
+- AWS Billing alarm at $5/day (Phase 4 hera-billing-prod) covers Bedrock + App Runner combined.
+- App Runner with `min-instances=0` returns to scale-to-zero after ~5 min idle = $0/mo idle.
+
+### Phase 6 Cleanup quy trinh (release in this exact order!)
+
+Operator destroys before running cleanup-verify-twilio.sh per D-39 carry-forward (script is verify-only).
+
+1. **Release the Twilio number FIRST.** Twilio Console -> Phone Numbers -> Manage -> Active numbers -> click number -> Release this number -> confirm. (Stops the $1.15/mo hold.)
+2. **Delete the TwiML Bin.** Twilio Console -> Develop -> TwiML Bins -> click `hera-bridge-prod` -> Delete.
+3. **Terraform destroy** (drops App Runner service + ASC + ECR repo + 2 IAM roles + log group):
+   ```bash
+   cd infra/envs/prod
+   terraform destroy \
+     -var=agentcore_runtime_arn=arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/hera_agent-GIsf2P4ImD \
+     -var=twilio_bridge_image_tag="$BRIDGE_SHA"
+   ```
+   Note: `terraform destroy` here drops only the Phase 6 module's resources because var.agentcore_runtime_arn keeps v1 widget_presigner state pinned. App Runner deletion takes ~60-90s. ECR `force_delete=true` (D-63) drops the repo even with images present.
+4. **Delete the Auth Token secret** (operator-owned, not Terraform-managed):
+   ```bash
+   aws secretsmanager delete-secret \
+     --secret-id hera/twilio/auth-token \
+     --region ap-northeast-1 \
+     --force-delete-without-recovery
+   ```
+5. **Verify zero leftovers** (read-only; no destroy):
+   ```bash
+   export TWILIO_ACCOUNT_SID=<paste account sid again>
+   export TWILIO_AUTH_TOKEN=<paste auth token again>
+   bash bin/cleanup-verify-twilio.sh
+   # Expect: cleanup-verify-twilio: 9/9 resources verified clean -> exit 0
+   ```
+
+If verify-twilio reports FAIL, see the script's hint block — most common cause is the App Runner deletion still mid-flight (retry after 2 min) or forgetting to release the Twilio number BEFORE terraform destroy.
