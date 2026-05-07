@@ -156,12 +156,12 @@ AgentCore HTTP protocol mặc định gọi container ở `POST /invocations` pe
 
 Plan 04-01 deploy Runtime version=3 status=READY referencing image `hera-agent:7e72b66`, đóng Phase 3 SC#2 (data-plane invoke trả về `statusCode=200`).
 
-## Live state (instructor reference)
+## Giá trị tham chiếu (resolve từ deploy của bạn)
 
-- Account: `851725411875` (instructor; bạn dùng account của bạn).
-- Region: `ap-northeast-1`.
-- Runtime: `hera_agent-GIsf2P4ImD` (instructor's; `cdk deploy` của bạn tạo runtime mới).
-- Live URL: `https://dg0w939ktclw6.cloudfront.net/` (instructor demo).
+- Account: `<your-account-id>` — resolve qua `aws sts get-caller-identity --query Account --output text`.
+- Region: `ap-northeast-1` (default cho workshop; bạn có thể dùng region khác nhưng cần enable Bedrock model access lại ở region đó).
+- Runtime: `<your-runtime-id>` — resolve qua `jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json` sau khi `cdk deploy hera-agentcore` hoàn tất ở Step 4.
+- Live URL: `https://<your-distribution>.cloudfront.net/` — resolve qua `terraform -chdir=infra/envs/prod output -raw widget_cloudfront_url` sau khi Section 3.4 deploy widget.
 - Cost active: AgentCore Runtime + Sonic streaming theo D-54 ballpark `~$2-5 USD per 2-hour session`. Số liệu per-service breakdown chính xác sẽ cập nhật post-launch sau khi instructor pull 24h Cost Explorer data từ một workshop session thực tế.
 
 ## Cleanup order

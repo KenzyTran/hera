@@ -156,12 +156,12 @@ AgentCore HTTP protocol calls the container at `POST /invocations` per Bedrock c
 
 Plan 04-01 deployed Runtime version=3 status=READY referencing image `hera-agent:7e72b66`, closing Phase 3 SC#2 (data-plane invoke returns `statusCode=200`).
 
-## Live state (instructor reference)
+## Reference values (resolve from your own deploy)
 
-- Account: `851725411875` (instructor's; you use your own account).
-- Region: `ap-northeast-1`.
-- Runtime: `hera_agent-GIsf2P4ImD` (instructor's; your `cdk deploy` creates a new runtime).
-- Live URL: `https://dg0w939ktclw6.cloudfront.net/` (instructor demo).
+- Account: `<your-account-id>` — resolve via `aws sts get-caller-identity --query Account --output text`.
+- Region: `ap-northeast-1` (workshop default; you can use a different region but must re-enable Bedrock model access in that region).
+- Runtime: `<your-runtime-id>` — resolve via `jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json` after `cdk deploy hera-agentcore` completes in Step 4.
+- Live URL: `https://<your-distribution>.cloudfront.net/` — resolve via `terraform -chdir=infra/envs/prod output -raw widget_cloudfront_url` after Section 3.4 deploys the widget.
 - Active cost: AgentCore Runtime + Sonic streaming around the D-54 ballpark of `~$2-5 USD per 2-hour session`. Exact per-service breakdown will be updated post-launch once the instructor pulls 24h Cost Explorer data from a real workshop session.
 
 ## Cleanup order
