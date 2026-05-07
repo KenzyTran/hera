@@ -1,5 +1,5 @@
-baseURL = "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/"
-title = "Workshop Title"
+baseURL = "https://KenzyTran.github.io/hera/"
+title = "Hera — AWS Voice Agent Workshop"
 theme = "hugo-theme-learn"
 
 defaultContentLanguage = "vi"
@@ -11,17 +11,17 @@ defaultContentLanguageInSubdir = true
     contentDir = "content/vi"
     weight = 1
     languageCode = "vi"
-    title = "Workshop Title"
+    title = "Hera — Workshop Voice Agent trên AWS"
   [languages.en]
     languageName = "English"
     contentDir = "content/en"
     weight = 2
     languageCode = "en"
-    title = "Workshop Title"
+    title = "Hera — AWS Voice Agent Workshop"
 
 [params]
-  description = "Workshop description"
-  author = "Your Name"
+  description = "FCJ workshop deploying a bilingual voice agent on Amazon Bedrock AgentCore Runtime + Nova 2 Sonic."
+  author = "AWS Cloud Clubs Vietnam"
   showVisitedLinks = false
   disableBreadcrumb = false
   disableNextPrev = false
