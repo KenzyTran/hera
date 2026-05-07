@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: twilio-voice-channel
-status: roadmap-ready
-last_updated: "2026-05-07T07:30:00.000Z"
+status: ready-to-execute
+last_updated: "2026-05-07T11:00:00.000Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 ## Current Position
 
-Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — context gathered
-Plan: —
-Status: 06-CONTEXT.md committed (ad69b49); awaiting /gsd-plan-phase 6
-Last activity: 2026-05-07 — Phase 6 discuss-phase complete. 4 gray areas locked in 06-CONTEXT.md D-56..D-67: bridge = API Gateway WebSocket + new Lambda module twilio_bridge; resample in bridge Lambda only (agent + AgentCore untouched); Twilio number + TwiML provisioned operator paste-style via console + RUNBOOK (no Terraform Twilio provider); TwiML XML hosted on Twilio TwiML Bin (free, no AWS resource). v1 system strictly unchanged. Demo budget honored.
+Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — planned (4 plans / 3 waves)
+Plan: 06-01..06-04 (Wave 1: 06-01 + 06-02 file-disjoint parallel; Wave 2: 06-03 file-side artifacts; Wave 3: 06-04 live deploy + 2 operator checkpoints)
+Status: Ready to execute — `/gsd-execute-phase 6`
+Last activity: 2026-05-07 — Phase 6 plans created + verified after 2 plan-checker iterations. Plan-phase surfaced and resolved a structural flaw in original locked decision D-56: API Gateway WebSocket + Lambda cannot hold an upstream Bedrock AgentCore WSS open across phone-call duration (29s integration timeout + Lambda statelessness; no canonical AWS sample exists for this chain). User confirmed switch to AWS App Runner with `min-instances=0` (scale-to-zero, $0/mo idle preserves demo-budget rule). CONTEXT.md D-56..D-67 revised in place; RESEARCH.md Q1 chose Option β; PATTERNS.md mapped 18 files (14/18 with existing analogs); planner produced 4 plans / 3 waves; plan-checker passed iter 3 after fixing 13 issues across 2 revision iterations (loguru→stdlib logging, off-by-one variable count, plan split for task-budget, uv-managed Python 3.13 toolchain, 3 offline unit tests for signature/resample/SigV4-headers, state_lock removal, debug-log dropped frames, git-clean preflight, stopwatch latency protocol, ROADMAP progress count update, PATTERNS.md snippet sync, regex tightening).
 
 ## Performance Metrics
 
