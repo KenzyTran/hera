@@ -20,9 +20,9 @@ Congratulations — you just deployed a voice chatbot to your own AWS account an
 
 ## Cost recap (D-54)
 
-**Total for a 2-hour session with cleanup per Phần 4: ballpark `~$2-5 USD`.** Without cleanup: add `~$5-15 USD/day` depending on AgentCore Runtime idle pattern and CloudFront request volume. The two main cost drivers are Bedrock Nova 2 Sonic streaming (per active conversation minute) and AgentCore Runtime (per active session-second).
+**Total for a 2-hour session with cleanup per Chapter 4: ballpark `~$2-5 USD`.** Without cleanup: add `~$5-15 USD/day` depending on AgentCore Runtime idle pattern and CloudFront request volume. The two main cost drivers are Bedrock Nova 2 Sonic streaming (per active conversation minute) and AgentCore Runtime (per active session-second).
 
-A per-service breakdown will be added post-launch after the instructor pulls 24h Cost Explorer data from a real workshop session (04-HUMAN-UAT item #4 — paste-line at the end of Phần 4). Once that data lands, a detailed per-service table will replace this paragraph — instructor's actual spend is the ground truth, not estimates.
+A per-service breakdown will be added post-launch after the instructor pulls 24h Cost Explorer data from a real workshop session (04-HUMAN-UAT item #4 — paste-line at the end of Chapter 4). Once that data lands, a detailed per-service table will replace this paragraph — instructor's actual spend is the ground truth, not estimates.
 
 *Source: D-54 ballpark + 04-HUMAN-UAT item #4 deferred — Phase 5 Plan 05-04*
 

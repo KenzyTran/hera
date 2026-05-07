@@ -10,7 +10,7 @@ pre: "<b>2. </b>"
 
 # Environment Setup
 
-In this section you configure a clean AWS account so you can deploy Hera in Phần 3 without getting blocked on one-time UI gates (model access, billing alerts) or missing local tools.
+In this section you configure a clean AWS account so you can deploy Hera in Chapter 3 without getting blocked on one-time UI gates (model access, billing alerts) or missing local tools.
 
 ## Goals
 
@@ -52,14 +52,14 @@ Repeat for `amazon.nova-sonic-v1:0`. Empty output means model access is not yet 
 ![Bedrock Console — Model Access for Nova 2 Sonic + Titan v2 (ap-northeast-1)](/images/2-preparation/console-bedrock-model-access.png)
 
 {{% notice warning %}}
-**Bedrock model access is per-region, per-model:** if you skip this, `terraform apply` in Phần 3.1 still passes but `aws bedrock-agent start-ingestion-job` fails with `AccessDeniedException` on the model ARN — the error surfaces at sync time, not apply time. If you deploy in a different region (`us-east-1`, `us-west-2`, `eu-north-1`), you must enable each model again in that region — IAM in the original region does not carry over.
+**Bedrock model access is per-region, per-model:** if you skip this, `terraform apply` in Section 3.1 still passes but `aws bedrock-agent start-ingestion-job` fails with `AccessDeniedException` on the model ARN — the error surfaces at sync time, not apply time. If you deploy in a different region (`us-east-1`, `us-west-2`, `eu-north-1`), you must enable each model again in that region — IAM in the original region does not carry over.
 
 *Source: RUNBOOK.md (Pre-flight) — Phase 1 Plan 01-03*
 {{% /notice %}}
 
 ## Install AWS CLI v2
 
-The workshop uses AWS CLI v2 (v1 lacks some `bedrock-agent*` commands we use in Phần 3.1).
+The workshop uses AWS CLI v2 (v1 lacks some `bedrock-agent*` commands we use in Section 3.1).
 
 ```bash
 aws --version
@@ -97,7 +97,7 @@ uv --version
 
 ## Install Docker Desktop with buildx
 
-Phần 3.3 builds a multi-arch container (`linux/arm64` + `linux/amd64`) via `docker buildx`. AgentCore Runtime is ARM64-only so the arm64 manifest is required for deploy; the same image artifact still runs on a local AMD64 dev machine. `buildx` ships with Docker Desktop 20.10+ and Docker Engine 20.10+.
+Section 3.3 builds a multi-arch container (`linux/arm64` + `linux/amd64`) via `docker buildx`. AgentCore Runtime is ARM64-only so the arm64 manifest is required for deploy; the same image artifact still runs on a local AMD64 dev machine. `buildx` ships with Docker Desktop 20.10+ and Docker Engine 20.10+.
 
 ```bash
 docker --version
@@ -109,7 +109,7 @@ docker buildx version
 
 ## Install jq
 
-`jq` is the JSON parser used by `bin/verify-kb.sh` and several paste-blocks in Phần 3.1.
+`jq` is the JSON parser used by `bin/verify-kb.sh` and several paste-blocks in Section 3.1.
 
 ```bash
 jq --version
@@ -122,7 +122,7 @@ jq --version
 
 ## Configure AWS credentials
 
-The Pipecat agent (Phần 3.2) reads credentials via the boto3 default chain (env vars → `~/.aws` → IMDSv2). Configure either way:
+The Pipecat agent (Section 3.2) reads credentials via the boto3 default chain (env vars → `~/.aws` → IMDSv2). Configure either way:
 
 ```bash
 # Long-lived IAM user access keys
@@ -142,18 +142,18 @@ If you use SSO, remember to run `aws sso login` before each session — short-li
 
 ## Cost expectations
 
-- A full workshop session ~2 hours (build + talk to the agent + cleanup) costs **~$2-5 USD** ballpark if you follow Phần 4 Cleanup right after. Phần 5 Summary will be post-launch updated when the instructor has real numbers.
+- A full workshop session ~2 hours (build + talk to the agent + cleanup) costs **~$2-5 USD** ballpark if you follow Chapter 4 Cleanup right after. Chapter 5 Summary will be post-launch updated when the instructor has real numbers.
 - Two main cost drivers: Bedrock Nova 2 Sonic streaming (charged per active conversation minute) + AgentCore Runtime (charged per active session-second). KB + S3 Vectors + CloudFront at workshop scale stay under one cent.
-- **Important:** run Phần 4 Cleanup (cdk destroy → terraform destroy → `bin/cleanup-verify.sh`) right after you finish the session so charges stop. Cost Explorer has up to 24 hour ingestion lag — verify with the next-day paste-line in Phần 4.
+- **Important:** run Chapter 4 Cleanup (cdk destroy → terraform destroy → `bin/cleanup-verify.sh`) right after you finish the session so charges stop. Cost Explorer has up to 24 hour ingestion lag — verify with the next-day paste-line in Chapter 4.
 
 {{% notice info %}}
-**Cost figures are post-launch updated:** the `~$2-5 USD per 2-hour session` ballpark is a guideline (D-54). Per-service exact figures will be filled in by the instructor in Phần 5 Summary after pulling 24h Cost Explorer data from a real workshop session. AWS pricing changes periodically — bookmark `https://aws.amazon.com/bedrock/pricing/` for live numbers.
+**Cost figures are post-launch updated:** the `~$2-5 USD per 2-hour session` ballpark is a guideline (D-54). Per-service exact figures will be filled in by the instructor in Chapter 5 Summary after pulling 24h Cost Explorer data from a real workshop session. AWS pricing changes periodically — bookmark `https://aws.amazon.com/bedrock/pricing/` for live numbers.
 {{% /notice %}}
 
-## Ready for Phần 3 Hands-on
+## Ready for Chapter 3 Hands-on
 
 You now have: account + model access + tools + credentials + cost expectation. What is next:
 
-- **Phần 3.1** deploys the Bedrock Knowledge Base on S3 Vectors and verifies the Retrieve API.
-- **Phần 3.2** runs the Pipecat agent locally so the `lookup_product` tool can call the KB you just deployed.
-- **Phần 3.3, 3.4, 3.5** deploy onto AgentCore Runtime + web widget + observability.
+- **Section 3.1** deploys the Bedrock Knowledge Base on S3 Vectors and verifies the Retrieve API.
+- **Section 3.2** runs the Pipecat agent locally so the `lookup_product` tool can call the KB you just deployed.
+- **Section 3.3, 3.4, 3.5** deploy onto AgentCore Runtime + web widget + observability.

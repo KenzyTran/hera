@@ -6,7 +6,7 @@ weight: 1
 
 ## Goal of this section
 
-Deploy a Bedrock Knowledge Base on S3 Vectors with Titan v2 embeddings, ingest the Apple catalog, and verify the Retrieve API returns the right document for the query "iPhone 13 Pro Max stock". After this step the KB is ready for the Pipecat agent in Phần 3.2 to call via the `lookup_product` tool.
+Deploy a Bedrock Knowledge Base on S3 Vectors with Titan v2 embeddings, ingest the Apple catalog, and verify the Retrieve API returns the right document for the query "iPhone 13 Pro Max stock". After this step the KB is ready for the Pipecat agent in Section 3.2 to call via the `lookup_product` tool.
 
 ## Catalog structure
 
@@ -104,7 +104,7 @@ The script polls every 15 seconds up to 20 times (5 minutes total) to absorb pos
 - `inclusion_prefixes = ["catalog/"]` in the data source matches the prefix you uploaded to (`s3://<bucket>/catalog/`).
 - The ingestion job actually reached `COMPLETE` (not `FAILED`):
   `aws bedrock-agent list-ingestion-jobs --knowledge-base-id "${KB_ID}" --data-source-id "${DS_ID}" --region "${REGION}"`.
-- Bedrock model access for `amazon.titan-embed-text-v2:0` is enabled in the deploy region (Phần 2). Empty results after a `COMPLETE` job is usually a model-access miss in a different region.
+- Bedrock model access for `amazon.titan-embed-text-v2:0` is enabled in the deploy region (Chapter 2). Empty results after a `COMPLETE` job is usually a model-access miss in a different region.
 
 *Source: bin/verify-kb.sh — Phase 1 Plan 01-03*
 {{% /notice %}}
@@ -140,4 +140,4 @@ Bedrock KB ingestion is incremental — only the modified document is re-embedde
 
 ## Next
 
-The KB is deployed and queryable. Phần 3.2 runs the Pipecat agent locally; the `lookup_product` tool inside the agent calls `aws bedrock-agent-runtime retrieve` against this same KB — you already have `kb_id` from `terraform output -raw kb_id` to export as the `HERA_KB_ID` env var for the agent.
+The KB is deployed and queryable. Section 3.2 runs the Pipecat agent locally; the `lookup_product` tool inside the agent calls `aws bedrock-agent-runtime retrieve` against this same KB — you already have `kb_id` from `terraform output -raw kb_id` to export as the `HERA_KB_ID` env var for the agent.

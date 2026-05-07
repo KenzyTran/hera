@@ -14,7 +14,7 @@ Hera is an FCJ (First Cloud Journey) workshop that walks you through deploying a
 |------|---------|
 | Duration | ~3-4 hours hands-on |
 | Level | Intermediate |
-| Cost | ~$2-5 USD if you clean up per Phần 4 |
+| Cost | ~$2-5 USD if you clean up per Chapter 4 |
 | Default region | ap-northeast-1 |
 
 ### Requirements

@@ -61,7 +61,7 @@ sequenceDiagram
 
 ## Default region
 
-The workshop default is `ap-northeast-1` (Tokyo) for every snippet, every screenshot, every `--region` flag. Reason: best latency to Vietnam, and Nova 2 Sonic + AgentCore Runtime + Bedrock Knowledge Base + S3 Vectors are all available there. If you live in another region, Nova 2 Sonic + AgentCore are also available in `us-east-1`, `us-west-2`, and `eu-north-1`. Switch by editing the `region` variable in `infra/envs/prod/terraform.tfvars` (Phần 3.1 walks through this).
+The workshop default is `ap-northeast-1` (Tokyo) for every snippet, every screenshot, every `--region` flag. Reason: best latency to Vietnam, and Nova 2 Sonic + AgentCore Runtime + Bedrock Knowledge Base + S3 Vectors are all available there. If you live in another region, Nova 2 Sonic + AgentCore are also available in `us-east-1`, `us-west-2`, and `eu-north-1`. Switch by editing the `region` variable in `infra/envs/prod/terraform.tfvars` (Section 3.1 walks through this).
 
 ## Prerequisites before you start
 
@@ -86,10 +86,10 @@ The workshop default is `ap-northeast-1` (Tokyo) for every snippet, every screen
 | jq | JSON parser |
 | Browser | Chrome/Firefox/Safari (HTTPS required for microphone) |
 
-Phần 2 Preparation has detailed paste-block installers per platform.
+Chapter 2 Preparation has detailed paste-block installers per platform.
 
 {{% notice warning %}}
-**Cost:** This workshop may incur a small charge (~$2-5 USD for a 2-hour session). Run Phần 4 Cleanup right after the session to tear back down to $0.
+**Cost:** This workshop may incur a small charge (~$2-5 USD for a 2-hour session). Run Chapter 4 Cleanup right after the session to tear back down to $0.
 {{% /notice %}}
 
 ## Workshop conventions
@@ -98,7 +98,7 @@ Phần 2 Preparation has detailed paste-block installers per platform.
 - AWS Console screenshots are annotated (red box + arrow + label) at the choke points where the UI is unavoidable (D-44 — Bedrock model access, Billing Alerts toggle, AgentCore quota request).
 - Chatbot speech is English (Sonic is strongest in en); workshop documentation is bilingual vi/en.
 - Code and logs contain no emoji (CLAUDE.md mandate covering both source and content).
-- Phần 4 Cleanup is mandatory — if you don't tear down, the AgentCore Runtime + Bedrock KB keep accruing per-hour-active charges.
+- Chapter 4 Cleanup is mandatory — if you don't tear down, the AgentCore Runtime + Bedrock KB keep accruing per-hour-active charges.
 
 {{% notice warning %}}
 **Bilingual parity (DOC-12):** every PR that edits workshop content must commit

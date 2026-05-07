@@ -145,4 +145,4 @@ Important note: Cost Explorer is region-pinned to `us-east-1` regardless of wher
 
 ## Next
 
-Your AWS account is back to $0 ongoing cost. Phần 5 wraps up with a cost recap + an expansion roadmap (Twilio voice, multi-language, multi-agent routing) — v2 directions you can build on top of the foundation you just shipped.
+Your AWS account is back to $0 ongoing cost. Chapter 5 wraps up with a cost recap + an expansion roadmap (Twilio voice, multi-language, multi-agent routing) — v2 directions you can build on top of the foundation you just shipped.

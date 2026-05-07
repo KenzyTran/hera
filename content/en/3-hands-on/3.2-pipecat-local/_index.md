@@ -6,7 +6,7 @@ weight: 2
 
 ## Goal of this section
 
-Run the Pipecat agent on your laptop, open a local browser that connects to the agent over WebSocket, ask "Do you have MacBook Pro?" → Sonic calls the `lookup_product` tool against the Phần 3.1 KB → Sonic plays back the audio response. Latency p95 from end-of-utterance to first audio chunk under 3 seconds (AGT-04 gate).
+Run the Pipecat agent on your laptop, open a local browser that connects to the agent over WebSocket, ask "Do you have MacBook Pro?" → Sonic calls the `lookup_product` tool against the Section 3.1 KB → Sonic plays back the audio response. Latency p95 from end-of-utterance to first audio chunk under 3 seconds (AGT-04 gate).
 
 ## Agent project structure
 
@@ -96,7 +96,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
 
 *Source: agent/hera_agent/main.py — Phase 2 Plan 02-01 (POST /invocations added Phase 4 Plan 04-01)*
 
-The same app shape deploys to AgentCore Runtime in Phần 3.3 with no transport refactor. `/ping` is the AgentCore healthcheck, `/invocations` matches the AgentCore HTTP data-plane contract (a static stub because the voice loop runs on `/ws`), and `/ws` is the Pipecat WebSocket endpoint the browser connects to.
+The same app shape deploys to AgentCore Runtime in Section 3.3 with no transport refactor. `/ping` is the AgentCore healthcheck, `/invocations` matches the AgentCore HTTP data-plane contract (a static stub because the voice loop runs on `/ws`), and `/ws` is the Pipecat WebSocket endpoint the browser connects to.
 
 ## prompts.py: Apple Store assistant persona (English)
 
@@ -265,7 +265,7 @@ uv run python -m hera_agent.main
 
 *Source: bin/run-agent-local.sh — Phase 2 Plan 02-01*
 
-Resolve `HERA_KB_ID` from `terraform -chdir=infra/envs/prod output -raw kb_id` (the KB id from Phần 3.1). Region default `ap-northeast-1` via env `AWS_REGION`.
+Resolve `HERA_KB_ID` from `terraform -chdir=infra/envs/prod output -raw kb_id` (the KB id from Section 3.1). Region default `ap-northeast-1` via env `AWS_REGION`.
 
 ## Step 2: Run locally via Docker compose path
 
@@ -302,7 +302,7 @@ Open `http://localhost:8000` in Chrome or Edge (Firefox has had AudioWorklet qui
 
 > Do you have MacBook Pro?
 
-Sonic calls `lookup_product` against the Phase 1 KB and plays back an Apple-Store-style answer with the in-stock MacBook Pro M4 configurations. Phần 3.4 will deploy this widget to CloudFront so you can use an HTTPS URL instead of localhost — the HTTPS-for-microphone requirement is a browser constraint, not a configuration error.
+Sonic calls `lookup_product` against the Phase 1 KB and plays back an Apple-Store-style answer with the in-stock MacBook Pro M4 configurations. Section 3.4 will deploy this widget to CloudFront so you can use an HTTPS URL instead of localhost — the HTTPS-for-microphone requirement is a browser constraint, not a configuration error.
 
 ## Clean up local Docker resources
 
@@ -318,4 +318,4 @@ The Pipecat agent has no persistent state (D-21 mandates in-memory only), so the
 
 ## Next
 
-The agent runs locally end-to-end against the Phase 1 KB. Phần 3.3 builds the multi-arch container + pushes to ECR + deploys to AgentCore Runtime so the same image runs in the cloud, exposed via Lambda presign + CloudFront so the browser can connect over an HTTPS URL.
+The agent runs locally end-to-end against the Phase 1 KB. Section 3.3 builds the multi-arch container + pushes to ECR + deploys to AgentCore Runtime so the same image runs in the cloud, exposed via Lambda presign + CloudFront so the browser can connect over an HTTPS URL.
