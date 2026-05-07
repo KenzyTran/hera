@@ -39,3 +39,10 @@ infra/envs/prod/terraform-outputs.json
 # Phase 3 widget_presigner Lambda zip build dir (Plan 03-04 Task 5a).
 # archive_file writes handler.zip here; rebuild on every apply from src/.
 infra/modules/widget_presigner/build/
+
+# Phase 6 twilio_bridge container artifacts. Lockfile (uv.lock) IS committed.
+infra/modules/twilio_bridge/.venv/
+infra/modules/twilio_bridge/__pycache__/
+infra/modules/twilio_bridge/**/__pycache__/
+infra/modules/twilio_bridge/.pytest_cache/
+infra/modules/twilio_bridge/.ruff_cache/
