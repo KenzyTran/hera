@@ -8,7 +8,20 @@ Hera là một workshop FCJ (First Cloud Journey) song ngữ vi/en hướng dẫ
 
 **Một học viên Cloud Clubs đi qua workshop phải tự deploy thành công được voice chatbot trên AWS account của mình và nói chuyện được với nó qua trình duyệt.** Mọi thứ khác có thể thiếu, nhưng đường đi end-to-end này phải đi đến nơi.
 
-## Requirements
+## Current Milestone: v2.0 Twilio Voice Channel
+
+**Goal:** Cho phép người học gọi điện thoại (PSTN dial-in) đến một số Twilio và nói chuyện với chatbot Hera đang chạy trên Bedrock AgentCore Runtime — song song với web widget hiện tại của v1, không thay thế.
+
+**Target features:**
+- TWIL-01: Twilio Media Streams bridge — μ-law 8kHz inbound ↔ Int16 16kHz cho Sonic (resample inbound + outbound)
+- TWIL-02: Bridge layer (Lambda hoặc mở rộng presigner) cầm WebSocket Twilio ↔ AgentCore HTTP/WS protocol
+- TWIL-03: Twilio phone number + TwiML pointing đến Media Streams endpoint
+- TWIL-DOC: 1 chương workshop mới "Phone channel via Twilio" trong content/{vi,en}/ — không sửa các chương v1
+
+**Key context:**
+- Demo budget honored — Twilio paid per minute (~$0.013/phút inbound US/CA), giới hạn rủi ro chi phí
+- Hệ thống AWS hiện tại không thay đổi — chỉ thêm bridge + chapter mới
+- Web widget v1 vẫn giữ nguyên
 
 ### Validated
 
@@ -48,7 +61,7 @@ Hera là một workshop FCJ (First Cloud Journey) song ngữ vi/en hướng dẫ
 
 ### Out of Scope (v1)
 
-- **Twilio Voice integration** — deferred sang v2 (phone channel). v1 chỉ web widget. Lý do: scope kiểm soát, web widget đủ chứng minh end-to-end loop
+<!-- Twilio Voice integration: moved to ACTIVE in v2.0 (Current Milestone above). v1 was web-widget-only by design. -->
 - **Mobile app (iOS/Android)** — không cần thiết cho workshop scope; web widget cover được demo
 - **Multi-tenant auth/billing** — workshop là demo cá nhân, không phải SaaS
 - **Tiếng Việt cho chatbot speech** — Nova Sonic mạnh nhất tiếng Anh; chatbot speech-only English. Workshop docs vẫn song ngữ vi/en
@@ -95,7 +108,7 @@ Hera là một workshop FCJ (First Cloud Journey) song ngữ vi/en hướng dẫ
 - **IaC**: Terraform `~> 6.27` ưu tiên; fallback hybrid với CDK hoặc CLI nếu Terraform AgentCore resource chưa đủ tính năng (verify trong research/plan phase)
 - **Region**: ap-northeast-1 production (latency tốt nhất từ VN, có cả Sonic + AgentCore), us-east-1 dev/test
 - **Workshop format**: FCJ-compatible — hugo-theme-learn, vi/en bilingual, content/{vi,en}/ structure đã định sẵn
-- **Channel v1**: chỉ Web widget; Twilio defer sang milestone sau
+- **Channel v1**: chỉ Web widget. **v2 (Current Milestone)**: thêm Twilio PSTN channel song song
 - **Ngôn ngữ chatbot**: chỉ tiếng Anh
 - **Ngôn ngữ workshop**: song ngữ vi/en
 - **Account requirements**: học viên cần AWS account với Bedrock Nova 2 Sonic + AgentCore Runtime enabled (workshop docs phải hướng dẫn enable model access và service)
@@ -137,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-07 — v1 milestone COMPLETE. Phases 1-5 all shipped (5/5). Live system: KB (instructor account, redacted to `<your-kb-id>` in published content), AgentCore Runtime (instructor-only, redacted), web widget on CloudFront. 46/46 v1 requirements validated (KB+AGT+DEP+WID+OBS+DEM+DOC-01..10+DOC-12; DOC-11 operator-deferred PNG sweep). Workshop blog published: 11 chương song ngữ vi/en in `content/{vi,en}/`, themes/hugo-theme-learn submodule registered at sha 3202533a, deploy.yml on master. 4 human-verification items in 05-HUMAN-UAT.md (organic CI build, learner walkthrough, DOC-11 PNGs, WR-01 byte-parity decision) — none blocking. v2 next: Twilio voice channel (TWIL-01..03 — phone dial-in for chatbot support).*
+*Last updated: 2026-05-07 — Milestone v2.0 (Twilio Voice Channel) STARTED. v1 (Phases 1-5, 46/46 v1 reqs) complete and published as bilingual workshop blog. v2 scope: TWIL-01..03 + TWIL-DOC — phone dial-in via Twilio Media Streams bridged to existing AgentCore Runtime; web widget unchanged.*
