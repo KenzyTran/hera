@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: twilio-voice-channel
-status: planning
-last_updated: "2026-05-07T06:53:54.093Z"
+status: roadmap-ready
+last_updated: "2026-05-07T07:30:00.000Z"
 last_activity: 2026-05-07
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-04)
+See: .planning/PROJECT.md (updated 2026-05-07)
 
-**Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 05 — workshop-documentation-vi-en
+**Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser. v2.0 extends the channel surface: same learner can also dial a Twilio phone number and talk to the same chatbot.
+**Current focus:** Phase 6 — twilio-bridge-phone-number-cleanup (v2.0)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — context gathered
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-07 — Milestone v2.0 started
+Status: 06-CONTEXT.md committed (ad69b49); awaiting /gsd-plan-phase 6
+Last activity: 2026-05-07 — Phase 6 discuss-phase complete. 4 gray areas locked in 06-CONTEXT.md D-56..D-67: bridge = API Gateway WebSocket + new Lambda module twilio_bridge; resample in bridge Lambda only (agent + AgentCore untouched); Twilio number + TwiML provisioned operator paste-style via console + RUNBOOK (no Terraform Twilio provider); TwiML XML hosted on Twilio TwiML Bin (free, no AWS resource). v1 system strictly unchanged. Demo budget honored.
 
 ## Performance Metrics
 
