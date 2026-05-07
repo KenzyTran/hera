@@ -450,13 +450,15 @@ D-67: X-Twilio-Signature HMAC validation is enforced at the WebSocket upgrade
 
 from datetime import datetime, timezone
 
+import logging
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from loguru import logger
 
 from src.bridge import handle_twilio_call
 from src.config import validate_twilio_signature
 
 app = FastAPI(title="hera-twilio-bridge", version="0.1.0")
+logger = logging.getLogger(__name__)
 
 _BOOT_TIME = int(datetime.now(tz=timezone.utc).timestamp())
 

@@ -256,7 +256,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Twilio Bridge + Phone Number + Cleanup | 0/3 | Planned (3 plans / 2 waves; awaiting execute-phase) | - |
+| 6. Twilio Bridge + Phone Number + Cleanup | 0/4 | Planned (4 plans / 3 waves; awaiting execute-phase) | - |
 | 7. Twilio Workshop Chapter | 0/? | Not started | - |
 
 ## Notes on Phase Shape (v2.0)
