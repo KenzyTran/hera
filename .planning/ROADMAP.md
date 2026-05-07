@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
 - [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1) — POST /invocations stub deployed; AgentCore data-plane invoke returns 200.**
 - [x] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **Wave-1 closed Phase 3 SC#2** via Plan 04-01 protocol-bridge (POST /invocations stub deployed; AgentCore data-plane invoke returns 200). Wave-2 shipped 1 dashboard + 3 alarms (zero new IAM, no SNS hook per D-35) + bin/cleanup-verify.sh (19 read-only checks). 5 deferred items in 04-HUMAN-UAT.md (browser smoke, billing-alerts toggle, workshop-close cleanup-verify run, 24h Cost Explorer paste-line, D-30 quota request) — none blocking. — completed 2026-05-06
-- [ ] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy
+- [x] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — completed 2026-05-07
 
 ## Phase Details
 
@@ -154,13 +154,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 05-03-PLAN.md — Phần 3.3 Deploy AgentCore (D-24 hybrid IaC + D-30 quota cap=2 trade-off) + Phần 3.4 Web Widget (D-51 #4 HTTPS-for-mic) + Phần 3.5 Observability (D-51 #5 billing 24h propagation + D-35/D-36 trade-offs). 3 static/images/ placeholders for D-44 #2/#3/#4/#5 screenshots (operator captures later). Covers DOC-05, DOC-06, DOC-07, finishes DOC-10 (8/8 D-51 callouts placed). *(completed 2026-05-07; 4 atomic commits per D-49 326b893/ffb8d01/2885030/f48d8f3; vi=11 en=11 _index.md tree; bin/check-i18n-parity.sh exits 0; 4 D-44 image refs inserted; 4 callouts placed total — 1 in 3.4 vi+en + 1 in 3.5 vi+en; submodule untouched)*
 
 **Wave 4** *(depends on 05-03 — final closure chapters)*
-- [ ] 05-04-PLAN.md — Phần 4 Cleanup (D-24 cleanup-contract + D-38 24h Cost Explorer paste-line + D-44 #6 cleanup-verify hero) + Phần 5 Summary (D-54 cost recap with ranges + DOC-09 expansion roadmap with TWIL/I18N/ADV/AUTH/THEME v2 IDs). Covers DOC-08, DOC-09.
+- [x] 05-04-PLAN.md — Phần 4 Cleanup (D-24 cleanup-contract + D-38 24h Cost Explorer paste-line + D-44 #6 cleanup-verify hero deferred-callout per checker BLOCKER 4 option b) + Phần 5 Summary (D-54 cost recap ballpark + DOC-09 expansion roadmap with TWIL/I18N/ADV/AUTH/THEME v2 IDs). Covers DOC-08, DOC-09. *(completed 2026-05-07; 3 atomic commits 061958e/3354893/b08b77a; vi=11 en=11 _index.md tree; bin/check-i18n-parity.sh exits 0; 6 D-42 Source footers in Phần 4 + 1 in Phần 5 per language; static/images/4-cleanup/.gitkeep placeholder for deferred PNG capture)*
 
 Plans:
 - [x] 05-01-PLAN.md — Parity gate + config + Phần 1 Introduction (vi+en). *(complete 2026-05-07)*
 - [x] 05-02-PLAN.md — Phần 2 Preparation + Phần 3.1 KB + Phần 3.2 Pipecat Local (vi+en). *(complete 2026-05-07)*
 - [x] 05-03-PLAN.md — Phần 3.3 Deploy + Phần 3.4 Widget + Phần 3.5 Observability (vi+en). *(complete 2026-05-07)*
-- [ ] 05-04-PLAN.md — Phần 4 Cleanup + Phần 5 Summary (vi+en).
+- [x] 05-04-PLAN.md — Phần 4 Cleanup + Phần 5 Summary (vi+en). *(complete 2026-05-07)*
 **UI hint**: yes
 
 ## Progress
@@ -174,7 +174,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 3/3 | Complete (5/5 SC verified; closed Phase 3 SC#2 via Plan 04-01; 5 deferred items in 04-HUMAN-UAT.md, none blocking; code review clean) | 2026-05-06 |
-| 5. Workshop Documentation (vi/en) | 3/4 | In Progress (Waves 1+2+3 complete; 05-04 final wave pending) |  |
+| 5. Workshop Documentation (vi/en) | 4/4 | Complete (Waves 1+2+3+4 complete; all 5 chapters published bilingual; vi=11 en=11 _index.md tree; bin/check-i18n-parity.sh exits 0) | 2026-05-07 |
 
 ## Notes on Phase Shape
 
