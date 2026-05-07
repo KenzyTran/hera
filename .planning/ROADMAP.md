@@ -142,7 +142,25 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. After running Phần 4 Cleanup, the learner verifies via Cost Explorer and the verification script that they have zero ongoing AWS cost.
   4. Each chapter contains the relevant top-N pitfall callouts (8-min Sonic stream cap, audio sample rate, model access enablement, HTTPS for mic, billing alarm, tool-use schema, bilingual parity, KB sync delay) at the moments the learner is about to hit them, plus copy-clean code snippets and annotated AWS console screenshots.
   5. CI enforces vi/en parity on every PR — the parity check script counts chapters and key sections per language and fails the build if they diverge.
-**Plans**: TBD
+**Plans:** 4 plans
+
+**Wave 1** *(blocking — gate landing first; non-autonomous: operator confirms config.toml baseURL since git remote empty)*
+- [ ] 05-01-PLAN.md — bin/check-i18n-parity.sh DOC-12 gate + workflow wire-up + config.toml replacement (D-52) + Phần 1 Introduction (vi+en) with Mermaid component + sequence diagrams (D-55) + bilingual-parity callout (D-51 #7) + 8 FCJ-template stub deletions + 1.1-prerequisites resolution (D-53). Covers DOC-01, DOC-12.
+
+**Wave 2** *(parallel-eligible if Wave 1 lands first; depends on parity gate + config.toml from 05-01)*
+- [ ] 05-02-PLAN.md — Phần 2 Preparation (single-page; D-51 #3 model access) + Phần 3.1 Knowledge Base sub-page (D-51 #8 KB sync delay) + Phần 3.2 Pipecat Local sub-page (D-51 #1, #2, #6 — 8-min cap, sample rate, tool-use schema). All vi+en (D-49). Covers DOC-02, DOC-03, DOC-04, partial DOC-10, partial DOC-11.
+
+**Wave 3** *(depends on 05-02 — shares bin/*.sh source provenance)*
+- [ ] 05-03-PLAN.md — Phần 3.3 Deploy AgentCore (D-24 hybrid IaC + D-30 quota cap=2 trade-off) + Phần 3.4 Web Widget (D-51 #4 HTTPS-for-mic) + Phần 3.5 Observability (D-51 #5 billing 24h propagation + D-35/D-36 trade-offs). 3 static/images/ placeholders for D-44 #2/#3/#4/#5 screenshots (operator captures later). Covers DOC-05, DOC-06, DOC-07, finishes DOC-10 + DOC-11.
+
+**Wave 4** *(depends on 05-03 — final closure chapters)*
+- [ ] 05-04-PLAN.md — Phần 4 Cleanup (D-24 cleanup-contract + D-38 24h Cost Explorer paste-line + D-44 #6 cleanup-verify hero) + Phần 5 Summary (D-54 cost recap with ranges + DOC-09 expansion roadmap with TWIL/I18N/ADV/AUTH/THEME v2 IDs). Covers DOC-08, DOC-09.
+
+Plans:
+- [ ] 05-01-PLAN.md — Parity gate + config + Phần 1 Introduction (vi+en).
+- [ ] 05-02-PLAN.md — Phần 2 Preparation + Phần 3.1 KB + Phần 3.2 Pipecat Local (vi+en).
+- [ ] 05-03-PLAN.md — Phần 3.3 Deploy + Phần 3.4 Widget + Phần 3.5 Observability (vi+en).
+- [ ] 05-04-PLAN.md — Phần 4 Cleanup + Phần 5 Summary (vi+en).
 **UI hint**: yes
 
 ## Progress
@@ -156,7 +174,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Pipecat Voice Agent (Local) | 3/3 | Complete (Wave 1: 02-01 + 02-03; Wave 2: 02-02 - AGT-04 latency gate passed against live Bedrock Nova 2 Sonic) | 2026-05-05 |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | Complete (5/5 SC; SC#2 closed by Plan 04-01) | 2026-05-06 |
 | 4. Observability, Cost Control, Cleanup | 3/3 | Complete (5/5 SC verified; closed Phase 3 SC#2 via Plan 04-01; 5 deferred items in 04-HUMAN-UAT.md, none blocking; code review clean) | 2026-05-06 |
-| 5. Workshop Documentation (vi/en) | 0/TBD | Not started | - |
+| 5. Workshop Documentation (vi/en) | 0/4 | Plans drafted (Wave 1-4) — pending execute | - |
 
 ## Notes on Phase Shape
 
