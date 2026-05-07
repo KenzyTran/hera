@@ -16,7 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Pipecat Voice Agent (Local)** - Pipecat agent code with Sonic + KB tool runs end-to-end on a developer laptop — completed 2026-05-05
 - [x] **Phase 3: AgentCore Deploy + Web Widget + Public Demo URL** - Container deployed to Bedrock AgentCore Runtime; browser widget talks to it over a public HTTPS URL — 5/5 plans complete 2026-05-06; SC#2 (live browser voice loop) deferred to Phase 4 protocol-bridge follow-up plan because AgentCore HTTP protocol calls POST /invocations while the FastAPI app exposes only /ping + /ws (a separate gap surfaced after Plan 03-05's credential fix; see Plan 03-05 SUMMARY) — **SC#2 closed by Plan 04-01 (Phase 4 Wave 1) — POST /invocations stub deployed; AgentCore data-plane invoke returns 200.**
 - [x] **Phase 4: Observability, Cost Control, Cleanup** - CloudWatch dashboards/alarms live, billing cap enforced, `terraform destroy` proven on a fresh account. **Wave-1 closed Phase 3 SC#2** via Plan 04-01 protocol-bridge (POST /invocations stub deployed; AgentCore data-plane invoke returns 200). Wave-2 shipped 1 dashboard + 3 alarms (zero new IAM, no SNS hook per D-35) + bin/cleanup-verify.sh (19 read-only checks). 5 deferred items in 04-HUMAN-UAT.md (browser smoke, billing-alerts toggle, workshop-close cleanup-verify run, 24h Cost Explorer paste-line, D-30 quota request) — none blocking. — completed 2026-05-06
-- [x] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — gap closure complete 2026-05-07 (Plan 05-05 closed CR-01 submodule + CR-02 instructor data + WR-02 Phần rename; pending re-verification + first organic CI build) (completed 2026-05-07)
+- [x] **Phase 5: Workshop Documentation (vi/en)** - 5 chapters published bilingual on GitHub Pages so a fresh learner can deploy their own copy — gap closure complete 2026-05-07 (Plan 05-05 closed CR-01 submodule + CR-02 instructor data + WR-02 Phần rename; pending re-verification + first organic CI build)
+ (completed 2026-05-07)
 
 ## Phase Details
 
@@ -192,3 +193,76 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Phase 3 has the most unknowns.** AgentCore Terraform-provider support, exact deploy steps, pricing, concurrency quotas, and WebRTC-vs-WebSocket transport choice are all open questions flagged by SUMMARY.md. Phase 3 planning should consume `/gsd-research-phase` to resolve these before any container is built; the IaC fallback (Terraform + CDK/CLI hybrid) is named in DEP-04 specifically so the decision can be locked there.
 
 **UI phases.** Phase 3 (browser widget) and Phase 5 (Hugo workshop site) involve user-facing UI surfaces and are flagged for `/gsd-ui-phase` consideration during their planning.
+
+---
+
+## Milestone v2.0: Twilio Voice Channel
+
+**Started:** 2026-05-07
+**Goal:** Allow learners to phone (PSTN dial-in) a Twilio number and speak with the existing Hera chatbot running on Bedrock AgentCore Runtime, alongside the v1 web widget (not replacing it). v1 system is unchanged; v2 only ADDS the bridge + a workshop chapter.
+**Granularity:** coarse (2 phases — see rationale below).
+**Coverage:** 5/5 requirements mapped (TWIL-01..04 + TWIL-DOC).
+
+## Phases (v2.0)
+
+Phase numbering continues from v1.0 (last v1 phase = 5). Integer phases follow.
+
+- [ ] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - Phone call to a Twilio number reaches the existing AgentCore Runtime, Sonic answers, and a cleanup script proves $0 hold (4 reqs in 1 phase)
+- [ ] **Phase 7: Twilio Workshop Chapter** - Bilingual vi+en chapter "Phone channel via Twilio" published at `content/{vi,en}/3-hands-on/3.6-twilio-channel/` so a learner can build the phone channel themselves (1 req)
+
+## Phase Details (v2.0)
+
+### Phase 6: Twilio Bridge + Phone Number + Cleanup
+**Goal**: A learner who dials the configured Twilio number from any phone hears the Apple Store assistant answer in real time, holds a normal voice conversation backed by the same Phase 1 KB + Phase 3 AgentCore Runtime that v1 already runs, and can tear the entire phone-channel down to verified $0/month with a single documented cleanup script.
+**Depends on**: Phase 4 (existing AgentCore Runtime + presigner Lambda Function URL pattern from Phase 3 + cleanup-verify pattern from Phase 4)
+**Requirements**: TWIL-01, TWIL-02, TWIL-03, TWIL-04
+**Success Criteria** (what must be TRUE):
+  1. A learner dials the provisioned Twilio phone number from any handset and hears the Hera Apple Store assistant respond with audible audio within 3 seconds of saying their first sentence.
+  2. Audio fidelity is correct end-to-end in both directions — Twilio inbound μ-law 8kHz is resampled to Int16 16kHz before reaching Sonic, and Sonic's Int16 16kHz output is resampled back to μ-law 8kHz before being written to the Twilio Media Stream — with no chipmunk effect, no silent transcription failure, and no audible aliasing artifacts.
+  3. The Twilio Media Streams bridge endpoint correctly handles `start`, `media`, and `stop` events from the Twilio WebSocket and forwards/receives audio to the existing AgentCore Runtime via the same Bedrock data-plane the web widget uses — v1 web widget continues to work unchanged on the same Runtime during phone calls.
+  4. The phone-channel cleanup contract is verifiable — running the documented cleanup procedure (release TwiML config, release Twilio number to $0 hold, tear down bridge Lambda + IAM) followed by a `bin/cleanup-verify-twilio.sh` script (mirroring v1 `bin/cleanup-verify.sh`) exits 0 with no Twilio number, no TwiML app, and no bridge AWS resources remaining.
+  5. Demo budget is honored — Twilio number costs ~$1/month hold + $0.013/inbound minute (US/CA), bridge Lambda has reserved concurrency cap (or AgentCore concurrency cap=2 from v1 OBS-04 acts as the upstream gate), and no new persistent AWS resources beyond the bridge Lambda + IAM role + minimal log group are created.
+**Plans:** 3 plans / 2 waves (D-56 REVISED 2026-05-07 — App Runner with min-instances=0 replaces the rescinded Lambda + APIGW WS architecture)
+
+**Wave 1** *(parallel, file-disjoint: 06-01 ships TF module + root wiring; 06-02 ships bridge container source — zero overlap in files_modified)*
+- [ ] 06-01-PLAN.md — twilio_bridge Terraform module: App Runner service hera-twilio-bridge-prod (min_size=0 D-56, max_size=2 D-65), auto-scaling configuration, ECR repo IMMUTABLE, 2 IAM roles (instance + access) with confused-deputy + zero IAM wildcards (D-13/D-66), own log group + Secrets Manager-backed Twilio Auth Token wiring (D-67); root infra/envs/prod extension. Covers TWIL-02 IaC + TWIL-04 cleanup-target IaC. Zero live AWS work.
+- [ ] 06-02-PLAN.md — bridge container source: Python 3.13 + audioop-lts==0.2.2 + fastapi + websockets + twilio SDK; Dockerfile multi-arch (linux/arm64,linux/amd64) mirroring agent/Dockerfile; src/main.py /ping + WS /twilio with X-Twilio-Signature validation BEFORE accept(); src/bridge.py per-call coroutine with SigV4-signed upstream WSS open + bidi audio pump + ratecv state threaded per direction; src/resample.py mu-law 8kHz <-> Int16 16kHz (D-59); src/config.py RequestValidator (D-67 no hand-rolled HMAC). Covers TWIL-01 + TWIL-02 application layer. Zero live AWS work.
+
+**Wave 2** *(sequential, depends on both 06-01 + 06-02: needs terraform output -raw twilio_bridge_ecr_repository_url to push, terraform output -raw twilio_bridge_wss_url for TwiML Bin)*
+- [ ] 06-03-PLAN.md — operator-side artifacts + LIVE deploy + dial-in smoke: bin/push-bridge-image.sh (multi-arch buildx push to bridge ECR; mirrors bin/push-image.sh), bin/cleanup-verify-twilio.sh (read-only AWS + Twilio REST checks; mirrors bin/cleanup-verify.sh), RUNBOOK.md Phase 6 paste-blocks (operator setup + 2-pass terraform apply + TwiML Bin wiring + dial-in smoke + cleanup quy trinh). 3 live deploy events: 1st-pass apply, push-bridge-image.sh, 2nd-pass apply. 2 operator checkpoints (Twilio account + number purchase, dial-in smoke). Covers TWIL-01..04 end-to-end. v1 system bit-identical (D-64 enforced via 5 unchanged probes).
+
+Plans:
+- [ ] 06-01-PLAN.md — TF module + root wiring (parallel-eligible with 06-02).
+- [ ] 06-02-PLAN.md — Bridge container source (parallel-eligible with 06-01).
+- [ ] 06-03-PLAN.md — push script + cleanup-verify-twilio.sh + RUNBOOK Phase 6 + LIVE deploy + dial-in smoke (depends on 06-01 + 06-02).
+
+### Phase 7: Twilio Workshop Chapter
+**Goal**: A Cloud Clubs learner who has already finished v1 chapters 1-5 lands on a new bilingual chapter `3.6 Phone channel via Twilio`, follows it end-to-end in either Vietnamese or English, and ends up with their own phone number that calls into their own AgentCore Runtime — using the same vi/en parity discipline (D-49 byte-parity for content commits, D-50 file-count parity verified by `bin/check-i18n-parity.sh`) the v1 workshop already enforces.
+**Depends on**: Phase 6
+**Requirements**: TWIL-DOC
+**Success Criteria** (what must be TRUE):
+  1. The new chapter is published bilingual at `content/{vi,en}/3-hands-on/3.6-twilio-channel/_index.md` with the language switcher working, slug matching across both trees, and `bin/check-i18n-parity.sh` exiting 0 with vi=12, en=12 file count (v1 ended at vi=11 en=11; this chapter adds exactly 1 file per language).
+  2. A fresh learner who has already deployed v1 reads only this chapter — copy-pasting code snippets and following screenshots — and successfully provisions their own Twilio number, deploys the bridge, dials it, and holds a real voice conversation with their own AgentCore Runtime.
+  3. The chapter contains the relevant pitfall callouts at the moments the learner is about to hit them (Twilio webhook authentication, μ-law vs Int16 sample-rate confusion, Twilio number monthly hold cost, AgentCore concurrency cap interaction with phone calls) plus copy-clean code snippets and the cleanup procedure mirroring v1 Phần 4 Cleanup style.
+  4. The chapter ends with the cleanup procedure (release TwiML, release number, tear down bridge) and a verification step using `bin/cleanup-verify-twilio.sh` from Phase 6 — so a learner does not leave a Twilio number running with monthly hold cost.
+**Plans**: TBD
+**UI hint**: yes (workshop chapter is rendered via Hugo to a learner-facing page; same theme/UI surface as v1 Phase 5)
+
+## Progress (v2.0)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 6. Twilio Bridge + Phone Number + Cleanup | 0/3 | Planned (3 plans / 2 waves; awaiting execute-phase) | - |
+| 7. Twilio Workshop Chapter | 0/? | Not started | - |
+
+## Notes on Phase Shape (v2.0)
+
+**Why 2 phases, not 1.** The 4 system requirements (TWIL-01..04) are tightly coupled — resample bridge, Media Streams handler, phone number + TwiML, and cleanup contract all ship as one deliverable: "phone call works and can be torn down to $0". Splitting them across phases leaves intermediate phases without a verifiable user-facing success criterion. TWIL-DOC is structurally separate — same pattern as v1 Phase 5 (docs trail implementation) — because the chapter needs working bridge code to screenshot, snippet, and verify against. Writing docs before the bridge works produces stale screenshots and unverifiable code blocks, exactly the failure v1 avoided.
+
+**Why not a single Phase 6.** Tempting because the milestone is small (5 reqs total), but the docs work has different acceptance criteria (D-49 byte-parity, D-50 file-count parity, D-51 pitfall callouts, D-44 screenshot capture) and different verification surface (`bin/check-i18n-parity.sh`, learner walkthrough) than the system work (live AWS bridge, real phone dial-in, cleanup verify). Keeping them as separate phases lets each phase have crisp success criteria without a mixed-concern phase.
+
+**Demo budget honored.** Phase 6 work is bounded — 1 Twilio number ($1/month hold) + 1 bridge Lambda (~free under demo traffic) + 0 changes to existing AgentCore Runtime / KB / web widget. v1 system stays live throughout. Phase 7 is docs-only with zero new AWS deploys. Twilio paid-per-minute risk capped by AgentCore concurrency cap=2 (D-30 carry-forward from v1).
+
+**v1 system unchanged.** The v2.0 milestone strictly ADDS resources — new bridge Lambda, new Twilio number, new chapter file pair. Existing KB (`BKXE19AH89`), AgentCore Runtime (`hera_agent-GIsf2P4ImD`), CloudFront widget, presigner Lambda, dashboard, and alarms are NOT modified. Phase 6 plans must verify v1 web widget continues to work after bridge deploy (smoke test against existing `dg0w939ktclw6.cloudfront.net`).
+
+**UI hint.** Phase 7 is flagged for `/gsd-ui-phase` consideration since it adds a learner-facing Hugo chapter on the same theme as v1 Phase 5. Phase 6 is system-only (no UI surface); the only "UI" is the phone audio path, which is verified by ear via dial-in, not visually.
