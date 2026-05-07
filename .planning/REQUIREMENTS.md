@@ -76,13 +76,15 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 
 ## v2 Requirements
 
-Deferred. Tracked nhưng không trong roadmap v1.
+### Twilio Voice Channel (CURRENT MILESTONE — v2.0)
 
-### Twilio Voice Channel
+- [ ] **TWIL-01**: Two-way audio resample bridge — μ-law 8kHz inbound từ Twilio → Int16 16kHz đến Sonic; Int16 16kHz từ Sonic → μ-law 8kHz về Twilio (cả hai chiều)
+- [ ] **TWIL-02**: Twilio Media Streams bridge endpoint — handle event `start`/`media`/`stop` từ Twilio WebSocket; forward audio đến AgentCore Runtime; deploy ở Lambda hoặc mở rộng presigner Lambda hiện có
+- [ ] **TWIL-03**: Twilio phone number provisioned + TwiML `<Connect><Stream>` pointing đến bridge endpoint; số điện thoại có thể dùng được khi gọi vào
+- [ ] **TWIL-04**: Phone-channel cleanup contract — release TwiML config + release số điện thoại Twilio (về $0 hold) + bridge teardown; có script verify như `bin/cleanup-verify.sh` của v1
+- [ ] **TWIL-DOC**: Chương workshop mới "Phone channel via Twilio" song ngữ — `content/{vi,en}/3-hands-on/3.6-twilio-channel/_index.md`. Cover: Twilio account setup → phone number purchase → TwiML config → bridge deploy + smoke test → cleanup. Respects D-49 byte-parity + D-50 file-count parity (vi=12, en=12)
 
-- **TWIL-01**: Phone number Twilio nhận cuộc gọi
-- **TWIL-02**: Twilio Media Streams kết nối tới AgentCore endpoint
-- **TWIL-03**: Workshop chapter "Phone channel via Twilio"
+### Future (deferred, không trong v2.0 roadmap)
 
 ### Localization (chatbot speech)
 
@@ -189,4 +191,4 @@ Deferred. Tracked nhưng không trong roadmap v1.
 
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-05-07 — Phase 5 complete (DOC-01..10 + DOC-12 all Done; DOC-11 stays Pending pending operator PNG capture sweep); workshop published bilingual on 5 chapters with vi=11 en=11 _index.md tree*
+*Last updated: 2026-05-07 — Milestone v2.0 (Twilio Voice Channel) STARTED. v1 closed: 46/46 reqs validated (DOC-11 operator-deferred). v2.0 scope: 5 reqs — TWIL-01..04 + TWIL-DOC. Other v2 categories (I18N, AUTH, THEME, ADV) remain deferred.*
