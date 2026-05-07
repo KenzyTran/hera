@@ -21,3 +21,16 @@ variable "agentcore_runtime_arn" {
   type        = string
   default     = ""
 }
+
+variable "twilio_auth_token_secret_arn" {
+  description = "Secrets Manager ARN holding the Twilio Auth Token (D-67). Operator pre-creates the secret + pastes the token via console; the bridge instance role grants secretsmanager:GetSecretValue ONLY on this ARN. No token in plaintext IaC. Pass via TF_VAR_twilio_auth_token_secret_arn or terraform.tfvars; terraform.tfvars MUST NOT be committed."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "twilio_bridge_image_tag" {
+  description = "Bridge container image tag (git short SHA). Empty string for the FIRST `terraform apply` (App Runner uses public.ecr.aws/aws-containers/hello-app-runner:latest as a placeholder); pass the real SHA for the second-pass apply after `bin/push-bridge-image.sh` lands the image. Mirrors agentcore_runtime_arn chicken-and-egg pattern from Phase 3."
+  type        = string
+  default     = ""
+}
