@@ -6,20 +6,112 @@ chapter: true
 pre: "<b>1. </b>"
 ---
 
-### Introduction
+## What is voice AI
 
-# Workshop Overview
+A voice agent is an AI service that runs as a real-time bidirectional audio stream: the user speaks into a microphone, audio is streamed up to a speech-to-speech model, the model responds with audio, the browser plays it back — all in under a second. Hera uses Amazon Nova 2 Sonic, an Amazon Bedrock speech-to-speech foundation model running in `ap-northeast-1`, with native tool-use that can call a Bedrock Knowledge Base inside the same stream.
 
-Overview of the workshop, learning objectives, and the architecture to be built.
+## Why this stack
 
-### Architecture
+- **Amazon Nova 2 Sonic on Bedrock** (NOT ElevenLabs / NOT Gemini): pure-AWS, low latency from Vietnam, per-minute billing, native tool-use for Knowledge Base lookup.
+- **Amazon Bedrock AgentCore Runtime** (NOT ECS Fargate / NOT Lambda): managed runtime, no VPC / ALB / NAT to debug, ARM64 image, credential injection via IMDSv2 — significantly simpler for workshop scope.
+- **Pipecat 1.1.0**: the standard orchestrator for voice loops, ships `AWSNovaSonicLLMService`, transparently handles the 8-min Sonic stream cap (rotates the stream ~120s before the cap).
+- **S3 Vectors + Titan v2** (NOT OpenSearch Serverless): cost-driven, around $0.10/month for a small catalog vs $200-400/month with OpenSearch Serverless.
+- **Terraform `~> 6.27` + CDK Python for AgentCore Runtime**: hybrid IaC (D-24). Terraform 6.x already supports native `s3_vectors_storage_configuration` on `aws_bedrockagent_knowledge_base`, but AgentCore Runtime does not yet have full first-party Terraform resource coverage — CDK Python fills that gap for exactly one stack.
 
-![Architecture](/images/sample/architecture.png)
+## High-level architecture
 
-### Objectives
+```mermaid
+flowchart LR
+    Browser["Browser<br/>(Web Widget)"] -->|"GET /index.html"| CDN[CloudFront]
+    Browser -->|"POST / (presign)"| Presign["Presigner<br/>Lambda"]
+    Presign -->|"presigned WSS URL"| Browser
+    Browser -->|"WSS upgrade<br/>(SigV4 presigned)"| Runtime["AgentCore<br/>Runtime"]
+    Runtime -->|"bidi audio stream"| Sonic["Nova 2 Sonic<br/>(Bedrock)"]
+    Runtime -->|"bedrock:Retrieve"| KB["Bedrock KB<br/>(S3 Vectors + Titan v2)"]
+    Sonic -.->|"audio chunks 24kHz"| Runtime
+    KB -.->|"top-3 chunks"| Runtime
+```
 
-- Objective 1
-- Objective 2
-- Objective 3
+The browser captures 16 kHz Int16 mono audio via AudioWorklet. CloudFront serves the static widget (HTML/JS/CSS) from S3. The presigner Lambda mints a short-lived (300s) SigV4-signed WSS URL because browsers cannot sign WebSocket upgrades themselves. AgentCore Runtime runs the Pipecat container, opens a bidirectional stream to Nova 2 Sonic, calls the Bedrock Knowledge Base via `bedrock:Retrieve` when Sonic emits a tool_use, and streams 24 kHz audio back to the browser.
 
-{{% children %}}
+## Voice loop end-to-end
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant Presign as Presigner Lambda
+    participant Runtime as AgentCore Runtime
+    participant Sonic as Nova 2 Sonic
+    participant KB as Bedrock KB
+    User->>Browser: click "record" + speak
+    Browser->>Presign: POST / (mint WSS URL)
+    Presign-->>Browser: { "url": "wss://..." }
+    Browser->>Runtime: WSS upgrade
+    Browser->>Runtime: audio frames (16kHz Int16)
+    Runtime->>Sonic: bidi stream open
+    Sonic->>Runtime: tool_use(lookup_product)
+    Runtime->>KB: bedrock-agent-runtime retrieve
+    KB-->>Runtime: top-3 chunks
+    Runtime->>Sonic: tool_result
+    Sonic-->>Runtime: audio chunks (24kHz)
+    Runtime-->>Browser: audio frames
+    Browser->>User: speak response
+```
+
+## Default region
+
+The workshop default is `ap-northeast-1` (Tokyo) for every snippet, every screenshot, every `--region` flag. Reason: best latency to Vietnam, and Nova 2 Sonic + AgentCore Runtime + Bedrock Knowledge Base + S3 Vectors are all available there. If you live in another region, Nova 2 Sonic + AgentCore are also available in `us-east-1`, `us-west-2`, and `eu-north-1`. Switch by editing the `region` variable in `infra/envs/prod/terraform.tfvars` (Phần 3.1 walks through this).
+
+## Prerequisites before you start
+
+### AWS Account
+
+- You need an AWS Account. If you don't have one, [create one here](https://aws.amazon.com/free/).
+- Use an IAM user with Administrator access (workshop scope, not production); do not use the root account.
+
+### Required knowledge
+
+- Basic understanding of AWS Console + IAM.
+- Basic networking (VPC, subnet) and Terraform / Docker familiarity.
+
+### Core tools
+
+| Tool | Description |
+|------|-------------|
+| AWS CLI v2 | Command line interface |
+| Terraform >= 1.9 | IaC primary |
+| uv | Python package manager (NOT pip) |
+| Docker Desktop | Multi-arch buildx |
+| jq | JSON parser |
+| Browser | Chrome/Firefox/Safari (HTTPS required for microphone) |
+
+Phần 2 Preparation has detailed paste-block installers per platform.
+
+{{% notice warning %}}
+**Cost:** This workshop may incur a small charge (~$2-5 USD for a 2-hour session). Run Phần 4 Cleanup right after the session to tear back down to $0.
+{{% /notice %}}
+
+## Workshop conventions
+
+- Source snippets carry a footer line `*Source: <repo-relative-path> — Phase X Plan XX-XX*` (D-42). If drift happens, grep the footer and re-paste from the source file.
+- AWS Console screenshots are annotated (red box + arrow + label) at the choke points where the UI is unavoidable (D-44 — Bedrock model access, Billing Alerts toggle, AgentCore quota request).
+- Chatbot speech is English (Sonic is strongest in en); workshop documentation is bilingual vi/en.
+- Code and logs contain no emoji (CLAUDE.md mandate covering both source and content).
+- Phần 4 Cleanup is mandatory — if you don't tear down, the AgentCore Runtime + Bedrock KB keep accruing per-hour-active charges.
+
+{{% notice warning %}}
+**Bilingual parity (DOC-12):** every PR that edits workshop content must commit
+vi+en together. CI runs `bin/check-i18n-parity.sh` before the Hugo build — if
+`content/vi` and `content/en` diverge in `_index.md` count, the build fails.
+This convention prevents a "Vietnamese-only / English-not-yet-translated"
+state shipping to production.
+
+*Source: bin/check-i18n-parity.sh — Phase 5 Plan 05-01*
+{{% /notice %}}
+
+## References
+
+- AWS blog: [Deploy voice agents with Pipecat and Amazon Bedrock AgentCore Runtime — Part 1](https://aws.amazon.com/blogs/machine-learning/deploy-voice-agents-with-pipecat-and-amazon-bedrock-agentcore-runtime-part-1/) — Hera's blueprint architecture.
+- Reference repo: [aws-samples/sample-nova-sonic-websocket-agentcore](https://github.com/aws-samples/sample-nova-sonic-websocket-agentcore) — bidirectional streaming + WebSocket + auth + tool use.
+- Hugo theme: [hugo-theme-learn](https://learn.netlify.app/en/) (deprecated upstream but still functional for v1; migration to relearn deferred to v2).
