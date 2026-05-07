@@ -96,7 +96,7 @@ Output cuối cùng khi success:
 OK: 3 results returned, top score 0.78 >= threshold 0.4
 ```
 
-Script poll mỗi 15 giây tới 20 lần (5 phút tổng) để absorb post-sync propagation lag. Tại live KB `BKXE19AH89`, top score đo được là `0.86` cho query mặc định "iPhone 13 Pro Max stock".
+Script poll mỗi 15 giây tới 20 lần (5 phút tổng) để absorb post-sync propagation lag. Tại KB của bạn (`<your-kb-id>` — resolve qua `terraform -chdir=infra/envs/prod output -raw kb_id`), top score đo được phụ thuộc môi trường nhưng thường nằm trong khoảng `0.80-0.90` cho query mặc định "iPhone 13 Pro Max stock". Score chính xác phụ thuộc embedding seed và Bedrock model version snapshot tại thời điểm sync.
 
 {{% notice warning %}}
 **KB sync delay sau ingestion:** sau khi ingestion job báo `COMPLETE`, vectors đã được ghi nhưng có thể mất thêm 2-3 phút để Bedrock KB Retrieve API trả về chúng. Đây là behavior AWS đã document, không phải bug. `bin/verify-kb.sh` poll tới 5 phút để cover delay này. Nếu sau 5 phút vẫn empty results, kiểm tra:

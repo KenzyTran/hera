@@ -96,7 +96,7 @@ Final output on success:
 OK: 3 results returned, top score 0.78 >= threshold 0.4
 ```
 
-The script polls every 15 seconds up to 20 times (5 minutes total) to absorb post-sync propagation lag. On the live KB `BKXE19AH89`, the measured top score for the default query "iPhone 13 Pro Max stock" was `0.86`.
+The script polls every 15 seconds up to 20 times (5 minutes total) to absorb post-sync propagation lag. On your KB (`<your-kb-id>` — resolve via `terraform -chdir=infra/envs/prod output -raw kb_id`), the measured top score is environment-dependent but typically falls in `0.80-0.90` for the default query "iPhone 13 Pro Max stock". The exact score depends on embedding seed and the Bedrock model version snapshot at sync time.
 
 {{% notice warning %}}
 **KB sync delay after ingestion:** after the ingestion job reports `COMPLETE`, vectors are written but it can take another 2-3 minutes before the Bedrock KB Retrieve API returns them. This is documented AWS behavior, not a bug. `bin/verify-kb.sh` polls for up to 5 minutes to absorb this delay. If results stay empty after 5 minutes, check:
