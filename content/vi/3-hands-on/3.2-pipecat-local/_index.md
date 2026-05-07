@@ -294,7 +294,7 @@ bash bin/smoke-voice.sh
 
 *Source: bin/smoke-voice.sh — Phase 2 Plan 02-02*
 
-Live result đo được tại `ap-northeast-1` + KB `BKXE19AH89`: `LATENCY_MS=0` (Sonic phản hồi essentially synchronously với end-of-send trong silence streaming phase). Chạy 1 lần là đủ — agent sẵn sàng cho Phần 3.3 deploy lên AgentCore.
+Tại lần đo của instructor ở `ap-northeast-1` + KB của họ, kết quả là `LATENCY_MS=0` (Sonic phản hồi essentially synchronously với end-of-send trong silence streaming phase). KB của bạn (`<your-kb-id>` — resolve qua `terraform -chdir=infra/envs/prod output -raw kb_id`) có thể cho `LATENCY_MS` khác phụ thuộc network latency tới `ap-northeast-1` từ vị trí của bạn; bất kỳ giá trị nào dưới `3000` (AGT-04 gate) đều pass. Chạy 1 lần là đủ — agent sẵn sàng cho Phần 3.3 deploy lên AgentCore.
 
 ## Browser test bằng tay
 
