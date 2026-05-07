@@ -35,6 +35,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Check vi/en parity (DOC-12)
+        run: bash bin/check-i18n-parity.sh
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
