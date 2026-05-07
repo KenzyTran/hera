@@ -1,357 +1,197 @@
 ---
 phase: 05-workshop-documentation-vi-en
-reviewed: 2026-05-07T05:03:49Z
+reviewed: 2026-05-07T00:00:00Z
 depth: standard
-files_reviewed: 24
+files_reviewed: 15
 files_reviewed_list:
+  - .gitmodules
   - .github/workflows/deploy.yml
-  - bin/check-i18n-parity.sh
-  - config.toml
+  - content/vi/3-hands-on/3.1-knowledge-base/_index.md
+  - content/en/3-hands-on/3.1-knowledge-base/_index.md
+  - content/vi/3-hands-on/3.2-pipecat-local/_index.md
+  - content/en/3-hands-on/3.2-pipecat-local/_index.md
+  - content/vi/3-hands-on/3.3-deploy-agentcore/_index.md
+  - content/en/3-hands-on/3.3-deploy-agentcore/_index.md
+  - content/vi/3-hands-on/3.5-observability/_index.md
+  - content/en/3-hands-on/3.5-observability/_index.md
   - content/en/_index.md
   - content/en/1-introduction/_index.md
   - content/en/2-preparation/_index.md
-  - content/en/3-hands-on/3.1-knowledge-base/_index.md
-  - content/en/3-hands-on/3.2-pipecat-local/_index.md
-  - content/en/3-hands-on/3.3-deploy-agentcore/_index.md
-  - content/en/3-hands-on/3.4-web-widget/_index.md
-  - content/en/3-hands-on/3.5-observability/_index.md
   - content/en/4-cleanup/_index.md
   - content/en/5-summary/_index.md
-  - content/vi/_index.md
-  - content/vi/1-introduction/_index.md
-  - content/vi/2-preparation/_index.md
-  - content/vi/3-hands-on/3.1-knowledge-base/_index.md
-  - content/vi/3-hands-on/3.2-pipecat-local/_index.md
-  - content/vi/3-hands-on/3.3-deploy-agentcore/_index.md
-  - content/vi/3-hands-on/3.4-web-widget/_index.md
-  - content/vi/3-hands-on/3.5-observability/_index.md
-  - content/vi/4-cleanup/_index.md
-  - content/vi/5-summary/_index.md
 findings:
-  critical: 2
-  warning: 6
-  info: 4
-  total: 12
+  critical: 0
+  warning: 2
+  info: 1
+  total: 3
 status: issues_found
 ---
 
-# Phase 5: Code Review Report
+# Phase 5 (re-review after 05-05): Code Review Report
 
-**Reviewed:** 2026-05-07T05:03:49Z
+**Reviewed:** 2026-05-07
 **Depth:** standard
-**Files Reviewed:** 24
+**Files Reviewed:** 15 source files (16 listed in config; `.gitmodules` is one file, all 15 source files were inspected)
 **Status:** issues_found
 
 ## Summary
 
-Phase 5 ships a parity-gate bash script, a CI workflow update, a Hugo `config.toml`,
-and 22 bilingual chapter files (vi+en × 11 chapters). The submitted artifacts have
-two BLOCKER-class defects:
+This re-review covers the gap closure (plan 05-05) that addressed the prior CR-01
+(submodule), CR-02 (instructor data) and WR-02 (Phần) findings. The closure work
+is solid:
 
-1. **Hugo theme submodule is unregistered in git's tree** — `.gitmodules` declares
-   the `hugo-theme-learn` submodule but no gitlink entry exists under `themes/` in
-   `HEAD`. CI (`actions/checkout@v4` with `submodules: recursive`) cannot fetch
-   what isn't registered, so `hugo --minify` will fail with "theme not found" and
-   the GitHub Pages deploy will never produce a site. The new parity step itself
-   is wired correctly but the build step downstream of it cannot succeed.
-2. **Real instructor account ID + runtime ID + KB ID + CloudFront subdomain are
-   embedded in published workshop content** — `851725411875`, `hera_agent-GIsf2P4ImD`,
-   `BKXE19AH89`, and `https://dg0w939ktclw6.cloudfront.net/` ship in both vi and
-   en chapters. AWS account IDs are not "secret" in the cryptographic sense, but
-   AWS Trust & Safety + IR teams treat publishing one as a bad practice (it
-   simplifies enumeration + targeted phishing). Either redact to a placeholder
-   (`<your-account-id>`) or delete the "Live state (instructor reference)" sub-
-   sections entirely before publish.
+- **Submodule registration (`.gitmodules`)** — syntactically valid Git config;
+  `git submodule status` reports the registered SHA `3202533a` for
+  `themes/hugo-theme-learn` (matcornic 2.5.0-27-g3202533) cleanly. CR-01 closed.
+- **Instructor literal redaction** — grep against the 4 known literals
+  (`851725411875`, `hera_agent-GIsf2P4ImD`, `BKXE19AH89`, `dg0w939ktclw6`)
+  returns zero matches across `content/`. CR-02 closed.
+- **`Phần`/`Bước`/`Chương` removal in `content/en/`** — grep finds zero
+  Vietnamese-language scaffolding terms (incl. `Mục tiêu`, `Tiếp theo`,
+  `Phần này`, `Cấu trúc`, `Lưu ý`) in any of the 11 English `_index.md` files.
+  WR-02 closed.
+- **`deploy.yml` branch trigger** — the only branch literal in the workflow is
+  `master` on line 5; no stray `main` references elsewhere in the file.
+- **vi/en parity** — `bin/check-i18n-parity.sh` reports `vi=11, en=11` slug-tree
+  parity passes; line counts of pairs are within 1 line of each other (e.g.
+  vi=29 vs en=29 for `_index.md`, vi=116 vs en=117 for `1-introduction`).
+- **Hugo shortcodes** — `{{% notice %}}` open/close pairs are balanced in
+  every reviewed file (count even on every file: 2/2, 4/4, 6/6).
+- **Code fences** — fence counts are even in every reviewed file (e.g.
+  16 in 3.3 en/vi, balanced).
 
-Beyond those, the most consequential WARNING is that the parity script only
-asserts slug-tree equality — it does NOT enforce code-block byte parity per D-49,
-and the 3.4-web-widget chapter already contains a Vietnamese-only line inside
-what should be a parity-byte-identical `bash` block. CI is green; the real
-invariant the script claims to enforce is silently broken.
-
-The remaining items are quality issues: leftover Vietnamese "Phần" in English
-prose (2-preparation has 9 occurrences alone), inconsistent "Section" vs "Phần"
-choice across en chapters, missing screenshot files (only `.gitkeep`s under
-`static/images/{2-preparation,3.3,3.4,3.5}/`), and the Hugo content directory
-contains an `_index.md` for `3-hands-on/` itself that was not in the
-review file list (silently in scope; mentioned for completeness).
-
-## Critical Issues
-
-### CR-01: Hugo theme submodule is unregistered in git tree — CI build will fail
-
-**File:** `.gitmodules` (root) + missing `themes/hugo-theme-learn` gitlink in `HEAD`
-**Issue:** `.gitmodules` declares the submodule, but `git ls-tree HEAD themes` is
-empty — no gitlink commit-pointer entry has ever been added. `actions/checkout@v4`
-with `submodules: recursive` only fetches submodules that have a registered
-gitlink in the tree, so the workshop GitHub Pages deploy will fail at the
-`Build with Hugo` step with `Error: module "hugo-theme-learn" not found`. The
-new parity step (added by Phase 5 to `deploy.yml`) is wired correctly but it
-runs ahead of a build that cannot succeed in CI. Locally the directory exists
-but is empty (verified: `themes/hugo-theme-learn/` is an empty placeholder).
-
-This is pre-existing repo state, but Phase 5 ships the GitHub Pages workflow
-that depends on it — the deploy will not work as documented.
-
-**Fix:**
-```bash
-# Register the submodule properly in git's tree:
-cd C:/Users/trant/projects/hera
-rm -rf themes/hugo-theme-learn
-git submodule add https://github.com/matcornic/hugo-theme-learn.git themes/hugo-theme-learn
-git add .gitmodules themes/hugo-theme-learn
-git commit -m "fix(theme): register hugo-theme-learn as a real submodule"
-
-# Verify:
-git ls-tree HEAD themes/   # must list a 160000 commit entry, not empty
-```
-
-### CR-02: Live instructor AWS account ID + runtime ID + CloudFront URL embedded in published docs
-
-**File:**
-- `content/{en,vi}/3-hands-on/3.3-deploy-agentcore/_index.md:161-164`
-- `content/{en,vi}/3-hands-on/3.5-observability/_index.md:98 (runtime-id), :112 (account)`
-- `content/{en,vi}/3-hands-on/3.1-knowledge-base/_index.md:99` (KB ID `BKXE19AH89`)
-- `content/{en,vi}/3-hands-on/3.2-pipecat-local/_index.md:297` (KB ID)
-
-**Issue:** Workshop content publishes:
-- AWS account ID `851725411875` (5 occurrences across 4 files).
-- AgentCore runtime ID `hera_agent-GIsf2P4ImD` (4 occurrences) — appears inside
-  `aws bedrock-agentcore-control update-agent-runtime --agent-runtime-id ...`
-  paste-blocks that learners will copy verbatim, accidentally targeting the
-  instructor's resource (which won't authorize their session, but the
-  intent is wrong).
-- KB ID `BKXE19AH89` (2 occurrences in 3.1 + 3.2 chapters).
-- CloudFront subdomain `dg0w939ktclw6.cloudfront.net` (en + vi 3.3 chapter).
-
-The Markdown also notes (3.3 chapter) "Account: 851725411875 (instructor's; you
-use your own account)" — even with that disclaimer, AWS Well-Architected
-guidance is to redact account IDs from public docs because they are personally
-identifying for IAM principals + simplify reconnaissance for phishing.
-
-The KB ID + runtime ID also hard-code a session-state that is a moving target —
-when the instructor re-deploys (or after `terraform destroy` per the cleanup
-chapter), every "live result measured at ... KB BKXE19AH89" line is a stale
-artifact, not a paste-replicable fact.
-
-**Fix:** Replace every concrete value with a placeholder + cite the resolution
-command. Example for the 3.3 chapter "Live state (instructor reference)" block:
-```markdown
-## Live state (instructor reference)
-
-- Account: `<instructor-account-id>` (you use your own account; resolve yours via
-  `aws sts get-caller-identity --query Account --output text`).
-- Region: `ap-northeast-1`.
-- Runtime: created by your `cdk deploy` — capture from
-  `jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json`.
-- Live URL: resolved via
-  `terraform -chdir=infra/envs/prod output -raw widget_cloudfront_url`.
-```
-Apply the same redaction to:
-- 3.5 chapter `--agent-runtime-id <your-runtime-id>` paste-block.
-- 3.1 + 3.2 chapter "live KB `BKXE19AH89`" → `<your-kb-id>` plus a sentence noting
-  the score is environment-dependent.
-- 3.3 chapter `Live URL` line → `<your-distribution>.cloudfront.net`.
+Two new defects and one nit were introduced by the redaction work itself.
+They are placeholder-naming and placeholder-coverage problems, not security
+or build issues. Both warnings are isolated to the smoke-output success block
+in `3-hands-on/3.3-deploy-agentcore/_index.md` (vi+en, identical bytes).
 
 ## Warnings
 
-### WR-01: Parity script does NOT enforce code-block byte-identity (D-49) — silent drift in 3.4
+### WR-01: Inconsistent placeholder name `<your-account>` vs `<your-account-id>`
 
-**File:** `bin/check-i18n-parity.sh:38-49` + drift in `content/{en,vi}/3-hands-on/3.4-web-widget/_index.md:115-119`
+**File:** `content/en/3-hands-on/3.3-deploy-agentcore/_index.md:134` and
+`content/vi/3-hands-on/3.3-deploy-agentcore/_index.md:134`
 
-**Issue:** The script claims to be the "DOC-12 parity gate" but only asserts:
-- File count parity (`vi`==`en`).
-- Slug-tree set equality.
+**Issue:** The smoke-output success block prints the Runtime ARN as
+`arn:aws:bedrock-agentcore:ap-northeast-1:<your-account>:runtime/...`,
+while the "Reference values (resolve from your own deploy)" section 27 lines
+below uses `<your-account-id>` for the same value (line 161:
+``Account: `<your-account-id>` — resolve via `aws sts get-caller-identity`...``).
 
-D-49 ("vi+en files share fenced code blocks byte-identically") is the stated
-invariant per the Phase 5 plan, but the script never compares code-block content.
-Consequence: the 3.4-web-widget chapter currently has two Vietnamese-only lines
-inside a `bash` block in the en file vs. en in the en file — they have already
-diverged, and CI green-lights the divergence:
+The two placeholders refer to the same AWS account ID, but a learner doing
+the natural copy-paste-and-search workflow ("I see `<your-account>` in the
+output — where is that resolved?") will not find a hit because the resolution
+bullet uses `<your-account-id>`. This is the exact failure mode CR-02's fix
+was supposed to prevent.
 
-```diff
-# en/3-hands-on/3.4-web-widget/_index.md:117-118 (English block)
--# -> open in a desktop browser (Chrome/Firefox/Safari/Edge all work).
--# -> click "Record" -> allow microphone access.
+**Fix:** Rename the placeholder in the smoke success block on line 134 of
+both files to match the rest of the document:
 
-# vi/3-hands-on/3.4-web-widget/_index.md:117-118 (NOT byte-identical to en!)
-+# -> mở trong browser desktop (Chrome/Firefox/Safari/Edge đều OK).
-+# -> click "Record" -> cho phép microphone access.
-```
-Verified by:
-```bash
-diff <(awk '/^```/{c=!c; print; next} c{print}' content/en/3-hands-on/3.4-web-widget/_index.md) \
-     <(awk '/^```/{c=!c; print; next} c{print}' content/vi/3-hands-on/3.4-web-widget/_index.md)
+```text
+Runtime ARN : arn:aws:bedrock-agentcore:ap-northeast-1:<your-account-id>:runtime/...
 ```
 
-**Fix:** Two-part:
-1. Make the en + vi 3.4 chapter code-block bash comments byte-identical (English
-   only, since code blocks are language-neutral per D-49):
-   ```diff
-   # vi/3-hands-on/3.4-web-widget/_index.md
-   -# -> mở trong browser desktop (Chrome/Firefox/Safari/Edge đều OK).
-   -# -> click "Record" -> cho phép microphone access.
-   +# -> open in a desktop browser (Chrome/Firefox/Safari/Edge all work).
-   +# -> click "Record" -> allow microphone access.
-   ```
-2. Extend `bin/check-i18n-parity.sh` with a third assertion that diffs the
-   fenced-block-only projection of every paired vi/en file:
-   ```bash
-   for f in content/vi/**/_index.md; do
-     en="${f/content\/vi/content\/en}"
-     [[ -f "$en" ]] || continue
-     vi_blocks=$(awk '/^```/{c=!c; print; next} c{print}' "$f")
-     en_blocks=$(awk '/^```/{c=!c; print; next} c{print}' "$en")
-     if [[ "$vi_blocks" != "$en_blocks" ]]; then
-       echo "FAIL: code-block drift in $f vs $en"
-       FAIL_COUNT=$((FAIL_COUNT + 1))
-       break  # one failure is enough to flip exit code
-     fi
-   done
-   ```
+Apply identically in `content/en/3-hands-on/3.3-deploy-agentcore/_index.md`
+and `content/vi/3-hands-on/3.3-deploy-agentcore/_index.md` (byte-parity for
+this fragment is preserved per D-49 since both files already share the same
+literal).
 
-### WR-02: English chapters contain leftover Vietnamese "Phần" — fails the en-only-prose convention
+### WR-02: `<your-fn-url>` placeholder has no resolution command
 
-**File:** Multiple en files
-- `content/en/_index.md:17`
-- `content/en/1-introduction/_index.md:64,89,92,101`
-- `content/en/2-preparation/_index.md:13,55,62,100,112,125,145,147,150,153,157,158,159` (~14 hits)
-- `content/en/3-hands-on/3.1-knowledge-base/_index.md:9,107,143`
-- `content/en/3-hands-on/3.2-pipecat-local/_index.md:9,99,268,297,305,321`
-- `content/en/4-cleanup/_index.md:148`
-- `content/en/5-summary/_index.md:23,25`
+**File:** `content/en/3-hands-on/3.3-deploy-agentcore/_index.md:133` and
+`content/vi/3-hands-on/3.3-deploy-agentcore/_index.md:133`
 
-**Issue:** ~30+ occurrences of the Vietnamese word "Phần" in what should be
-English-only chapters. This contradicts the project convention "vi files in
-Vietnamese, en in English; code identical" and produces awkward sentences like
-"run Phần 4 Cleanup" in the en cost-recap. The 3.3, 3.4, 3.5 chapters
-consistently use "Section X.Y" (correct) — the inconsistency is a copy-paste
-artifact from the vi original.
+**Issue:** The smoke success block prints
+`Presign URL : https://<your-fn-url>.lambda-url.ap-northeast-1.on.aws/`
+which introduces the placeholder name `<your-fn-url>`. However, the
+"Reference values (resolve from your own deploy)" bullet list 27 lines
+below (lines 159-165) documents resolution commands for **5** placeholders —
+account, region, runtime, live URL, cost — but **omits** `<your-fn-url>`.
 
-**Fix:** Global rename in `content/en/**/*.md`:
-- `Phần X` → `Section X` (or `Chapter X` for top-level, your choice — pick one).
-- Rerun the parity script — code blocks are unaffected; only prose changes.
+The closest mention is line 122 ("Reads the `presign_url` output, exports it
+as `PRESIGN_URL`") which describes what `bin/smoke-deploy.sh` does
+internally, not how a learner reading the rendered output should resolve
+the placeholder by hand. A learner who did not run `smoke-deploy.sh`
+(e.g. ran the manual 4-step lifecycle) sees the literal `<your-fn-url>` in
+the docs but no cited path to map it to their actual function URL.
 
-### WR-03: 5 image references resolve to missing files — broken images in published site
+The plan-05-05 contract stated all instructor literals would be replaced with
+"placeholders + cited resolution commands" — this is the only placeholder in
+the redacted set whose resolution command is missing from the reference
+list.
 
-**File:** Multiple chapter files reference `/images/.../*.png` paths that exist
-only as `.gitkeep` placeholders:
-- `content/{en,vi}/2-preparation/_index.md:52` → `/images/2-preparation/console-bedrock-model-access.png`
-- `content/{en,vi}/3-hands-on/3.3-deploy-agentcore/_index.md:31` → `/images/3.3-deploy-agentcore/service-quotas-agentcore-concurrency.png`
-- `content/{en,vi}/3-hands-on/3.4-web-widget/_index.md:123` → `/images/3.4-web-widget/widget-idle-state.png`
-- `content/{en,vi}/3-hands-on/3.5-observability/_index.md:13` → `/images/3.5-observability/billing-alerts-toggle.png`
-- `content/{en,vi}/3-hands-on/3.5-observability/_index.md:47` → `/images/3.5-observability/cloudwatch-dashboard-hera-prod.png`
+**Fix:** Add a sixth bullet to the "Reference values" list (after line 165)
+in both files:
 
-**Issue:** Verified `find static/images -type f` — directories exist but contain
-only `.gitkeep` files; no PNGs are committed. Hugo will render `<img>` tags
-pointing at 404 URLs. Five broken images on the production site.
+en (`content/en/3-hands-on/3.3-deploy-agentcore/_index.md`):
+```markdown
+- Presign URL: `https://<your-fn-url>.lambda-url.ap-northeast-1.on.aws/` — resolve via `terraform -chdir=infra/envs/prod output -raw presign_url` after Step 3.5 second-pass apply.
+```
 
-**Fix:** Either (a) commit the actual screenshots under `static/images/...` so
-Hugo picks them up, or (b) wrap the `![...]` lines in a Hugo conditional /
-remove them until the screenshots land. Option (a) is the path the markdown
-clearly assumes — the alt-text is annotated specifically (e.g. "Bedrock Console
-— Model Access for Nova 2 Sonic + Titan v2 (ap-northeast-1)").
+vi (`content/vi/3-hands-on/3.3-deploy-agentcore/_index.md`):
+```markdown
+- Presign URL: `https://<your-fn-url>.lambda-url.ap-northeast-1.on.aws/` — resolve qua `terraform -chdir=infra/envs/prod output -raw presign_url` sau Step 3.5 second-pass apply.
+```
 
-### WR-04: Inconsistent "Section X" vs "Phần X" terminology in en chapters
-
-**File:** Mixed across `content/en/*.md`
-
-**Issue:** 3.3, 3.4, 3.5 chapters say "Section 3.X" (correct English). 1-introduction,
-2-preparation, 3.1, 3.2, 4-cleanup, 5-summary chapters say "Phần X" (Vietnamese
-literal copy). Within the same chapter (3.4) you find both "Section 3.3" (line 9)
-and "Phần" elsewhere is absent — but this within-set inconsistency makes
-cross-chapter navigation jarring for an English-speaking learner.
-
-**Fix:** Ride along with the WR-02 mass rename. Land on a single term — the
-hugo-theme-learn convention is "Chapter X" for top-level + "Section X.Y" for
-sub-pages, which matches the front-matter `chapter: true` flag at the top-level
-`_index.md` files.
-
-### WR-05: 3.5 + 3.4 chapters use "Section X" but 1.x / 2.x / 4 use "Phần" — workshop heading drift
-
-**File:** Same as WR-04, listed separately for follow-up tracking.
-**Issue:** Even within the en chapters that DID get translated, "Section 3.X"
-vs "Section 4" vs "Section 5" is mixed unpredictably. Examples:
-- 3.4-web-widget en says "Section 3.5" (line 148) — correct.
-- 4-cleanup en says "Phần 5 wraps up" (line 148) — should be "Chapter 5" or
-  "Section 5".
-- 5-summary en says "with cleanup per Phần 4" (line 23) — should be "Chapter 4".
-
-**Fix:** Same global rename as WR-04 — pick one terminology and apply uniformly.
-
-### WR-06: Section heading "### Hands-on" + "# Hands-on Steps" double-renders the chapter title
-
-**File:** `content/{en,vi}/3-hands-on/_index.md:9-11` (file not in primary review
-list but discovered during scope check — it is part of the parity tree).
-
-**Issue:** The file front-matter sets `title: "Hands-on"` (renders as the page
-title via the theme), then the body has `### Hands-on` (h3) immediately followed
-by `# Hands-on Steps` (h1). The h3 then h1 sequence is non-semantic — h1 should
-precede h3, never follow it, or both should be omitted in favor of the front-
-matter `title`. The same anti-pattern appears in `content/{en,vi}/2-preparation/`
-("### Preparation" then "# Environment Setup") and `content/{en,vi}/_index.md`
-("### Introduction" inside the body).
-
-**Fix:** In hugo-theme-learn, the `title` front-matter is already rendered by
-the theme as the page heading — drop the manual h3+h1 lines from the body, or
-collapse to a single h2 "Overview" if you want a leading paragraph anchor.
+The `presign_url` Terraform output is already documented elsewhere on the
+same page (line 104 / 122) and on `3.4-web-widget/_index.md:105`, so this is
+just a missing cross-reference, not new infra work.
 
 ## Info
 
-### IN-01: `bin/check-i18n-parity.sh` does not validate `find` output ordering across platforms
+### IN-01: `deploy.yml` master-only trigger is intentional but creates forward coupling
 
-**File:** `bin/check-i18n-parity.sh:39-40`
-**Issue:** `find -name "_index.md" -type f | sed ... | sort` — relies on `sort`
-being LC_COLLATE-stable across platforms. On Windows Git Bash the default
-collation can differ from Linux glibc when filenames contain non-ASCII
-characters. v1 paths are pure ASCII, so this is currently fine; flag for
-follow-up if vi-localized slugs are ever introduced (D-49 says slugs stay en
-verbatim, so unlikely to bite).
-**Fix:** Add `LC_ALL=C sort` to harden:
-```bash
-VI_SLUGS=$(find content/vi -name "_index.md" -type f | sed 's|^content/vi/||' | LC_ALL=C sort)
-EN_SLUGS=$(find content/en -name "_index.md" -type f | sed 's|^content/en/||' | LC_ALL=C sort)
-```
+**File:** `.github/workflows/deploy.yml:5`
 
-### IN-02: Hugo `disableLandingPageButton = true` parameter may not be honored by the theme variant
+**Issue:** The workflow trigger `branches: ["master"]` is correct for the
+current state (active branch is `master`, no remote configured yet, per
+context). The step on line 39 invokes `bash bin/check-i18n-parity.sh` and
+the script exists; running it locally returns
+`2/2 parity assertions passed`, so the CI gate is wired correctly.
 
-**File:** `config.toml:28`
-**Issue:** `disableLandingPageButton` is a hugo-theme-learn convention; we
-verified the theme submodule isn't checked out (CR-01) so we can't confirm the
-parameter is read by the theme. Flag for follow-up after CR-01 lands.
-**Fix:** Run `hugo server -D` after the submodule lands, confirm there is no
-"home" call-to-action button on the landing page; if it's still present, switch
-to the theme-specific override path or keep this param even if unused (cost: 0).
+This is a forward-coupling nit only: when `origin/main` eventually exists
+(GitHub Pages convention), this file will need to re-add or replace the
+trigger. No action required for Phase 5; flagging so the GitHub Pages
+publish phase notices.
 
-### IN-03: `themeVariant = "workshop"` references a custom variant that may not exist in the upstream theme
-
-**File:** `config.toml:29`
-**Issue:** hugo-theme-learn ships built-in variants `red`, `blue`, `green`,
-`purple`, `mine`, `relearn-bright`, `relearn-dark`, `relearn-light`, etc. —
-"workshop" is not a default. With the submodule unchecked-out (CR-01) we cannot
-confirm whether a custom `themes/hugo-theme-learn/static/css/theme-workshop.css`
-exists. If it doesn't, the theme falls back to default styling and the param is
-a silent no-op.
-**Fix:** Either (a) add `static/css/theme-workshop.css` under `static/` (Hugo's
-overrides path beats the theme's), or (b) replace with a known-good variant
-like `themeVariant = "blue"` to remove the unknown.
-
-### IN-04: 5-summary `## Thanks` paragraph references "URL from `config.toml` `baseURL`" but the en-prose context is awkward
-
-**File:** `content/en/5-summary/_index.md:72`
-**Issue:** "Issues / improvements: PR into the workshop repo on GitHub (URL from
-`config.toml` `baseURL`)." The `baseURL` is `https://KenzyTran.github.io/hera/`
-— that's the deployed-site URL, not the source-repo URL. A learner clicking
-"PR into the workshop repo" can't PR against a `.github.io` URL. The vi mirror
-has the same wording.
-**Fix:** Replace with the literal repo URL or a placeholder:
-```markdown
-Issues / improvements: open a PR at <https://github.com/KenzyTran/hera>.
-```
-Apply to en + vi together to keep parity.
+**Fix:** None for v1. Track for the publish phase: decide between adding
+`main` back to the trigger list, renaming the local branch, or keeping
+`master`-only deploy.
 
 ---
 
-_Reviewed: 2026-05-07T05:03:49Z_
+## Items checked and confirmed clean
+
+- `.gitmodules` syntactic validity (verified via `git submodule status`
+  and `git ls-files --stage`).
+- All 4 instructor literals scrubbed from `content/` (zero grep hits for
+  `851725411875`, `hera_agent-GIsf2P4ImD`, `BKXE19AH89`, `dg0w939ktclw6`).
+- All Vietnamese-language scaffolding terms removed from `content/en/`
+  (zero grep hits for `Phần`, `Bước`, `Chương`, `Mục tiêu`, `Tiếp theo`,
+  `Cấu trúc`, `Lưu ý`, `Phần này`).
+- Hugo `{{% notice %}}` shortcode pairing balanced in every reviewed file.
+- Code fence count balanced in every reviewed file.
+- vi/en file-count + slug-tree parity (`bin/check-i18n-parity.sh` 2/2 PASS).
+- `deploy.yml` branch trigger consistency (no stray `main` references
+  anywhere in the file).
+- Cross-references (`Section 3.x`, `Chapter N`, `Step N`) all resolve
+  internally in `content/en/` (76 references across 10 files, none orphan).
+- AWS CLI snippets cited next to placeholders are syntactically correct
+  (`aws sts get-caller-identity --query Account --output text`,
+  `terraform -chdir=infra/envs/prod output -raw kb_id`,
+  `jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json`,
+  `aws bedrock-agentcore-control update-agent-runtime --agent-runtime-id
+  <your-runtime-id> --region ap-northeast-1 --status STOPPED`).
+- Mermaid diagrams in `1-introduction/_index.md` use balanced fences and
+  valid `flowchart LR` / `sequenceDiagram` syntax.
+- en/_index.md correctly mirrors vi/_index.md shape (same table layout,
+  same `{{% children depth="1" %}}` shortcode usage).
+
+---
+
+_Reviewed: 2026-05-07_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+_Re-review scope: gap closure for prior CR-01, CR-02, WR-02 (plan 05-05).
+Earlier 05-REVIEW.md (2026-05-07T05:03:49Z, 24 files reviewed) is
+superseded by this report._
