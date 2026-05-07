@@ -77,3 +77,13 @@ output "observability_billing_alarm_arn" {
   description = "us-east-1 billing alarm ARN ($5/day cap, D-29). Phase 5 workshop content references for screenshot."
   value       = module.observability.billing_alarm_arn
 }
+
+output "twilio_bridge_wss_url" {
+  description = "App Runner WSS URL the Twilio TwiML Bin <Stream url=\"...\"/> points at (Phase 6 — TWIL-03). Plan 06-03 RUNBOOK paste-block captures this with: TWILIO_BRIDGE_WSS_URL=$(terraform output -raw twilio_bridge_wss_url). Format: wss://<id>.<region>.awsapprunner.com/twilio."
+  value       = "wss://${replace(module.twilio_bridge.service_url, "https://", "")}/twilio"
+}
+
+output "twilio_bridge_ecr_repository_url" {
+  description = "Bridge ECR repository URL. bin/push-bridge-image.sh consumes for `docker buildx push` to the bridge image registry."
+  value       = module.twilio_bridge.ecr_repository_url
+}
