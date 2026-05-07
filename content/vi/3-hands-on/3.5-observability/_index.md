@@ -94,8 +94,11 @@ Billing alarm cross-region constraint: `AWS/Billing` namespace CHỈ emit ở us
 Khi alarm transitions to ALARM state (visible trên dashboard billing panel + via `aws cloudwatch describe-alarms`), respond MANUAL — không có SNS hook auto-stop:
 
 ```bash
+# Resolve <your-runtime-id> first:
+#   jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json
+# (or read from cdk deploy output captured in Section 3.3 Step 4)
 aws bedrock-agentcore-control update-agent-runtime \
-  --agent-runtime-id hera_agent-GIsf2P4ImD \
+  --agent-runtime-id <your-runtime-id> \
   --region ap-northeast-1 \
   --status STOPPED
 
@@ -109,7 +112,7 @@ Trade-off accepted — instructor monitor dashboard tay, không out-of-band noti
 
 ## Live evidence (instructor reference)
 
-- Dashboard URL (instructor): truy cập qua `terraform output -raw observability_dashboard_url` ở instructor account `851725411875` ở `ap-northeast-1`.
+- Dashboard URL: resolve qua `terraform -chdir=infra/envs/prod output -raw observability_dashboard_url` (hoặc `aws cloudwatch get-dashboard --dashboard-name hera-prod --query DashboardArn --output text` rồi build console URL `https://console.aws.amazon.com/cloudwatch/home?region=ap-northeast-1#dashboards:name=hera-prod`).
 - Free tier: 1 dashboard + 10 alarms = $0/tháng (instructor verified Phase 4 Plan 04-02).
 - Bedrock cost panel mất tới 24h start populate sau invoke đầu — fresh "No data available" là expected.
 - Instructor's billing alarm sit `INSUFFICIENT_DATA` đến khi RESEARCH A1 toggle tick (carried trong 04-HUMAN-UAT.md item #2).

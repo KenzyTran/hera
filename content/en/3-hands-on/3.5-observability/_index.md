@@ -94,8 +94,11 @@ Billing alarm cross-region constraint: the `AWS/Billing` namespace ONLY emits in
 When the alarm transitions to ALARM state (visible on the dashboard's billing panel + via `aws cloudwatch describe-alarms`), respond manually — there is no SNS auto-stop hook:
 
 ```bash
+# Resolve <your-runtime-id> first:
+#   jq -r '."hera-agentcore".AgentCoreRuntimeArn' dist/cdk-outputs.json
+# (or read from cdk deploy output captured in Section 3.3 Step 4)
 aws bedrock-agentcore-control update-agent-runtime \
-  --agent-runtime-id hera_agent-GIsf2P4ImD \
+  --agent-runtime-id <your-runtime-id> \
   --region ap-northeast-1 \
   --status STOPPED
 
@@ -109,7 +112,7 @@ Trade-off accepted — the instructor monitors the dashboard manually with no ou
 
 ## Live evidence (instructor reference)
 
-- Dashboard URL (instructor): retrieve via `terraform output -raw observability_dashboard_url` against the instructor account `851725411875` in `ap-northeast-1`.
+- Dashboard URL: resolve via `terraform -chdir=infra/envs/prod output -raw observability_dashboard_url` (or `aws cloudwatch get-dashboard --dashboard-name hera-prod --query DashboardArn --output text` then construct the console URL `https://console.aws.amazon.com/cloudwatch/home?region=ap-northeast-1#dashboards:name=hera-prod`).
 - Free tier: 1 dashboard + 10 alarms = $0/month (instructor verified in Phase 4 Plan 04-02).
 - The Bedrock cost panel takes up to 24h to start populating after the first invoke — a fresh "No data available" is expected.
 - The instructor's billing alarm sits in `INSUFFICIENT_DATA` until the RESEARCH A1 toggle is ticked (carried in 04-HUMAN-UAT.md item #2).
