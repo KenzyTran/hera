@@ -61,7 +61,7 @@
 
 Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 
-- [ ] **DOC-01**: Phần 1 — Introduction (vi+en): Giới thiệu voice AI, Nova Sonic, vì sao dùng AgentCore (vs ECS), kiến trúc hera high-level diagram
+- [x] **DOC-01**: Phần 1 — Introduction (vi+en): Giới thiệu voice AI, Nova Sonic, vì sao dùng AgentCore (vs ECS), kiến trúc hera high-level diagram *(completed Phase 5 Plan 05-01, 2026-05-07; content/{vi,en}/1-introduction/_index.md single-page chapter with Mermaid component + sequence diagrams (D-55), folded prereqs H2 (D-53 Option A), region note (D-47), bilingual-parity callout (D-51 #7) — vi+en in same atomic commit per D-49)*
 - [ ] **DOC-02**: Phần 2 — Preparation (vi+en): AWS account checklist, enable Bedrock model access (Nova 2 Sonic), enable AgentCore service, install AWS CLI / Terraform / uv (Python), configure credentials, ước tính chi phí ~$X cho thời gian workshop
 - [ ] **DOC-03**: Phần 3.1 (vi+en) — Build Knowledge Base: viết catalog markdown, deploy `modules/kb`, verify Retrieve API qua AWS CLI test
 - [ ] **DOC-04**: Phần 3.2 (vi+en) — Pipecat agent code: code structure, system prompt, tool definition, run local test (Pipecat WebSocket transport, browser kết nối localhost)
@@ -72,7 +72,7 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 - [ ] **DOC-09**: Phần 5 — Summary (vi+en): cost recap, hướng mở rộng (Twilio voice, multi-language, multi-agent)
 - [ ] **DOC-10**: Top 5-7 pitfall callouts ở các chapter tương ứng (8-min stream cap, sample rate, model access, HTTPS bắt buộc cho mic, billing alarm cleanup, schema tool-use, bilingual parity)
 - [ ] **DOC-11**: Mỗi chapter có code snippet copy button (hugo-theme-learn shortcode hoặc custom), screenshot AWS console với annotation
-- [ ] **DOC-12**: vi/en parity check chạy trong CI (script đếm số chapter mỗi lang, fail nếu lệch)
+- [x] **DOC-12**: vi/en parity check chạy trong CI (script đếm số chapter mỗi lang, fail nếu lệch) *(completed Phase 5 Plan 05-01, 2026-05-07; bin/check-i18n-parity.sh ships file-count + bidirectional slug-tree parity assertions, wired into .github/workflows/deploy.yml as a pre-build step between Checkout and Setup Pages — exits 0 on parity tree (vi=6, en=6), exits 1 on injected mismatch verified live)*
 
 ## v2 Requirements
 
@@ -161,7 +161,7 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | OBS-03 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02, 2026-05-06) |
 | OBS-04 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 + Plan 04-03 RUNBOOK + Plan 03-04 D-30, 2026-05-06) |
 | OBS-05 | Phase 4 — Observability, Cost Control, Cleanup | Complete (Plan 04-02 RUNBOOK manual-stop fallback per D-35, 2026-05-06) |
-| DOC-01 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-01 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
 | DOC-02 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-03 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-04 | Phase 5 — Workshop Documentation (vi/en) | Pending |
@@ -172,7 +172,7 @@ Deferred. Tracked nhưng không trong roadmap v1.
 | DOC-09 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Pending |
 | DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending |
-| DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Pending |
+| DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
 
 **Coverage:**
 - v1 requirements: **46** total — KB:6, AGT:8, DEP:6, WID:6, OBS:5, DEM:3, DOC:12

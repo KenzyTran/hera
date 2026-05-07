@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: "Phase 5 (Workshop Documentation vi/en) context gathered (commit 1225229). 05-CONTEXT.md captures D-40..D-55 across 9 categories: chapter granularity (D-40 Phần 3 splits into 5 sub-pages 3.1-knowledge-base / 3.2-pipecat-local / 3.3-deploy-agentcore / 3.4-web-widget / 3.5-observability; D-41 Phần 1/2/4/5 stay single-page; total 28 markdown files); snippet drift discipline (D-42 inline copy-paste with footer "Source: <repo-path>" reference, no Hugo readFile shortcode, no CI extract+grep gate; D-43 footer paths repo-relative, no GitHub permalink); screenshot strategy (D-44 minimal — 3 mandatory Console UI shots [Bedrock model access, Billing Alerts toggle, AgentCore quota request] + 3 hero [widget UI, CloudWatch dashboard, cleanup-verify output] + 2-4 supporting; D-45 storage `static/images/<chapter>/`; D-46 no GIF/video); region + container path (D-47 ap-northeast-1 default for every learner snippet; D-48 learner builds + pushes own ECR via bin/push-image.sh, no instructor public-ECR fallback); vi/en authoring + parity (D-49 vi-first then en-translated in same plan/commit; D-50 minimal file-count parity via bin/check-i18n-parity.sh wired into .github/workflows/deploy.yml pre-build); pitfall callouts (D-51 hugo-theme-learn `notice` shortcode, 8 callouts inline at choke points: 8-min stream cap, sample rate, model access, HTTPS-for-mic, billing alarm, tool-use schema, bilingual parity, KB sync delay); config.toml + GitHub Pages (D-52 replace placeholders with actual Hera values; D-53 1.1-prerequisites.md repurpose-or-remove decision deferred to planner); cost recap (D-54 ranges informed by instructor's actual usage, ~$2-5 USD per 2-hour session); architecture diagram (D-55 Mermaid component + sequence inline, ASCII fallback if theme support broken). Demo budget honored — Phase 5 is docs-only, zero new AWS deploys. No SPEC.md, no checkpoint, no advisor mode. 05-CONTEXT.md + 05-DISCUSSION-LOG.md committed (1225229)."
+last_updated: "2026-05-07T03:30:00.000Z"
+last_activity: 2026-05-07 -- Plan 05-01 complete (DOC-01 + DOC-12 shipped)
+progress:
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 18
+  completed_plans: 15
+  percent: 83
+---
+
 # Project State
 
 ## Project Reference
@@ -5,12 +21,14 @@
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser.
-**Current focus:** Phase 5 — Workshop Documentation (vi/en) — planning complete 2026-05-07. 4 plans across 4 waves authored: 05-01 (DOC-12 parity gate + config.toml + Phần 1 Introduction + 8 stub deletions + both 1.1-prerequisites.md folded into Phần 1 per D-53 Option A), 05-02 (Phần 2 Preparation + Phần 3.1 KB + Phần 3.2 Pipecat with 5 pitfall callouts D-51 #1 #2 #3 #6 #8 + D-44 #1 Bedrock Console screenshot ref), 05-03 (Phần 3.3 Deploy + Phần 3.4 Widget + Phần 3.5 Observability with 2 pitfall callouts #4 #5 + D-30 trade-off), 05-04 (Phần 4 Cleanup + Phần 5 Summary with cost recap dropped to post-launch placeholder paragraph per WARNING 2 option a). Plan-checker iteration 1 found 4 BLOCKER + 6 WARNING; revision applied; orchestrator hand-fixed 3 stale-text drift issues; final state passes verification. Ready for `/gsd-execute-phase 5`. Phase 4 closed cleanly (3/3 plans + 5/5 SC + code-review clean + 5 non-blocking deferrals in 04-HUMAN-UAT.md).
+**Current focus:** Phase 05 — workshop-documentation-vi-en
 
 ## Current Position
 
-Phase: 4 of 5 (Observability, Cost Control, Cleanup) — 3/3 plans complete; verifier passed 5/5 SC + closed Phase 3 SC#2; code-review clean
-Plan: 3 of 3 done. Plan 04-01 (protocol bridge) closed Phase 3 SC#2: agent/hera_agent/main.py adds POST /invocations static-envelope stub per AgentCore HTTP protocol contract; live ECR push (hera-agent:7e72b66 multi-arch) + in-place cdk redeploy (AgentCore Runtime hera_agent-GIsf2P4ImD version=2 → version=3 status=READY, ContainerUri=hera-agent:7e72b66) + AgentCore data-plane invoke-agent-runtime smoke probe returns statusCode=200 with body {"agent":"hera-pipecat-sonic","status":"running","model":"amazon.nova-sonic-v1:0"}. Voice loop continues on /ws unchanged. RUNBOOK Phase 4 protocol-bridge deploy section + ROADMAP Phase 3 SC#2 closure + Phase 4 SC#2/SC#3 D-35/D-36 wording realignment landed in same commit as Task 3. 4 atomic commits (7e72b66, 9c5db62, 5037f1f, b33f062). Old image hera-agent:5f21e36 retained on ECR for rollback.
+Phase: 05 (workshop-documentation-vi-en) — EXECUTING
+Plan: 2 of 4 (05-01 complete; 05-02 next)
+
+Plan 05-01 (DOC-12 parity gate + config.toml + Phần 1 Introduction) shipped 5 atomic commits in the order 5 → 1 → 2 → 4 → 6 (per checker BLOCKER 2 remedy option (a) — Task 5 stub deletions land FIRST so each commit leaves the tree parity-clean and the parity gate never blocks its own enabling commit). Commits: 17ed9e8 (purge 8 FCJ template stubs + both 1.1-prerequisites.md per D-53 Option A; vi=6, en=6 _index.md per side post-delete), 596ab95 (bin/check-i18n-parity.sh DOC-12 gate — file-count + bidirectional slug-tree parity assertions, exit 0 on parity tree, exit 1 on synthetic-mismatch verified live), 427d663 (deploy.yml pre-build wire — single 3-line step Check vi/en parity (DOC-12) inserted between Checkout and Setup Pages; YAML parseable), c2f30ad (config.toml six placeholder replacements per D-52 with operator-confirmed default baseURL https://KenzyTran.github.io/hera/; theme + multilingual + unsafe + themeVariant preserved verbatim), eaa4d47 (Phần 1 Introduction vi+en in same atomic commit per D-49 — single-page chapter with 8 H2 sections including Mermaid component + sequence diagrams D-55 with byte-identical sources between vi and en, region note D-47, folded prereqs D-53 Option A as `## Yêu cầu trước khi bắt đầu` / `## Prerequisites before you start`, bilingual-parity callout D-51 #7, D-42 source-footer demonstration, plus root index vi+en replacing template stub with Hera workshop overview). Demo budget honored — zero AWS deploys, zero Bedrock streaming. REQUIREMENTS.md DOC-01 + DOC-12 flipped to [x]. Submodule themes/hugo-theme-learn untouched. No emojis anywhere.
 
 Plan 04-02 (observability) shipped infra/modules/observability/ (4-file shape, configuration_aliases=[aws.us_east_1]) + 1 CloudWatch dashboard hera-prod with 5 panels (active sessions, latency p50/p95, error rate via metric_query arithmetic, Bedrock invocations+tokens, billing widget cross-region from us-east-1) + 2 operational alarms in ap-northeast-1 (hera-error-rate-prod 5%/5min, hera-latency-p95-prod 5000ms/5min) + 1 billing alarm hera-billing-prod in us-east-1 via second provider alias (D-29 $5/day cap, alarm_actions=[] per D-35, treat_missing_data=missing). Live terraform apply with -var=agentcore_runtime_arn=$(jq -r .[\"hera-agentcore\"].AgentCoreRuntimeArn dist/cdk-outputs.json) preserved presigner Lambda's AGENTCORE_RUNTIME_ARN env var (D-25 4-step lifecycle honored — option A chosen over B which would have broken voice loop). 2 benign in-place changes accepted (CloudFront TLSv1 -> TLSv1.2_2021, S3 bucket policy jsonencode reorder). Zero new IAM. RUNBOOK Phase 4 observability walkthrough section + OBS-04 (D-36 no per-IP rate limit; AgentCore concurrency cap=2 is the gate) + OBS-05 (D-35 manual-stop fallback; no SNS hook) trade-offs documented. 7 atomic commits (488b36f, d448a88, cbb3121, 9b12a29, cced9a1, e1c13dd, 8421fe4). Cost ~$0/mo (free tier covers 1 dashboard + 10 alarms).
 
@@ -25,6 +43,7 @@ Plan 03-03 (prior wave): 2 files / 2 commits + live ECR push. bin/push-image.sh 
 Plan 03-02 (prior wave): 5 files / 3 commits. Apple-Store light widget polish satisfies WID-01..06 + DEM-03 with 5 record-button state classes + 30s heartbeat + AGENTCORE_WSS_URL placeholder (Plan 03-04 Rule-4 deviation later swapped this for __PRESIGN_URL__).
 
 Plan 03-01 (Wave 1): TF infra applied live, 12 AWS resources in account 851725411875/ap-northeast-1. D-22 closed. Live outputs:
+
   - agentcore_exec_role_arn = arn:aws:iam::851725411875:role/hera-agentcore-exec-prod
   - agentcore_log_group_name = /aws/bedrock-agentcore/hera-agent
   - ecr_repo_url = 851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent
@@ -36,17 +55,19 @@ Wave 3 (Phase 3): 03-04 (CDK AgentCore stack + Rule-4 widget_presigner Lambda + 
 Wave 4 (Phase 3): 03-05 (agent credential bridge for AgentCore IMDSv2) — COMPLETE credential scope; protocol-bridge gap surfaced and handed off to Phase 4.
 Wave 1 (Phase 4): 04-01 (protocol bridge — POST /invocations stub) — COMPLETE; closes Phase 3 SC#2.
 Wave 2 (Phase 4): 04-02 (observability module + 1 dashboard + 3 alarms cross-region) + 04-03 (cleanup-verify.sh + RUNBOOK cleanup section) — COMPLETE; sequential due to RUNBOOK.md overlap.
-Status: Phase 4 — 3/3 plans complete; verifier 5/5 SC verified (status=human_needed for 5 design-time deferrals captured in 04-HUMAN-UAT.md, none blocking); code review clean. Phase 5 (Workshop Documentation vi/en) is next.
-Last activity: 2026-05-06 — Phase 4 closed in this invocation. Plan 04-01: 4 commits (route stub + live ECR push + cdk redeploy + smoke probe + RUNBOOK/ROADMAP edits + SUMMARY). Plan 04-02: 7 commits (4-file module + dashboard/op alarms/billing alarm + prod-root wiring + live terraform apply with -var=agentcore_runtime_arn + RUNBOOK + SUMMARY). Plan 04-03: 4 commits (script skeleton + 19 checks + RUNBOOK cleanup section + SUMMARY). Phase-level: 04-VERIFICATION.md + REQUIREMENTS.md hygiene fix + 04-HUMAN-UAT.md + 04-REVIEW.md (code review clean) + ROADMAP/STATE updates.
+Wave 1 (Phase 5): 05-01 (DOC-12 parity gate + config.toml + Phần 1 Introduction) — COMPLETE 2026-05-07.
+Status: Executing Phase 05 (wave 1 done; 05-02 next)
+Last activity: 2026-05-07 -- Plan 05-01 complete (DOC-01 + DOC-12 shipped)
 
-Progress: [████████████████████████████████████░░░░░░] 88%
+Progress: [█████████████████████████████████████░░░░░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+
+- Total plans completed: 15
 - Average duration: ~28 min
-- Total execution time: ~7.3 hours
+- Total execution time: ~7.5 hours
 
 **By Phase:**
 
@@ -56,9 +77,10 @@ Progress: [███████████████████████
 | 2. Pipecat Voice Agent (Local) | 3/3 | ~90 min | ~30 min |
 | 3. AgentCore Deploy + Web Widget + Public Demo URL | 5/5 | ~195 min | ~39 min |
 | 4. Observability, Cost Control, Cleanup | 3/3 | ~85 min | ~28 min |
-| 5. Workshop Documentation (vi/en) | 0/4 | Plans drafted (Wave 1-4) — pending execute | — |
+| 5. Workshop Documentation (vi/en) | 1/4 | Wave 1 done (05-01); 05-02..05-04 pending | — |
 
 **Recent Trend:**
+
 - Last 14 plans: 01-02 (~14 min), 01-03 (~50 min), 02-01 (~5 min), 02-03 (~7 min), 02-02 (~78 min), 03-01 (~50 min), 03-02 (~22 min), 03-03 (~28 min), 03-04 (~70 min), 03-05 (~25 min), 04-01 (~50 min, route stub + live ECR push + cdk redeploy + smoke probe — closed Phase 3 SC#2), 04-02 (~22 min, observability module + 1 dashboard + 3 alarms cross-region + benign drift accept), 04-03 (~16 min, autonomous bash + RUNBOOK), phase-close housekeeping ~10 min (REQUIREMENTS hygiene + HUMAN-UAT + VERIFICATION + REVIEW + ROADMAP/STATE).
 - Trend: Phase 4 ran clean. Plan 04-01 closed Phase 3 SC#2 in one wave. Plan 04-02's terraform plan surfaced D-25 4-step lifecycle drift (presigner ARN var) which would have broken voice loop if applied as-is — the executor caught it and surfaced 3 options; user chose option A (re-plan with -var=agentcore_runtime_arn) preserving voice loop. Plan 04-03's A5 [needs-verification] resolution caught a Rule-1 deviation (KB role name `hera-kb-service-role` not `-prod`) before the script could ship a wrong check. Pattern: every Phase 4 plan surfaced exactly one drift / deviation that the discipline (terraform plan inspection + [needs-verification] gates) caught before live-state corruption.
 
