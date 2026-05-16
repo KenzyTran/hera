@@ -175,10 +175,16 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 | DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plans 05-01..05-03, 2026-05-07; all 8 D-51 pitfall callouts placed) |
 | DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending (operator PNG capture sweep deferred — chapter markdown image refs in place) |
 | DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
+| TWIL-01 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
+| TWIL-02 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
+| TWIL-03 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
+| TWIL-04 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
+| TWIL-DOC | Phase 7 — Twilio Workshop Chapter | Pending |
 
 **Coverage:**
 - v1 requirements: **46** total — KB:6, AGT:8, DEP:6, WID:6, OBS:5, DEM:3, DOC:12
-- Mapped to phases: **46/46** ✓
+- v2.0 requirements: **5** total — TWIL:4 + TWIL-DOC:1
+- Mapped to phases: **51/51** ✓ (v1 46/46 + v2.0 5/5)
 - Unmapped: **0** ✓
 
 **Per-phase totals:**
@@ -187,7 +193,9 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 - Phase 3 (AgentCore + Widget + Demo): 15 requirements (DEP-01..06, WID-01..06, DEM-01..03)
 - Phase 4 (Observability + Cleanup): 5 requirements (OBS-01..05)
 - Phase 5 (Workshop docs): 12 requirements (DOC-01..12)
-- Total: **46** ✓
+- Phase 6 (Twilio Bridge + Phone Number + Cleanup): 4 requirements (TWIL-01..04)
+- Phase 7 (Twilio Workshop Chapter): 1 requirement (TWIL-DOC)
+- Total: **51** ✓ (v1 46 + v2.0 5)
 
 ---
 *Requirements defined: 2026-05-04*
