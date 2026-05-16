@@ -208,7 +208,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 Phase numbering continues from v1.0 (last v1 phase = 5). Integer phases follow.
 
 - [~] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - PARTIAL (2026-05-16). 3 file-side plans (06-01 TF module + 06-02 container source + 06-03 scripts/RUNBOOK) complete + offline tests pass (TWIL-01 verified). Plan 06-04 live deploy surfaced D-56 architectural defect: App Runner edge rejects inbound WebSocket upgrades. App Runner service torn down post-finding; ECR + IAM + log group + ASC retained ($0/mo). TWIL-02..04 deferred — superseded by Phase 6.1 (drop Twilio entirely, pivot to Amazon Connect).
-- [~] **Phase 6.1: Native AWS Voice Channel — Amazon Connect** - PARTIAL (2026-05-16). Supersedes Phase 6 by dropping Twilio entirely and routing PSTN through Amazon Connect (native AWS) into the existing AgentCore Runtime. 16 resources live; 4/6 requirements [x] (AWS-NAT-02/03/04/06); AWS-NAT-01 PARTIAL (instance live, phone DEFERRED for AWS Support ticket — new-account claim eligibility blocker); AWS-NAT-05 DEFERRED (gated on AWS-NAT-01 unblock). v2.0 milestone awaits phone unblock for full closure.
+- [~] **Phase 6.1: Native AWS Voice Channel — Amazon Connect** - DROPPED (2026-05-16). User decision after live deploy + Lex test: keep only v1 Nova 2 Sonic web widget (newer foundation-model speech-to-speech tech); drop Phase 6.1 Connect/Lex/Lambda/Polly stack (older IVR-style multi-component pipeline) + phone number was blocked at AWS new-account eligibility level. Live AWS torn down via `terraform destroy -target=module.aws_voice_channel`. Module dir + root TF references removed. AWS-NAT-01..05 DROPPED; AWS-NAT-06 (Twilio Phase 6 leftover cleanup) survives as [x] Complete from Plan 06.1-01. v2.0 milestone effectively cancelled.
 - [ ] **Phase 7: Twilio Workshop Chapter** - SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter). Original Twilio chapter dropped along with Phase 6.
 
 ## Phase Details (v2.0)
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. SUPERSEDED by Phase 6.1. | 2026-05-16 (partial) |
-| 6.1. Native AWS Voice Channel — Amazon Connect | 3/3 (Plan 03 PARTIAL) | PARTIAL — AWS-NAT-02/03/04/06 [x] live-verified; AWS-NAT-01 PARTIAL (Connect instance live, phone number DEFERRED for AWS Support ticket — new-account eligibility blocker on Toll-free + DID claims); AWS-NAT-05 DEFERRED (gated on AWS-NAT-01 phone unblock). v2.0 milestone awaits phone unblock + CCP smoke for full closure. | 2026-05-16 (partial) |
+| 6.1. Native AWS Voice Channel — Amazon Connect | DROPPED | DROPPED 2026-05-16 — user kept v1 Nova Sonic web widget (newer tech, better UX); Phase 6.1 Connect+Lex+Lambda+Polly stack destroyed live; module + root TF refs removed. AWS-NAT-01..05 DROPPED. AWS-NAT-06 (Twilio Phase 6 cleanup) survives [x]. | 2026-05-16 (dropped) |
 | 7. Twilio Workshop Chapter | 0/? | SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter, not yet inserted) | - |
 
 ## Notes on Phase Shape (v2.0)

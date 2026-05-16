@@ -50,3 +50,16 @@ infra/modules/twilio_bridge/__pycache__/
 infra/modules/twilio_bridge/**/__pycache__/
 infra/modules/twilio_bridge/.pytest_cache/
 infra/modules/twilio_bridge/.ruff_cache/
+
+# Python build artifacts
+__pycache__/
+*.pyc
+
+# Local Claude Code config
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+.mcp.json
+
+# Terraform plan files
+*.tfplan
+
