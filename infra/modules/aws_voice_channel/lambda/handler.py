@@ -35,11 +35,13 @@ def _retrieve(query: str) -> str:
 
 
 def _format_answer(query: str, kb_text: str) -> str:
-    """One-sentence answer containing the product noun + stock status word.
+    """Answer combining KB content excerpt + stock status word.
 
     Catalog markdown uses 'Stock: In stock' / 'Stock: Out of stock'. We grep
     for the keywords case-insensitively; default to 'available' when the
-    document is found but no stock keyword is present.
+    document is found but no stock keyword is present. The excerpt is the
+    first sentence-like fragment of the KB chunk (stripped of markdown
+    headers + bullet syntax) so callers hear product info, not just status.
     """
     lowered = kb_text.lower()
     if "in stock" in lowered:
@@ -48,7 +50,16 @@ def _format_answer(query: str, kb_text: str) -> str:
         status = "out of stock"
     else:
         status = "available"
-    return f"Yes, {query} is {status}."
+
+    cleaned = " ".join(
+        line.lstrip("#-* \t")
+        for line in kb_text.splitlines()
+        if line.strip()
+    )
+    excerpt = cleaned[:240].rsplit(". ", 1)[0]
+    if not excerpt.endswith("."):
+        excerpt = excerpt + "."
+    return f"{excerpt} It is {status}."
 
 
 def lambda_handler(event, context):
