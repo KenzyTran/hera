@@ -76,13 +76,26 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 
 ## v2 Requirements
 
-### Twilio Voice Channel (CURRENT MILESTONE — v2.0)
+### Native AWS Voice Channel — Amazon Connect (CURRENT MILESTONE — v2.0, pivot 2026-05-16)
 
-- [ ] **TWIL-01**: Two-way audio resample bridge — μ-law 8kHz inbound từ Twilio → Int16 16kHz đến Sonic; Int16 16kHz từ Sonic → μ-law 8kHz về Twilio (cả hai chiều)
-- [ ] **TWIL-02**: Twilio Media Streams bridge endpoint — handle event `start`/`media`/`stop` từ Twilio WebSocket; forward audio đến AgentCore Runtime; deploy ở Lambda hoặc mở rộng presigner Lambda hiện có
-- [ ] **TWIL-03**: Twilio phone number provisioned + TwiML `<Connect><Stream>` pointing đến bridge endpoint; số điện thoại có thể dùng được khi gọi vào
-- [ ] **TWIL-04**: Phone-channel cleanup contract — release TwiML config + release số điện thoại Twilio (về $0 hold) + bridge teardown; có script verify như `bin/cleanup-verify.sh` của v1
-- [ ] **TWIL-DOC**: Chương workshop mới "Phone channel via Twilio" song ngữ — `content/{vi,en}/3-hands-on/3.6-twilio-channel/_index.md`. Cover: Twilio account setup → phone number purchase → TwiML config → bridge deploy + smoke test → cleanup. Respects D-49 byte-parity + D-50 file-count parity (vi=12, en=12)
+Phase 6 PARTIAL (D-56 — App Runner inbound-WS architectural defect) caused a hard pivot away from Twilio to a pure-AWS PSTN ingress. The TWIL-01..04 + TWIL-DOC block below is preserved as SUPERSEDED; AWS-NAT-01..06 replace it for v2.0 closure. Phase 7.1 (workshop chapter) will introduce AWS-NAT-DOC when scheduled.
+
+- [ ] **AWS-NAT-01**: Amazon Connect instance `hera-voice-prod` in `us-east-1` with 1 claimed US DID phone number, configured by Terraform. Acceptance: `aws connect list-instances --region us-east-1` returns 1 instance + `aws connect list-phone-numbers-v2 --target-arn <instance-arn>` returns ≥ 1 US DID.
+- [ ] **AWS-NAT-02**: Lex V2 bot `hera-product-lookup-prod` (us-east-1) wired to an `AMAZON.FallbackIntent` that always invokes the Lookup Lambda, capturing the caller's spoken transcript via `event.inputTranscript` (D-68). Acceptance: `aws lexv2-models list-bots --region us-east-1` returns the bot; intent has Lambda fulfillment configured.
+- [ ] **AWS-NAT-03**: Lookup Lambda `hera-voice-lookup-prod` (Python, us-east-1) calls Bedrock KB `Retrieve` cross-region (us-east-1 → ap-northeast-1) against `BKXE19AH89` and returns a one-sentence answer in the Lex V2 fulfillment response shape. Acceptance: synthetic invoke with slot text "iPhone 13 Pro Max in stock?" returns a payload containing "iPhone 13 Pro Max" + one of {"in stock", "available", "out of stock", "stock"}.
+- [ ] **AWS-NAT-04**: Connect Contact Flow `hera-voice-flow-prod` greets the caller (Polly Neural Joanna en-US), transfers to the Lex bot, and reads back `$.External.message` from the Lex Lambda response (D-69 ~6-block shape: Set Voice → Play Prompt greeting → Get Customer Input → Play Prompt response → Disconnect, plus single-attempt error branch). Acceptance: `aws connect describe-contact-flow` returns `Status=PUBLISHED` and the flow ARN is attached to the claimed DID.
+- [ ] **AWS-NAT-05**: CCP browser-softphone smoke verification — operator opens the Connect CCP, dials the US DID, asks "Do you have iPhone 13 Pro Max in stock?" via mic, and hears a Polly response containing both "iPhone 13 Pro Max" and a stock-status word within 5 seconds of end-of-question. Acceptance: PASS self-reported in `06.1-HUMAN-UAT.md`; FAIL paths for >5s latency or wrong answer trigger gap closure.
+- [ ] **AWS-NAT-06**: Phase 6 leftover cleanup absorbed into Phase 6.1 — `terraform destroy -target=module.twilio_bridge` + Secrets Manager `force-delete-without-recovery` for `hera/twilio/auth-token` + `infra/envs/prod/main.tf` removes the `module "twilio_bridge"` block + `git mv infra/modules/twilio_bridge/ infra/archive/twilio_bridge_phase6_partial/` with a new README explaining D-56 (D-71). Acceptance: `aws apprunner list-services`, `aws ecr describe-repositories --repository-names hera-twilio-bridge`, `aws iam get-role --role-name hera-twilio-bridge-{instance,access}-prod`, `aws logs describe-log-groups --log-group-name-prefix /aws/apprunner/hera-twilio-bridge-prod`, and `aws secretsmanager describe-secret --secret-id hera/twilio/auth-token` all return Resource-Not-Found / count=0.
+
+### Twilio Voice Channel (SUPERSEDED 2026-05-16 — preserved for history; Phase 6 PARTIAL)
+
+Original v2.0 path. Dropped per D-56 finding (AWS App Runner edge rejects all inbound WebSocket upgrades regardless of path/headers — bridge code correct, compute target defective) and 2026-05-16 user decision to pivot to native AWS (Amazon Connect). AWS-NAT-01..06 replace these requirements; the partial Phase 6 IaC + bridge container source are archived under `infra/archive/twilio_bridge_phase6_partial/` via Phase 6.1's first task.
+
+- [~] **TWIL-01**: Two-way audio resample bridge — μ-law 8kHz inbound từ Twilio → Int16 16kHz đến Sonic; Int16 16kHz từ Sonic → μ-law 8kHz về Twilio (cả hai chiều). SUPERSEDED — offline tests passed; live verification dropped.
+- [~] **TWIL-02**: Twilio Media Streams bridge endpoint — handle event `start`/`media`/`stop` từ Twilio WebSocket; forward audio đến AgentCore Runtime; deploy ở Lambda hoặc mở rộng presigner Lambda hiện có. SUPERSEDED — handler code archived; D-56 blocks live verification.
+- [~] **TWIL-03**: Twilio phone number provisioned + TwiML `<Connect><Stream>` pointing đến bridge endpoint; số điện thoại có thể dùng được khi gọi vào. SUPERSEDED — replaced by AWS-NAT-01 (Connect US DID).
+- [~] **TWIL-04**: Phone-channel cleanup contract — release TwiML config + release số điện thoại Twilio (về $0 hold) + bridge teardown; có script verify như `bin/cleanup-verify.sh` của v1. SUPERSEDED — Phase 6 file-side script `bin/cleanup-verify-twilio.sh` retained for archive reference; live cleanup absorbed into AWS-NAT-06 (Phase 6 leftover teardown).
+- [~] **TWIL-DOC**: Chương workshop mới "Phone channel via Twilio" song ngữ — `content/{vi,en}/3-hands-on/3.6-twilio-channel/_index.md`. Cover: Twilio account setup → phone number purchase → TwiML config → bridge deploy + smoke test → cleanup. Respects D-49 byte-parity + D-50 file-count parity (vi=12, en=12). SUPERSEDED — replaced by AWS-NAT-DOC (Phase 7.1 Amazon Connect workshop chapter, not yet inserted).
 
 ### Future (deferred, không trong v2.0 roadmap)
 
@@ -175,27 +188,38 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 | DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plans 05-01..05-03, 2026-05-07; all 8 D-51 pitfall callouts placed) |
 | DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending (operator PNG capture sweep deferred — chapter markdown image refs in place) |
 | DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
-| TWIL-01 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Complete (Plan 06-02, 2026-05-16; verified offline via tests/test_resample.py — mu-law<->Int16 round-trip + ratecv state threading; live verification deferred to next compute target) |
-| TWIL-02 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending (handler code correct + offline tests pass; live verify blocked by D-56 architectural defect — App Runner edge rejects all inbound WebSocket upgrades; needs re-plan to ECS Fargate / EC2 / NLB compute target) |
-| TWIL-03 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending (deferred — no Twilio account in this iteration; RUNBOOK Phase 6 paste-blocks ready for learner) |
-| TWIL-04 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Partial (Plan 06-03 file-side artifacts complete: bin/cleanup-verify-twilio.sh + RUNBOOK quy trinh; live cleanup verify deferred until TWIL-02/03 close) |
-| TWIL-DOC | Phase 7 — Twilio Workshop Chapter | Pending |
+| TWIL-01 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | SUPERSEDED (Plan 06-02 offline tests passed; live verification dropped per 2026-05-16 pivot to AWS-NAT-*) |
+| TWIL-02 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | SUPERSEDED (handler code archived under `infra/archive/twilio_bridge_phase6_partial/` per D-71; D-56 blocked live verify; replaced by AWS-NAT-02..04) |
+| TWIL-03 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | SUPERSEDED (replaced by AWS-NAT-01 — Connect US DID) |
+| TWIL-04 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | SUPERSEDED (Phase 6 file-side artifacts retained for archive reference; live cleanup absorbed into AWS-NAT-06) |
+| TWIL-DOC | Phase 7 — Twilio Workshop Chapter | SUPERSEDED (replaced by AWS-NAT-DOC in Phase 7.1, not yet inserted) |
+| AWS-NAT-01 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
+| AWS-NAT-02 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
+| AWS-NAT-03 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
+| AWS-NAT-04 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
+| AWS-NAT-05 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
+| AWS-NAT-06 | Phase 6.1 — Native AWS Voice Channel — Amazon Connect | Pending |
 
 **Coverage:**
 - v1 requirements: **46** total — KB:6, AGT:8, DEP:6, WID:6, OBS:5, DEM:3, DOC:12
-- v2.0 requirements: **5** total — TWIL:4 + TWIL-DOC:1
-- Mapped to phases: **51/51** ✓ (v1 46/46 + v2.0 5/5)
+- v2.0 requirements (active): **6** total — AWS-NAT:6 (TWIL-01..04 + TWIL-DOC superseded 2026-05-16)
+- v2.0 requirements (superseded, historical): **5** total — TWIL:4 + TWIL-DOC:1
+- Mapped to phases: **52/52** ✓ (v1 46/46 + v2.0 active 6/6)
 - Unmapped: **0** ✓
 
-**Per-phase totals:**
+**Per-phase totals (active):**
 - Phase 1 (KB Foundation): 6 requirements (KB-01..06)
 - Phase 2 (Voice Agent local): 8 requirements (AGT-01..08)
 - Phase 3 (AgentCore + Widget + Demo): 15 requirements (DEP-01..06, WID-01..06, DEM-01..03)
 - Phase 4 (Observability + Cleanup): 5 requirements (OBS-01..05)
 - Phase 5 (Workshop docs): 12 requirements (DOC-01..12)
-- Phase 6 (Twilio Bridge + Phone Number + Cleanup): 4 requirements (TWIL-01..04)
-- Phase 7 (Twilio Workshop Chapter): 1 requirement (TWIL-DOC)
-- Total: **51** ✓ (v1 46 + v2.0 5)
+- Phase 6.1 (Native AWS Voice Channel — Amazon Connect): 6 requirements (AWS-NAT-01..06)
+- Active total: **52** ✓ (v1 46 + v2.0 active 6)
+
+**Per-phase totals (superseded, historical):**
+- Phase 6 (Twilio Bridge + Phone Number + Cleanup): 4 requirements (TWIL-01..04) — SUPERSEDED by AWS-NAT-01..06
+- Phase 7 (Twilio Workshop Chapter): 1 requirement (TWIL-DOC) — SUPERSEDED by AWS-NAT-DOC (Phase 7.1, not yet inserted)
+- Historical total: **5**
 
 ---
 *Requirements defined: 2026-05-04*

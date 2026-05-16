@@ -241,6 +241,21 @@ Plans:
 - [ ] 06-03-PLAN.md — push script + cleanup-verify-twilio.sh + RUNBOOK Phase 6 paste-blocks (Wave 2, depends on 06-01 + 06-02; autonomous).
 - [ ] 06-04-PLAN.md — LIVE deploy + dial-in smoke + REQ flips (Wave 3, depends on 06-03; 2 operator checkpoints).
 
+### Phase 6.1: Native AWS Voice Channel — Amazon Connect
+**Goal**: A caller dialing the Hera Amazon Connect US DID (or hitting it via the CCP browser softphone) hears a Polly Neural Joanna TTS response containing live Bedrock Knowledge Base data (KB `BKXE19AH89` in ap-northeast-1) within 5 seconds of finishing the question "Do you have iPhone 13 Pro Max in stock?" — proving a fully AWS-native voice channel works end-to-end on Phase 1's existing KB without any third-party (Twilio) dependency, while Phase 6's leftover AWS resources are torn down and the partial Twilio bridge module is archived for historical reference.
+**Depends on**: Phase 1 (KB `BKXE19AH89`), Phase 2 (`hera-kb-retrieve-prod` consumer policy via D-22), Phase 3 (`widget_presigner` Lambda packaging pattern), Phase 4 (cleanup-verify + 24h Cost Explorer paste-line pattern), Phase 6 PARTIAL (D-56 finding + Twilio-bridge leftover resources to be cleaned up)
+**Requirements**: AWS-NAT-01, AWS-NAT-02, AWS-NAT-03, AWS-NAT-04, AWS-NAT-05, AWS-NAT-06
+**Success Criteria** (what must be TRUE):
+  1. `aws connect list-instances --region us-east-1` returns 1 instance `hera-voice-prod`, and at least 1 US DID is claimed and attached to a published Contact Flow (AWS-NAT-01 + AWS-NAT-04).
+  2. `aws lexv2-models list-bots --region us-east-1` returns 1 bot `hera-product-lookup-prod` with 1 intent (`AMAZON.FallbackIntent`) that has Lambda fulfillment configured against `hera-voice-lookup-prod` (AWS-NAT-02).
+  3. The Lookup Lambda invoked with a synthetic Lex event (slot text = "iPhone 13 Pro Max in stock?") returns a JSON payload containing both "iPhone 13 Pro Max" AND one of {"in stock", "available", "out of stock", "stock"} via a cross-region `bedrock-agent-runtime:Retrieve` call against `BKXE19AH89` in ap-northeast-1 (AWS-NAT-03).
+  4. Operator CCP smoke test (browser softphone) self-reports PASS in `06.1-HUMAN-UAT.md`: dialed US DID, asked "Do you have iPhone 13 Pro Max in stock?", heard Polly Neural Joanna response containing both "iPhone 13 Pro Max" and a stock-status word within 5 seconds of end-of-question (AWS-NAT-05).
+  5. All 5 Phase 6 Twilio-bridge AWS resources are gone (App Runner service already torn down; ECR `hera-twilio-bridge`, IAM `hera-twilio-bridge-{instance,access}-prod`, log group `/aws/apprunner/hera-twilio-bridge-prod`, ASC `hera-twilio-bridge-asc-prod`, Secrets Manager secret `hera/twilio/auth-token` deleted), and `infra/modules/twilio_bridge/` is moved under `infra/archive/twilio_bridge_phase6_partial/` with a README explaining D-56 (AWS-NAT-06).
+  6. v1 system bit-identical after deploy: `git diff master..HEAD -- agent/ cdk/ infra/modules/{knowledge_base,kb_consumer_policy,agentcore_iam,ecr,widget_hosting,widget_presigner,observability}/ frontend/ bin/cleanup-verify.sh bin/push-image.sh` returns empty diff (D-64 carry-forward).
+  7. Demo budget honored: Connect free tier (10,000 min/yr US/CA inbound voice) + 1 US DID (~$1/mo) + Polly Neural (≪$0.01/test call) + KB Retrieve (~$0.0004/query); no new CloudWatch alarms; existing `hera-billing-prod` $5/day alarm continues to gate Bedrock spend.
+**Plans**: TBD (planner picks slicing; suggested shape per CONTEXT.md is 3 plans / 3 waves — cleanup-first → module + Lambda handler → live apply + CCP smoke + REQ flips).
+**Supersedes**: Phase 6 PARTIAL (TWIL-01..04 deferred indefinitely; v2.0 pivots to native AWS path per 2026-05-16 user decision).
+
 ### Phase 7: Twilio Workshop Chapter
 **Goal**: A Cloud Clubs learner who has already finished v1 chapters 1-5 lands on a new bilingual chapter `3.6 Phone channel via Twilio`, follows it end-to-end in either Vietnamese or English, and ends up with their own phone number that calls into their own AgentCore Runtime — using the same vi/en parity discipline (D-49 byte-parity for content commits, D-50 file-count parity verified by `bin/check-i18n-parity.sh`) the v1 workshop already enforces.
 **Depends on**: Phase 6
@@ -257,8 +272,9 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. | 2026-05-16 (partial) |
-| 7. Twilio Workshop Chapter | 0/? | Not started | - |
+| 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. SUPERSEDED by Phase 6.1. | 2026-05-16 (partial) |
+| 6.1. Native AWS Voice Channel — Amazon Connect | 0/? | Not started — SPEC + CONTEXT locked (D-68..D-71); planning next | - |
+| 7. Twilio Workshop Chapter | 0/? | SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter, not yet inserted) | - |
 
 ## Notes on Phase Shape (v2.0)
 
