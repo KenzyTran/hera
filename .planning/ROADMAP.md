@@ -259,14 +259,14 @@ Plans:
 - [ ] 06.1-01-PLAN.md — Phase 6 leftover teardown (terraform destroy -target=module.twilio_bridge + Secrets Manager delete-secret) + strip module/variables/outputs blocks from infra/envs/prod + git mv infra/modules/twilio_bridge/ to infra/archive/twilio_bridge_phase6_partial/ + write D-71 README. Covers AWS-NAT-06.
 
 **Wave 2** *(autonomous=true — pure file-side; depends on 06.1-01 freeing the prod root)*
-- [ ] 06.1-02-PLAN.md — New module infra/modules/aws_voice_channel/ (Connect instance + DID + Lex V2 6-resource layout per D-68 addendum + Lookup Lambda + Contact Flow + IAM) + Lambda handler.py + Contact Flow JSON template + root wiring (module block + 5 outputs + awscc 1.84 provider pin per D-68 addendum). Zero live AWS work. Covers AWS-NAT-01..04 file-side.
+- [x] 06.1-02-PLAN.md — New module infra/modules/aws_voice_channel/ (Connect instance + DID + Lex V2 6-resource layout per D-68 addendum + Lookup Lambda + Contact Flow + IAM) + Lambda handler.py + Contact Flow JSON template + root wiring (module block + 5 outputs + awscc 1.84 provider pin per D-68 addendum). Zero live AWS work. Covers AWS-NAT-01..04 file-side. *(completed 2026-05-16; 5 atomic commits e3330b0/034b7a6/b1235b2/7ca877a/eac6c00; 10 module files / 16 resources file-side; terraform validate Success! / fmt -check clean / plan '16 to add, 2 to change, 0 to destroy'; D-64 audit empty; hashicorp/awscc v1.84.0 locked; 2 auto-fixed deviations Rule 1 cycle break + Rule 3 .gitignore)*
 
 **Wave 3** *(autonomous=false — live deploy + operator CCP smoke; depends on 06.1-02)*
 - [ ] 06.1-03-PLAN.md — Live terraform apply + AWS-NAT-01..04 CLI smoke + RUNBOOK Phase 6.1 paste-flow + 06.1-HUMAN-UAT.md operator template + CCP browser-softphone smoke (AWS-NAT-05) + REQUIREMENTS/ROADMAP/STATE flips + D-64 final audit + cleanup re-verify. Covers AWS-NAT-01..06 end-to-end live closure.
 
 Plans:
-- [ ] 06.1-01-PLAN.md — Phase 6 leftover teardown + archive (Wave 1, operator-staged).
-- [ ] 06.1-02-PLAN.md — aws_voice_channel module + Lambda handler + root wiring (Wave 2, autonomous, depends on 06.1-01).
+- [x] 06.1-01-PLAN.md — Phase 6 leftover teardown + archive (Wave 1, operator-staged). *(complete 2026-05-16; 3 commits 73150a0/ced9838/69a444d; AWS-NAT-06 half closed)*
+- [x] 06.1-02-PLAN.md — aws_voice_channel module + Lambda handler + root wiring (Wave 2, autonomous, depends on 06.1-01). *(complete 2026-05-16; 5 commits + 1 SUMMARY; AWS-NAT-01..04 file-side complete)*
 - [ ] 06.1-03-PLAN.md — Live apply + CCP smoke + REQ flips (Wave 3, depends on 06.1-02; 3 operator checkpoints).
 **Supersedes**: Phase 6 PARTIAL (TWIL-01..04 deferred indefinitely; v2.0 pivots to native AWS path per 2026-05-16 user decision).
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. SUPERSEDED by Phase 6.1. | 2026-05-16 (partial) |
-| 6.1. Native AWS Voice Channel — Amazon Connect | 0/? | Not started — SPEC + CONTEXT locked (D-68..D-71); planning next | - |
+| 6.1. Native AWS Voice Channel — Amazon Connect | 2/3 | In Progress — Plans 06.1-01 (Phase 6 cleanup + archive) + 06.1-02 (aws_voice_channel module + root wiring; 16 file-side resources; AWS-NAT-01..04 file-side complete) done; Plan 06.1-03 (live apply + CCP smoke + REQ flips) next | - |
 | 7. Twilio Workshop Chapter | 0/? | SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter, not yet inserted) | - |
 
 ## Notes on Phase Shape (v2.0)
