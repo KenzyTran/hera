@@ -2,15 +2,17 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: twilio-voice-channel
-status: ready-to-execute
-last_updated: "2026-05-07T11:00:00.000Z"
-last_activity: 2026-05-07
+status: phase-6-partial-architectural-defect
+last_updated: "2026-05-16T03:55:00.000Z"
+last_activity: 2026-05-16
 progress:
   total_phases: 2
   completed_phases: 0
+  partial_phases: 1
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 3
+  partial_plans: 1
+  percent: 75
 ---
 
 # Project State
@@ -24,10 +26,12 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 ## Current Position
 
-Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — planned (4 plans / 3 waves)
-Plan: 06-01..06-04 (Wave 1: 06-01 + 06-02 file-disjoint parallel; Wave 2: 06-03 file-side artifacts; Wave 3: 06-04 live deploy + 2 operator checkpoints)
-Status: Ready to execute — `/gsd-execute-phase 6`
-Last activity: 2026-05-07 — Phase 6 plans created + verified after 2 plan-checker iterations. Plan-phase surfaced and resolved a structural flaw in original locked decision D-56: API Gateway WebSocket + Lambda cannot hold an upstream Bedrock AgentCore WSS open across phone-call duration (29s integration timeout + Lambda statelessness; no canonical AWS sample exists for this chain). User confirmed switch to AWS App Runner with `min-instances=0` (scale-to-zero, $0/mo idle preserves demo-budget rule). CONTEXT.md D-56..D-67 revised in place; RESEARCH.md Q1 chose Option β; PATTERNS.md mapped 18 files (14/18 with existing analogs); planner produced 4 plans / 3 waves; plan-checker passed iter 3 after fixing 13 issues across 2 revision iterations (loguru→stdlib logging, off-by-one variable count, plan split for task-budget, uv-managed Python 3.13 toolchain, 3 offline unit tests for signature/resample/SigV4-headers, state_lock removal, debug-log dropped frames, git-clean preflight, stopwatch latency protocol, ROADMAP progress count update, PATTERNS.md snippet sync, regex tightening).
+Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — **PARTIAL** (3.5/4 plans). Live deploy surfaced D-56 architectural defect.
+Plan: 06-01..06-03 Complete; 06-04 Partial (live deploy succeeded, WS smoke blocked by App Runner inbound-WS limitation; App Runner service torn down).
+Status: Awaiting compute-target re-pivot ADR (recommended: ECS Fargate + NLB) before resuming TWIL-02..04. Phase 7 (workshop chapter) blocked on Phase 6 close.
+Last activity: 2026-05-16 — Plan 06-04 executed inline (variant B "live deploy + synthetic WS smoke; no Twilio account" per user choice). Wave 1 (06-01 + 06-02) shipped clean via parallel worktrees; Wave 2 (06-03) shipped inline after subagent Write deny; Wave 3 (06-04) live deploy SUCCEEDED at deploy layer (App Runner `hera-twilio-bridge-prod` reached RUNNING; HTTPS /ping 200 OK in 0.69s; multi-arch image `hera-twilio-bridge:9427bf8` pushed to ECR; manifest list `sha256:c8e2c72c...`) but synthetic WS upgrade returned HTTP 403 from App Runner edge envoy regardless of path/headers. Root cause: AWS App Runner does NOT support inbound WebSocket protocol (documented platform limitation). D-56 REVISED's pivot from Lambda+APIGW WS to App Runner missed this constraint — the bridge can never receive Twilio Media Streams WS upgrades on this compute target. Bridge container code itself is correct (10 offline tests pass; resample + signature + SigV4 headers verified). App Runner service torn down to stop ~$2.5/mo provisioned billing; ECR repo + 2 IAM roles + log group + ASC + Secrets Manager secret retained ($0-$0.40/mo) for re-plan reference. 5 commits landed in Wave 3: c6ac618 (TWIL trace rows), e2a0a96 (min_size 0→1 fix), 9427bf8 (lockfile bump), e3c0042 (empty-commit live deploy event), 1c7f22c (test_live_smoke.py). REQUIREMENTS.md flipped: TWIL-01 Complete (offline resample verify), TWIL-02 Pending with D-56 defect note, TWIL-03 Pending (no Twilio account), TWIL-04 Partial (file-side complete; live verify deferred). ROADMAP Phase 6 marked `[~]` (partial).
+
+**Operator action still pending at end of project (USER REMINDER):** to release the remaining Phase 6 + Secrets Manager resources to $0, run `terraform destroy -target=module.twilio_bridge` in `infra/envs/prod` plus `aws secretsmanager delete-secret --secret-id hera/twilio/auth-token --region ap-northeast-1 --force-delete-without-recovery`. v1 system (KB + AgentCore Runtime + widget + dashboard) UNCHANGED throughout Phase 6 (D-64 honored).
 
 ## Performance Metrics
 

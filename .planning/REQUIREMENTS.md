@@ -175,10 +175,10 @@ Mỗi requirement viết cả 2 ngôn ngữ (vi/en) trừ khi ghi rõ.
 | DOC-10 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plans 05-01..05-03, 2026-05-07; all 8 D-51 pitfall callouts placed) |
 | DOC-11 | Phase 5 — Workshop Documentation (vi/en) | Pending (operator PNG capture sweep deferred — chapter markdown image refs in place) |
 | DOC-12 | Phase 5 — Workshop Documentation (vi/en) | Complete (Plan 05-01, 2026-05-07) |
-| TWIL-01 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
-| TWIL-02 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
-| TWIL-03 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
-| TWIL-04 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending |
+| TWIL-01 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Complete (Plan 06-02, 2026-05-16; verified offline via tests/test_resample.py — mu-law<->Int16 round-trip + ratecv state threading; live verification deferred to next compute target) |
+| TWIL-02 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending (handler code correct + offline tests pass; live verify blocked by D-56 architectural defect — App Runner edge rejects all inbound WebSocket upgrades; needs re-plan to ECS Fargate / EC2 / NLB compute target) |
+| TWIL-03 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Pending (deferred — no Twilio account in this iteration; RUNBOOK Phase 6 paste-blocks ready for learner) |
+| TWIL-04 | Phase 6 — Twilio Bridge + Phone Number + Cleanup | Partial (Plan 06-03 file-side artifacts complete: bin/cleanup-verify-twilio.sh + RUNBOOK quy trinh; live cleanup verify deferred until TWIL-02/03 close) |
 | TWIL-DOC | Phase 7 — Twilio Workshop Chapter | Pending |
 
 **Coverage:**

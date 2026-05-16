@@ -207,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 Phase numbering continues from v1.0 (last v1 phase = 5). Integer phases follow.
 
-- [ ] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - Phone call to a Twilio number reaches the existing AgentCore Runtime, Sonic answers, and a cleanup script proves $0 hold (4 reqs in 1 phase)
+- [~] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - PARTIAL (2026-05-16). 3 file-side plans (06-01 TF module + 06-02 container source + 06-03 scripts/RUNBOOK) complete + offline tests pass (TWIL-01 verified). Plan 06-04 live deploy surfaced D-56 architectural defect: App Runner edge rejects inbound WebSocket upgrades. App Runner service torn down post-finding; ECR + IAM + log group + ASC retained ($0/mo). TWIL-02..04 deferred pending compute-target re-plan (ECS Fargate + NLB or EC2 + ALB).
 - [ ] **Phase 7: Twilio Workshop Chapter** - Bilingual vi+en chapter "Phone channel via Twilio" published at `content/{vi,en}/3-hands-on/3.6-twilio-channel/` so a learner can build the phone channel themselves (1 req)
 
 ## Phase Details (v2.0)
@@ -256,7 +256,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Twilio Bridge + Phone Number + Cleanup | 0/4 | Planned (4 plans / 3 waves; awaiting execute-phase) | - |
+| 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. | 2026-05-16 (partial) |
 | 7. Twilio Workshop Chapter | 0/? | Not started | - |
 
 ## Notes on Phase Shape (v2.0)
