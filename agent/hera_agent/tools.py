@@ -50,9 +50,18 @@ def _kb_retrieve(query: str) -> str:
 
 
 async def lookup_product_handler(params: FunctionCallParams) -> None:
-    """Pipecat tool handler. Offloads sync boto3 to a thread (Pitfall F)."""
+    """Pipecat tool handler. Offloads sync boto3 to a thread (Pitfall F).
+
+    Returns dict (not raw string) so Pipecat's _send_tool_result wraps it as
+    `json.dumps({...})` — Nova 2 Sonic does not acknowledge raw-string tool
+    results, causing Sonic to loop calling the same tool repeatedly (~1/s)
+    instead of generating an audio response. Observed live 2026-05-16:
+    Pipecat 1.1.0 + amazon.nova-2-sonic-v1:0 + raw-string return ->
+    6 lookup_product calls in 6 seconds, no answer audio emitted.
+    Wrapping the string into a dict fixes acknowledgment.
+    """
     result = await asyncio.to_thread(_kb_retrieve, params.arguments["query"])
-    await params.result_callback(result)
+    await params.result_callback({"product_info": result})
 
 
 lookup_product_schema = FunctionSchema(
