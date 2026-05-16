@@ -80,25 +80,3 @@ module "observability" {
   cloudfront_distribution_id = module.widget_hosting.cloudfront_distribution_id
   # billing_threshold_usd / error_rate_threshold_pct / latency_p95_threshold_ms / sonic_model_id all use module defaults
 }
-
-# Twilio Media Streams bridge App Runner service (Phase 6 — TWIL-01..04).
-# Long-running Python FastAPI container with min-instances=0 (D-56) that
-# terminates Twilio Media Streams WS, validates X-Twilio-Signature HMAC
-# (D-67), and bridges audio bidirectionally to AgentCore Runtime via the
-# same data-plane the widget already uses (server-side SigV4-signed instead
-# of presigned-URL for browser).
-#
-# agentcore_runtime_arn comes from the same root variable widget_presigner
-# uses; twilio_auth_token_secret_arn comes from a Secrets Manager secret the
-# operator pre-creates (RUNBOOK Phase 6 paste-flow); twilio_bridge_image_tag
-# follows the chicken-and-egg pattern (Plan 06-03 second-pass apply pins the
-# real SHA after bin/push-bridge-image.sh).
-module "twilio_bridge" {
-  source = "../../modules/twilio_bridge"
-
-  region                       = var.region
-  account_id                   = data.aws_caller_identity.current.account_id
-  agentcore_runtime_arn        = var.agentcore_runtime_arn
-  twilio_auth_token_secret_arn = var.twilio_auth_token_secret_arn
-  image_tag                    = var.twilio_bridge_image_tag
-}
