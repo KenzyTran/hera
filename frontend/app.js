@@ -17,9 +17,13 @@
 // against the local Pipecat agent at ws://localhost:8080/ws.
 // Production: PRESIGN_URL points at the Function URL; connect() fetches
 // {url} from it then opens that wss://.
-const PRESIGN_URL = (typeof __PRESIGN_URL__ !== "undefined")
-  ? "__PRESIGN_URL__"
-  : null;
+// sed-replace pattern: bin/build-widget.sh replaces ALL occurrences of the
+// placeholder globally. Source keeps the placeholder INSIDE a string only,
+// so the post-build app.js stays syntactically valid (no bare identifier in
+// typeof). Local dev (no sed) leaves the literal placeholder, the
+// startsWith("http") guard evaluates false, and we fall back to WS_LOCAL_DEV_URL.
+const PRESIGN_URL_RAW = "__PRESIGN_URL__";
+const PRESIGN_URL = PRESIGN_URL_RAW.startsWith("http") ? PRESIGN_URL_RAW : null;
 const WS_LOCAL_DEV_URL = "ws://localhost:8080/ws";
 
 // 30s heartbeat per D-28 agent-timeout trigger event.
