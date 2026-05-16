@@ -207,8 +207,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 Phase numbering continues from v1.0 (last v1 phase = 5). Integer phases follow.
 
-- [~] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - PARTIAL (2026-05-16). 3 file-side plans (06-01 TF module + 06-02 container source + 06-03 scripts/RUNBOOK) complete + offline tests pass (TWIL-01 verified). Plan 06-04 live deploy surfaced D-56 architectural defect: App Runner edge rejects inbound WebSocket upgrades. App Runner service torn down post-finding; ECR + IAM + log group + ASC retained ($0/mo). TWIL-02..04 deferred pending compute-target re-plan (ECS Fargate + NLB or EC2 + ALB).
-- [ ] **Phase 7: Twilio Workshop Chapter** - Bilingual vi+en chapter "Phone channel via Twilio" published at `content/{vi,en}/3-hands-on/3.6-twilio-channel/` so a learner can build the phone channel themselves (1 req)
+- [~] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - PARTIAL (2026-05-16). 3 file-side plans (06-01 TF module + 06-02 container source + 06-03 scripts/RUNBOOK) complete + offline tests pass (TWIL-01 verified). Plan 06-04 live deploy surfaced D-56 architectural defect: App Runner edge rejects inbound WebSocket upgrades. App Runner service torn down post-finding; ECR + IAM + log group + ASC retained ($0/mo). TWIL-02..04 deferred — superseded by Phase 6.1 (drop Twilio entirely, pivot to Amazon Connect).
+- [ ] **Phase 6.1: Native AWS Voice Channel — Amazon Connect** - INSERTED (2026-05-16). Supersedes Phase 6 by dropping Twilio entirely and routing PSTN through Amazon Connect (native AWS) into the existing AgentCore Runtime. Keeps the v1 "everything inside the learner's own AWS account" narrative; no third-party signup. Requirement IDs to be defined in 06.1-SPEC.md.
+- [ ] **Phase 7: Twilio Workshop Chapter** - SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter). Original Twilio chapter dropped along with Phase 6.
 
 ## Phase Details (v2.0)
 
