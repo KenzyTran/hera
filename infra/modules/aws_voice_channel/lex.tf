@@ -44,6 +44,38 @@ resource "aws_lexv2models_intent" "fallback" {
   }
 }
 
+# Lex V2 build requires at least one CUSTOM intent with utterances; built-in
+# FallbackIntent alone makes `aws lexv2-models build-bot-locale` fail with
+# "The locale 'en_US' doesn't have any utterances". This custom intent catches
+# generic product inquiry phrasings; the same Lambda fulfillment runs whether
+# this intent or FallbackIntent matches (handler reads event.inputTranscript,
+# not slot values), so the answer pipeline is identical.
+resource "aws_lexv2models_intent" "product_inquiry" {
+  provider = aws.us_east_1
+
+  bot_id      = aws_lexv2models_bot.product_lookup.id
+  bot_version = aws_lexv2models_bot_locale.en_us.bot_version
+  locale_id   = aws_lexv2models_bot_locale.en_us.locale_id
+  name        = "ProductInquiry"
+
+  sample_utterance {
+    utterance = "do you have it in stock"
+  }
+  sample_utterance {
+    utterance = "is it available"
+  }
+  sample_utterance {
+    utterance = "tell me about a product"
+  }
+  sample_utterance {
+    utterance = "I have a question about a product"
+  }
+
+  fulfillment_code_hook {
+    enabled = true
+  }
+}
+
 # Pitfall 1: Lex builds the locale at version-create time. Intent must exist first.
 # Terraform data-flow doesn't detect this; explicit depends_on required.
 resource "aws_lexv2models_bot_version" "v1" {
@@ -57,7 +89,10 @@ resource "aws_lexv2models_bot_version" "v1" {
     }
   }
 
-  depends_on = [aws_lexv2models_intent.fallback]
+  depends_on = [
+    aws_lexv2models_intent.fallback,
+    aws_lexv2models_intent.product_inquiry,
+  ]
 }
 
 # Pitfall 2: alias references the Lambda ARN at create time. Cross-provider
