@@ -44,12 +44,14 @@ HTTPS_URL_BASE = f"https://{HOST}{WSS_PATH}?qualifier=DEFAULT"
 _session = Session()
 
 
-def _cors_headers() -> dict:
+def _response_headers() -> dict:
+    """CORS headers are injected by aws_lambda_function_url.cors{} block; do
+    NOT set them here (duplicate Access-Control-Allow-Origin breaks browsers
+    with 'multiple values not allowed' per CORS spec). CORS_ALLOW_ORIGIN env
+    var preserved for symmetry but no longer emitted by the handler.
+    """
+    _ = CORS_ALLOW_ORIGIN  # silence unused-import lint; kept for env-var contract
     return {
-        "Access-Control-Allow-Origin": CORS_ALLOW_ORIGIN,
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "300",
         "Cache-Control": "no-store",
         "Content-Type": "application/json",
     }
@@ -76,20 +78,20 @@ def lambda_handler(event, context):
     if method == "OPTIONS":
         return {
             "statusCode": 204,
-            "headers": _cors_headers(),
+            "headers": _response_headers(),
             "body": "",
         }
 
     if method != "GET":
         return {
             "statusCode": 405,
-            "headers": _cors_headers(),
+            "headers": _response_headers(),
             "body": json.dumps({"error": "method not allowed"}),
         }
 
     url = _presign_wss_url()
     return {
         "statusCode": 200,
-        "headers": _cors_headers(),
+        "headers": _response_headers(),
         "body": json.dumps({"url": url}),
     }
