@@ -208,7 +208,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 Phase numbering continues from v1.0 (last v1 phase = 5). Integer phases follow.
 
 - [~] **Phase 6: Twilio Bridge + Phone Number + Cleanup** - PARTIAL (2026-05-16). 3 file-side plans (06-01 TF module + 06-02 container source + 06-03 scripts/RUNBOOK) complete + offline tests pass (TWIL-01 verified). Plan 06-04 live deploy surfaced D-56 architectural defect: App Runner edge rejects inbound WebSocket upgrades. App Runner service torn down post-finding; ECR + IAM + log group + ASC retained ($0/mo). TWIL-02..04 deferred — superseded by Phase 6.1 (drop Twilio entirely, pivot to Amazon Connect).
-- [ ] **Phase 6.1: Native AWS Voice Channel — Amazon Connect** - INSERTED (2026-05-16). Supersedes Phase 6 by dropping Twilio entirely and routing PSTN through Amazon Connect (native AWS) into the existing AgentCore Runtime. Keeps the v1 "everything inside the learner's own AWS account" narrative; no third-party signup. Requirement IDs to be defined in 06.1-SPEC.md.
+- [~] **Phase 6.1: Native AWS Voice Channel — Amazon Connect** - PARTIAL (2026-05-16). Supersedes Phase 6 by dropping Twilio entirely and routing PSTN through Amazon Connect (native AWS) into the existing AgentCore Runtime. 16 resources live; 4/6 requirements [x] (AWS-NAT-02/03/04/06); AWS-NAT-01 PARTIAL (instance live, phone DEFERRED for AWS Support ticket — new-account claim eligibility blocker); AWS-NAT-05 DEFERRED (gated on AWS-NAT-01 unblock). v2.0 milestone awaits phone unblock for full closure.
 - [ ] **Phase 7: Twilio Workshop Chapter** - SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter). Original Twilio chapter dropped along with Phase 6.
 
 ## Phase Details (v2.0)
@@ -267,7 +267,7 @@ Plans:
 Plans:
 - [x] 06.1-01-PLAN.md — Phase 6 leftover teardown + archive (Wave 1, operator-staged). *(complete 2026-05-16; 3 commits 73150a0/ced9838/69a444d; AWS-NAT-06 half closed)*
 - [x] 06.1-02-PLAN.md — aws_voice_channel module + Lambda handler + root wiring (Wave 2, autonomous, depends on 06.1-01). *(complete 2026-05-16; 5 commits + 1 SUMMARY; AWS-NAT-01..04 file-side complete)*
-- [ ] 06.1-03-PLAN.md — Live apply + CCP smoke + REQ flips (Wave 3, depends on 06.1-02; 3 operator checkpoints).
+- [~] 06.1-03-PLAN.md — Live apply + CCP smoke + REQ flips (Wave 3, depends on 06.1-02; 3 operator checkpoints). *(PARTIAL 2026-05-16; 1 feat commit `5bc5f7f` deploy + Contact Flow + RUNBOOK + HUMAN-UAT; live AWS state: Connect instance ACTIVE + Lex bot EP8MNSCULA + Lookup Lambda + Contact Flow bcc2bf50 PUBLISHED; AWS-NAT-02/03/04/06 [x]; AWS-NAT-01 PARTIAL — phone DEFERRED; AWS-NAT-05 DEFERRED — gated on phone unblock; 2 deviation auto-fixes: FallbackIntent terraform import + Contact Flow 3-error schema fix)*
 **Supersedes**: Phase 6 PARTIAL (TWIL-01..04 deferred indefinitely; v2.0 pivots to native AWS path per 2026-05-16 user decision).
 
 ### Phase 7: Twilio Workshop Chapter
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. Twilio Bridge + Phone Number + Cleanup | 3.5/4 | PARTIAL — 06-01/02/03 complete + offline tests verify TWIL-01 resample; 06-04 live deploy surfaced D-56 architectural defect (App Runner edge does not support inbound WS upgrades, blocks Twilio Media Streams ingress). App Runner service destroyed; ECR + IAM + log group + Secrets Manager + ASC retained for re-plan. TWIL-02..04 deferred. SUPERSEDED by Phase 6.1. | 2026-05-16 (partial) |
-| 6.1. Native AWS Voice Channel — Amazon Connect | 2/3 | In Progress — Plans 06.1-01 (Phase 6 cleanup + archive) + 06.1-02 (aws_voice_channel module + root wiring; 16 file-side resources; AWS-NAT-01..04 file-side complete) done; Plan 06.1-03 (live apply + CCP smoke + REQ flips) next | - |
+| 6.1. Native AWS Voice Channel — Amazon Connect | 3/3 (Plan 03 PARTIAL) | PARTIAL — AWS-NAT-02/03/04/06 [x] live-verified; AWS-NAT-01 PARTIAL (Connect instance live, phone number DEFERRED for AWS Support ticket — new-account eligibility blocker on Toll-free + DID claims); AWS-NAT-05 DEFERRED (gated on AWS-NAT-01 phone unblock). v2.0 milestone awaits phone unblock + CCP smoke for full closure. | 2026-05-16 (partial) |
 | 7. Twilio Workshop Chapter | 0/? | SUPERSEDED by Phase 7.1 (Amazon Connect workshop chapter, not yet inserted) | - |
 
 ## Notes on Phase Shape (v2.0)
