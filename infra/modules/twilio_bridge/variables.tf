@@ -62,9 +62,9 @@ variable "max_size" {
 }
 
 variable "min_size" {
-  description = "Min App Runner instance count. LOCKED to 0 per D-56 — scale-to-zero preserves the demo-budget rule ($0/mo idle)."
+  description = "Min App Runner instance count. App Runner ASC requires MinSize >= 1 (D-56 originally claimed 0 but the AWS provider rejects it). Scale-to-zero in App Runner is achieved by automatic scale-down to 0 *active* instances when idle while MinSize >= 1 provisioned instances remain at reduced cost (~$0.007/GB-hour for provisioned-only)."
   type        = number
-  default     = 0
+  default     = 1
 }
 
 variable "log_retention_days" {
