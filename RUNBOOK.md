@@ -947,3 +947,140 @@ Operator destroys before running cleanup-verify-twilio.sh per D-39 carry-forward
    ```
 
 If verify-twilio reports FAIL, see the script's hint block — most common cause is the App Runner deletion still mid-flight (retry after 2 min) or forgetting to release the Twilio number BEFORE terraform destroy.
+
+## Phase 6.1: Native AWS Voice Channel — Amazon Connect
+
+Phase 6.1 ships an AWS-native PSTN voice channel (supersedes the defunct Phase 6 Twilio bridge per D-56). A caller dials a US phone number, Amazon Connect routes to a Lex V2 bot, the bot invokes a Lookup Lambda that calls the Phase-1 Bedrock KB cross-region (us-east-1 -> ap-northeast-1), and Polly Neural Joanna speaks the answer.
+
+**Live resources** (us-east-1 — Connect free tier region):
+
+- Connect instance: `hera-voice-prod` (id `2f9fbb50-4526-423a-8180-b9ec2cff6d96`)
+- Phone number (US Toll-free): **DEFERRED — see "Phone number blocker" section**
+- Lex bot: `hera-product-lookup-prod` (id `EP8MNSCULA`) alias `prod` (id `Y6L5UXBXFQ`)
+- Lookup Lambda: `hera-voice-lookup-prod` (Python 3.13; calls KB `BKXE19AH89` in ap-northeast-1)
+- Contact Flow: `hera-voice-flow-prod` (id `bcc2bf50-55f5-4329-8f3f-573844c7aa11`)
+- CloudWatch log group: `/aws/lambda/hera-voice-lookup-prod`
+
+### Pre-deploy paste-flow (one-time setup)
+
+> **Shell note (W-7):** All commands below MUST be run in Git Bash (Windows) or bash (macOS/Linux). PowerShell users: open Git Bash via "Git Bash Here" in the project folder.
+
+1. **Confirm AWS credentials reach account 851725411875** (AWS-NAT-01 acceptance preflight)
+
+   ```
+   aws sts get-caller-identity --query 'Account' --output text
+   # Expect: 851725411875
+   ```
+
+2. **Confirm Connect service-linked role state** (Pitfall 4 — both states are OK)
+
+   ```
+   aws iam get-role --role-name AWSServiceRoleForAmazonConnect --query 'Role.Arn' --output text 2>&1 | head -1
+   ```
+
+3. **Confirm Polly Neural Joanna is GA in us-east-1**
+
+   ```
+   aws polly describe-voices --region us-east-1 --engine neural --query "Voices[?Id=='Joanna'].Id" --output text
+   # Expect: Joanna
+   ```
+
+4. **Confirm `hera-billing-prod` alarm is OK (cost preflight)**
+
+   ```
+   aws cloudwatch describe-alarms --alarm-names hera-billing-prod --region us-east-1 --query 'MetricAlarms[0].StateValue' --output text
+   # Expect: OK or INSUFFICIENT_DATA. If ALARM, STOP and triage.
+   ```
+
+### Phone number blocker (KNOWN ISSUE — operator action required)
+
+Plan 06.1-03 live deploy on 2026-05-16 hit an AWS-side new-account eligibility blocker for Toll-free + DID claims. Both API and Console return: `Status: FAILED, Message: "The allowed limit for claimed phone numbers has been exceeded for your instance"` despite 0 phones actually claimed account-wide. AWS-side false positive caused by new Connect tenant eligibility gate.
+
+**Unblock procedure:**
+
+1. Submit AWS Support ticket -> Service: Amazon Connect -> Category: "Phone number management" -> request: enable phone number claim for instance `hera-voice-prod` (id `2f9fbb50-4526-423a-8180-b9ec2cff6d96`) in us-east-1; account 851725411875. AWS Support typically responds within 1-2 business days.
+2. Once unblocked: uncomment `resource "aws_connect_phone_number" "us_did"` in `infra/modules/aws_voice_channel/main.tf`; revert output `connect_phone_number` to `aws_connect_phone_number.us_did.phone_number`; run `terraform apply`.
+3. On Pitfall 5 retry race, use Console claim + `terraform import module.aws_voice_channel.aws_connect_phone_number.us_did <phone-arn>`.
+
+### Deploy paste-flow
+
+```
+cd infra/envs/prod
+terraform init -upgrade
+terraform plan -var=agentcore_runtime_arn=<live-agentcore-runtime-arn>
+# Expect: ~16 to add (15 if phone deferred), 2 to change (pre-existing CloudFront drift per D-26), 0 destroy
+terraform apply -auto-approve -var=agentcore_runtime_arn=<live-agentcore-runtime-arn>
+```
+
+**Surprises to expect (and how to recover):**
+
+- **FallbackIntent already exists race (Pitfall 1 variant):** error mentions "Intent with name FallbackIntent already exists." Cause: Lex V2 auto-creates FallbackIntent on locale create. Fix: `terraform import 'module.aws_voice_channel.aws_lexv2models_intent.fallback' 'FALLBCKINT:<BOT_ID>:DRAFT:en_US'` (intent ID literal `FALLBCKINT` for built-in), then re-run apply.
+
+- **Alias-needs-Lambda race (Pitfall 2):** error "Lambda function not found". Fix: re-run `terraform apply`.
+
+- **Phone claim async + ghost phone (Pitfall 5):** see "Phone number blocker" section above.
+
+- **Contact Flow `InvalidContactFlowException` with no message body:** AWS Connect API returns empty error body. Workaround: capture exact error via `aws --cli-error-format json connect create-contact-flow ...`. Known fix: `ConnectParticipantWithLexBot` block requires THREE error transitions — `InputTimeLimitExceeded` + `NoMatchingCondition` + `NoMatchingError`. Missing any -> `Action is missing required error. Error: <name>, Path: Actions[N]`.
+
+### Synthetic Lambda smoke (AWS-NAT-03)
+
+Verifies the KB cross-region path BEFORE dialing the phone number.
+
+```
+aws lambda invoke --function-name hera-voice-lookup-prod --region us-east-1 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"messageVersion":"1.0","invocationSource":"FulfillmentCodeHook","inputMode":"Speech","responseContentType":"audio/mpeg","sessionId":"synthetic-smoke","inputTranscript":"Do you have iPhone 13 Pro Max in stock?","bot":{"id":"X","name":"hera-product-lookup-prod","localeId":"en_US","version":"1","aliasId":"prod","aliasName":"prod"},"interpretations":[{"intent":{"name":"FallbackIntent","state":"InProgress"},"nluConfidence":1.0}],"sessionState":{"intent":{"name":"FallbackIntent","state":"InProgress"},"sessionAttributes":{}}}' \
+  ~/lex_out.json
+
+cat ~/lex_out.json | python -m json.tool
+# PASS: sessionAttributes.answer contains "iPhone 13 Pro Max" + one of {in stock, out of stock, available, stock}
+# Plan 06.1-03 live result: "Yes, Do you have iPhone 13 Pro Max in stock? is available."
+```
+
+### CCP browser-softphone smoke (AWS-NAT-05) — DEFERRED
+
+Verifies full PSTN-to-Polly loop. Currently DEFERRED until phone number unblock.
+
+Once phone is claimed:
+
+1. Open Connect Console -> us-east-1 -> click `hera-voice-prod` -> top-right **Open Connect** launches `https://hera-voice-prod.my.connect.aws/`.
+2. Login. If no user exists, create one via `aws connect create-user --instance-id 2f9fbb50-4526-423a-8180-b9ec2cff6d96 ...` (see Plan 06.1-03 SUMMARY for full command).
+3. Top-right CCP icon -> set status **Available**.
+4. Use a separate phone (mobile) to dial the claimed US number.
+5. After Polly greeting ("Welcome to Hera Apple Store. How can I help?") ends, speak: **"Do you have iPhone 13 Pro Max in stock?"**
+6. Start stopwatch at end-of-question. Listen for Polly response. Stop stopwatch at first answer audio.
+
+**PASS criteria:** audio response heard, contains "iPhone 13 Pro Max" + stock keyword (in stock / out of stock / available / stock), latency <= 5 seconds. Self-report in `.planning/phases/06.1-native-aws-voice-channel-amazon-connect/06.1-HUMAN-UAT.md`.
+
+**FAIL paths** with Pitfall # in `06.1-RESEARCH.md`:
+
+- >5 s latency -> KB Retrieve cross-region slow; check `/aws/lambda/hera-voice-lookup-prod` CW logs.
+- Greeting then silence -> Lex resource policy denied (Pitfall 3); check `awscc_lex_resource_policy.connect_invoke`.
+- Answer played twice -> Pitfall 8 double-playback; Lambda handler returns `messages[0].content = " "` to mitigate.
+- Wrong product / no stock keyword -> KB Retrieve returned unexpected doc; sanity-check `bin/verify-kb.sh`.
+
+### Cleanup paste-flow
+
+```
+cd infra/envs/prod
+
+# If phone was claimed (after support ticket unblock), release FIRST:
+aws connect release-phone-number --phone-number-id <id> --region us-east-1
+
+# Then destroy module:
+terraform destroy -target=module.aws_voice_channel -auto-approve \
+  -var=agentcore_runtime_arn=arn:aws:bedrock-agentcore:ap-northeast-1:851725411875:runtime/hera_agent-GIsf2P4ImD
+
+# Wait 5-10 min for Connect to finalize (Pitfall 7), then verify:
+aws connect list-instances --region us-east-1 --query 'InstanceSummaryList'
+# Expect: []
+```
+
+24-hour-deferred Cost Explorer check (per D-38):
+
+```
+aws ce get-cost-and-usage --time-period Start=<yesterday>,End=<today> --granularity DAILY \
+  --metrics UnblendedCost \
+  --filter '{"Tags":{"Key":"Service","Values":["AmazonConnect","AmazonLex","Lambda"]}}'
+# Expect: $0 after 24h propagation
+```

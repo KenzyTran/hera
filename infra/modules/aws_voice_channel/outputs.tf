@@ -9,8 +9,8 @@ output "connect_instance_id" {
 }
 
 output "connect_phone_number" {
-  description = "Claimed US DID. RUNBOOK paste-flow displays this for operator to dial."
-  value       = aws_connect_phone_number.us_did.phone_number
+  description = "Claimed US Toll-free or DID for inbound voice. DEFERRED in Plan 06.1-03: AWS new-account eligibility blocker (see main.tf comment + 06.1-03-SUMMARY.md). Re-enable after AWS Support unblock + uncomment the aws_connect_phone_number.us_did resource."
+  value       = "DEFERRED: AWS account eligibility blocker -- see 06.1-03-SUMMARY.md"
 }
 
 output "lex_bot_alias_arn" {
