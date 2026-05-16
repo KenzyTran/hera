@@ -26,7 +26,7 @@ variable "kb_retrieve_policy_arn" {
 }
 
 variable "sonic_model_arn" {
-  description = "Foundation-model ARN for Nova Sonic bidi stream. NOTE [needs-verification]: confirm via `aws bedrock list-foundation-models --by-output-modality SPEECH --region ap-northeast-1` at apply time that this is the correct model id for Nova 2 Sonic. The default is the placeholder shape; override at the root if the verified id differs. Sonic v1 is EOL per PROJECT.md so the workshop uses 'Nova 2 Sonic' which Bedrock surfaces under model id `amazon.nova-sonic-v1:0` until renamed (research note)."
+  description = "Foundation-model ARN for Nova 2 Sonic bidi stream. Verified live 2026-05-16: amazon.nova-2-sonic-v1:0 is ACTIVE; amazon.nova-sonic-v1:0 is LEGACY. Pipecat 1.1.0 AWSNovaSonicLLMService defaults to nova-2-sonic-v1:0 so this IAM grant MUST match or the bidi stream invoke fails with AccessDenied (silent: AgentCore container logs are empty)."
   type        = string
-  default     = "arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.nova-sonic-v1:0"
+  default     = "arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.nova-2-sonic-v1:0"
 }
