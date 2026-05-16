@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: twilio-voice-channel
-status: phase-6-partial-architectural-defect
-last_updated: "2026-05-16T03:55:00.000Z"
+milestone_name: native-aws-voice-channel
+status: phase-6.1-context-captured-ready-for-plan
+last_updated: "2026-05-16T05:00:00.000Z"
 last_activity: 2026-05-16
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 0
   partial_phases: 1
   total_plans: 4
   completed_plans: 3
   partial_plans: 1
-  percent: 75
+  percent: 50
 ---
 
 # Project State
@@ -21,12 +21,14 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-05-07)
 
-**Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser. v2.0 extends the channel surface: same learner can also dial a Twilio phone number and talk to the same chatbot.
-**Current focus:** Phase 6 — twilio-bridge-phone-number-cleanup (v2.0)
+**Core value:** A Cloud Clubs learner walks the workshop and successfully deploys a voice chatbot in their own AWS account, talking to it through their browser. v2.0 extends the channel surface: same learner can dial a US DID phone number routed through Amazon Connect (native AWS, no Twilio) and talk to the same KB-backed chatbot.
+**Current focus:** Phase 6.1 — native-aws-voice-channel-amazon-connect (v2.0; supersedes Phase 6)
 
 ## Current Position
 
-Phase: 6 (Twilio Bridge + Phone Number + Cleanup) — **PARTIAL** (3.5/4 plans). Live deploy surfaced D-56 architectural defect.
+Phase: 6.1 (Native AWS Voice Channel — Amazon Connect) — SPEC.md locked (6 reqs AWS-NAT-01..06, ambiguity 0.16) + CONTEXT.md locked (D-68..D-71). Ready for `/gsd-plan-phase 6.1`.
+Plan: 0/N (planner not run). 06.1-01 first task = absorb Phase 6 leftover teardown (terraform destroy -target=module.twilio_bridge + secrets delete + git mv to infra/archive/twilio_bridge_phase6_partial/).
+Phase 6 (Twilio Bridge + Phone Number + Cleanup) — **PARTIAL** (3.5/4 plans). Live deploy surfaced D-56 architectural defect.
 Plan: 06-01..06-03 Complete; 06-04 Partial (live deploy succeeded, WS smoke blocked by App Runner inbound-WS limitation; App Runner service torn down).
 Status: Awaiting compute-target re-pivot ADR (recommended: ECS Fargate + NLB) before resuming TWIL-02..04. Phase 7 (workshop chapter) blocked on Phase 6 close.
 Last activity: 2026-05-16 — Plan 06-04 executed inline (variant B "live deploy + synthetic WS smoke; no Twilio account" per user choice). Wave 1 (06-01 + 06-02) shipped clean via parallel worktrees; Wave 2 (06-03) shipped inline after subagent Write deny; Wave 3 (06-04) live deploy SUCCEEDED at deploy layer (App Runner `hera-twilio-bridge-prod` reached RUNNING; HTTPS /ping 200 OK in 0.69s; multi-arch image `hera-twilio-bridge:9427bf8` pushed to ECR; manifest list `sha256:c8e2c72c...`) but synthetic WS upgrade returned HTTP 403 from App Runner edge envoy regardless of path/headers. Root cause: AWS App Runner does NOT support inbound WebSocket protocol (documented platform limitation). D-56 REVISED's pivot from Lambda+APIGW WS to App Runner missed this constraint — the bridge can never receive Twilio Media Streams WS upgrades on this compute target. Bridge container code itself is correct (10 offline tests pass; resample + signature + SigV4 headers verified). App Runner service torn down to stop ~$2.5/mo provisioned billing; ECR repo + 2 IAM roles + log group + ASC + Secrets Manager secret retained ($0-$0.40/mo) for re-plan reference. 5 commits landed in Wave 3: c6ac618 (TWIL trace rows), e2a0a96 (min_size 0→1 fix), 9427bf8 (lockfile bump), e3c0042 (empty-commit live deploy event), 1c7f22c (test_live_smoke.py). REQUIREMENTS.md flipped: TWIL-01 Complete (offline resample verify), TWIL-02 Pending with D-56 defect note, TWIL-03 Pending (no Twilio account), TWIL-04 Partial (file-side complete; live verify deferred). ROADMAP Phase 6 marked `[~]` (partial).
