@@ -14,7 +14,13 @@ updated: 2026-05-06
 
 ### 1. Live browser voice loop on https://dg0w939ktclw6.cloudfront.net/
 expected: Click record → grant mic permission → ask "Do you have MacBook Pro?" → hear a KB-backed Apple Store answer streamed back. Closes Phase 3 SC#2 visibly to instructor in addition to the data-plane smoke probe (already passed in Plan 04-01).
-result: [pending]
+result: [in-progress 2026-05-16]
+notes: First browser test attempt 2026-05-16 surfaced 4 pre-existing v1 bugs that were never exercised before (Plan 03-05 Q2 had skipped browser test per demo budget). Fixes shipped this session:
+  - 4c8e52e fix(widget): app.js typeof check broke sed-replace (placeholder unquoted in typeof clause -> SyntaxError after sed global replace)
+  - b835d5a fix(widget_presigner): duplicate Access-Control-Allow-Origin header (Function URL cors{} + Lambda handler both setting it)
+  - 8bee78a fix(agentcore_iam): sonic_model_arn bumped LEGACY amazon.nova-sonic-v1:0 -> ACTIVE amazon.nova-2-sonic-v1:0 (Pipecat 1.1.0 default)
+  - Account-level: AgentCore Observability enabled via `aws xray update-trace-segment-destination --destination CloudWatchLogs` + put-resource-policy for X-Ray span ingestion (one-time per AWS account; container stdout otherwise invisible)
+Operator continues testing post-fix; close item when voice loop confirmed end-to-end (greeting heard + KB-backed answer audible).
 
 ### 2. Tick "Receive CloudWatch Billing Alerts" in Billing Preferences (RESEARCH A1)
 expected: Open https://console.aws.amazon.com/billing/home#/preferences → Edit Alert preferences → tick "Receive CloudWatch Billing Alerts" → Save. Wait ~15 min. Billing alarm `hera-billing-prod` (us-east-1) transitions out of INSUFFICIENT_DATA within 24h.
