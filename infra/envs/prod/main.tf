@@ -10,6 +10,19 @@ provider "aws" {
   region = "us-east-1"
 }
 
+# awscc provider -- defaults to var.region; us_east_1 alias for Phase 6.1
+# Connect / Lex resources. Required because hashicorp/aws lacks
+# aws_lexv2models_bot_alias (gh#35780) and aws_connect_bot_association is
+# V1 only (gh#30869); awscc fills both gaps per D-68 addendum.
+provider "awscc" {
+  region = var.region
+}
+
+provider "awscc" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 # Caller identity for confused-deputy conditions in agentcore_iam.
 data "aws_caller_identity" "current" {}
 
@@ -79,4 +92,27 @@ module "observability" {
   presigner_function_name    = module.widget_presigner.function_name
   cloudfront_distribution_id = module.widget_hosting.cloudfront_distribution_id
   # billing_threshold_usd / error_rate_threshold_pct / latency_p95_threshold_ms / sonic_model_id all use module defaults
+}
+
+# Phase 6.1: Native AWS Voice Channel -- Amazon Connect.
+# New module ships Connect instance + 1 US DID + Lex V2 bot (6-resource
+# layout per D-68 addendum: aws + awscc providers) + Lookup Lambda + Contact
+# Flow. All resources in us-east-1 (Connect free tier region). KB stays in
+# ap-northeast-1; Lambda boto3-client region-overrides for cross-region
+# Retrieve. D-70: reuses module.kb_consumer_policy.policy_arn (no new KB IAM).
+# D-64: v1 surfaces (agent / cdk / kb_* / agentcore_iam / ecr / widget_* /
+# observability / frontend / bin/cleanup-verify.sh / bin/push-image.sh) are
+# untouched.
+module "aws_voice_channel" {
+  source = "../../modules/aws_voice_channel"
+
+  providers = {
+    aws.us_east_1   = aws.us_east_1
+    awscc.us_east_1 = awscc.us_east_1
+  }
+
+  account_id             = data.aws_caller_identity.current.account_id
+  kb_retrieve_policy_arn = module.kb_consumer_policy.policy_arn
+  # name_prefix / env / kb_id / kb_region use module defaults
+  # (hera / prod / BKXE19AH89 / ap-northeast-1).
 }

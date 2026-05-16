@@ -77,3 +77,28 @@ output "observability_billing_alarm_arn" {
   description = "us-east-1 billing alarm ARN ($5/day cap, D-29). Phase 5 workshop content references for screenshot."
   value       = module.observability.billing_alarm_arn
 }
+
+output "connect_instance_arn" {
+  description = "Amazon Connect instance ARN (Phase 6.1 -- hera-voice-prod in us-east-1). AWS-NAT-01 acceptance: `aws connect list-instances --region us-east-1` includes this."
+  value       = module.aws_voice_channel.connect_instance_arn
+}
+
+output "connect_phone_number" {
+  description = "Claimed US DID. RUNBOOK Phase 6.1 paste-flow displays this for operator to dial. AWS-NAT-01 acceptance: aws connect list-phone-numbers-v2 --target-arn <connect_instance_arn> returns >= 1 DID."
+  value       = module.aws_voice_channel.connect_phone_number
+}
+
+output "lex_bot_alias_arn" {
+  description = "Lex V2 bot alias ARN (hera-product-lookup-prod alias prod). Referenced by Contact Flow JSON + Lex resource-based policy. AWS-NAT-02 acceptance: aws lexv2-models list-bots --region us-east-1 returns the bot."
+  value       = module.aws_voice_channel.lex_bot_alias_arn
+}
+
+output "voice_lookup_lambda_arn" {
+  description = "Lookup Lambda ARN (hera-voice-lookup-prod). AWS-NAT-03 acceptance: synthetic invoke with slot text 'iPhone 13 Pro Max in stock?' returns sentence containing the product + stock word."
+  value       = module.aws_voice_channel.voice_lookup_lambda_arn
+}
+
+output "contact_flow_id" {
+  description = "Connect Contact Flow ID (hera-voice-flow-prod). AWS-NAT-04 acceptance: aws connect describe-contact-flow --instance-id ... --contact-flow-id <this> returns Status=PUBLISHED."
+  value       = module.aws_voice_channel.contact_flow_id
+}

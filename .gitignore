@@ -40,6 +40,10 @@ infra/envs/prod/terraform-outputs.json
 # archive_file writes handler.zip here; rebuild on every apply from src/.
 infra/modules/widget_presigner/build/
 
+# Phase 6.1 aws_voice_channel Lookup Lambda zip build dir (Plan 06.1-02 Task 3).
+# archive_file writes handler.zip here; rebuild on every apply from lambda/.
+infra/modules/aws_voice_channel/build/
+
 # Phase 6 twilio_bridge container artifacts. Lockfile (uv.lock) IS committed.
 infra/modules/twilio_bridge/.venv/
 infra/modules/twilio_bridge/__pycache__/

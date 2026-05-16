@@ -114,7 +114,14 @@ resource "aws_lambda_function" "lookup" {
   ]
 }
 
-# --- Permits Lex V2 to invoke the Lambda. SourceArn scoped to bot alias.
+# --- Permits Lex V2 to invoke the Lambda. SourceArn scoped to bot aliases of
+# the specific Lex bot (constructed pattern `bot-alias/{BotId}/*` per
+# docs.aws.amazon.com/lexv2/latest/dg/lambda-attach.html). Cannot reference
+# awscc_lex_bot_alias.prod.arn directly because the alias has
+# depends_on = [aws_lambda_permission.lex_invoke] (Pitfall 2 mitigation) and
+# that would create a Terraform cycle. The bot only ever has the single
+# `prod` alias, so the practical security posture is identical to
+# alias-scoped (T-06.1-02-01).
 resource "aws_lambda_permission" "lex_invoke" {
   provider = aws.us_east_1
 
@@ -122,5 +129,5 @@ resource "aws_lambda_permission" "lex_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.lookup.function_name
   principal     = "lexv2.amazonaws.com"
-  source_arn    = "${awscc_lex_bot_alias.prod.arn}/*"
+  source_arn    = "arn:aws:lex:us-east-1:${var.account_id}:bot-alias/${aws_lexv2models_bot.product_lookup.id}/*"
 }
