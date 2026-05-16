@@ -61,8 +61,8 @@ def build_llm() -> AWSNovaSonicLLMService:
         secret_access_key=frozen.secret_key,
         session_token=frozen.token,
         region=AWS_REGION,
-        model="amazon.nova-sonic-v1:0",
         settings=AWSNovaSonicLLMService.Settings(
+            model="amazon.nova-sonic-v1:0",
             voice=HERA_VOICE,
             system_instruction=SYSTEM_PROMPT,
         ),
