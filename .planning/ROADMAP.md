@@ -253,7 +253,21 @@ Plans:
   5. All 5 Phase 6 Twilio-bridge AWS resources are gone (App Runner service already torn down; ECR `hera-twilio-bridge`, IAM `hera-twilio-bridge-{instance,access}-prod`, log group `/aws/apprunner/hera-twilio-bridge-prod`, ASC `hera-twilio-bridge-asc-prod`, Secrets Manager secret `hera/twilio/auth-token` deleted), and `infra/modules/twilio_bridge/` is moved under `infra/archive/twilio_bridge_phase6_partial/` with a README explaining D-56 (AWS-NAT-06).
   6. v1 system bit-identical after deploy: `git diff master..HEAD -- agent/ cdk/ infra/modules/{knowledge_base,kb_consumer_policy,agentcore_iam,ecr,widget_hosting,widget_presigner,observability}/ frontend/ bin/cleanup-verify.sh bin/push-image.sh` returns empty diff (D-64 carry-forward).
   7. Demo budget honored: Connect free tier (10,000 min/yr US/CA inbound voice) + 1 US DID (~$1/mo) + Polly Neural (≪$0.01/test call) + KB Retrieve (~$0.0004/query); no new CloudWatch alarms; existing `hera-billing-prod` $5/day alarm continues to gate Bedrock spend.
-**Plans**: TBD (planner picks slicing; suggested shape per CONTEXT.md is 3 plans / 3 waves — cleanup-first → module + Lambda handler → live apply + CCP smoke + REQ flips).
+**Plans:** 3 plans (planner: 2026-05-16; standard mode; wave-sequential due to file overlap on infra/envs/prod/main.tf)
+
+**Wave 1** *(autonomous=false — operator-staged live AWS destroy + secrets delete + git mv)*
+- [ ] 06.1-01-PLAN.md — Phase 6 leftover teardown (terraform destroy -target=module.twilio_bridge + Secrets Manager delete-secret) + strip module/variables/outputs blocks from infra/envs/prod + git mv infra/modules/twilio_bridge/ to infra/archive/twilio_bridge_phase6_partial/ + write D-71 README. Covers AWS-NAT-06.
+
+**Wave 2** *(autonomous=true — pure file-side; depends on 06.1-01 freeing the prod root)*
+- [ ] 06.1-02-PLAN.md — New module infra/modules/aws_voice_channel/ (Connect instance + DID + Lex V2 6-resource layout per D-68 addendum + Lookup Lambda + Contact Flow + IAM) + Lambda handler.py + Contact Flow JSON template + root wiring (module block + 5 outputs + awscc 1.84 provider pin per D-68 addendum). Zero live AWS work. Covers AWS-NAT-01..04 file-side.
+
+**Wave 3** *(autonomous=false — live deploy + operator CCP smoke; depends on 06.1-02)*
+- [ ] 06.1-03-PLAN.md — Live terraform apply + AWS-NAT-01..04 CLI smoke + RUNBOOK Phase 6.1 paste-flow + 06.1-HUMAN-UAT.md operator template + CCP browser-softphone smoke (AWS-NAT-05) + REQUIREMENTS/ROADMAP/STATE flips + D-64 final audit + cleanup re-verify. Covers AWS-NAT-01..06 end-to-end live closure.
+
+Plans:
+- [ ] 06.1-01-PLAN.md — Phase 6 leftover teardown + archive (Wave 1, operator-staged).
+- [ ] 06.1-02-PLAN.md — aws_voice_channel module + Lambda handler + root wiring (Wave 2, autonomous, depends on 06.1-01).
+- [ ] 06.1-03-PLAN.md — Live apply + CCP smoke + REQ flips (Wave 3, depends on 06.1-02; 3 operator checkpoints).
 **Supersedes**: Phase 6 PARTIAL (TWIL-01..04 deferred indefinitely; v2.0 pivots to native AWS path per 2026-05-16 user decision).
 
 ### Phase 7: Twilio Workshop Chapter
