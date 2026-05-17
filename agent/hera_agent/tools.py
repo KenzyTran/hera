@@ -12,6 +12,7 @@ gracefully tells the user there was a problem.
 """
 
 import asyncio
+import os
 from pathlib import PurePosixPath
 
 import boto3
@@ -49,9 +50,23 @@ def _kb_retrieve(query: str) -> str:
     )
 
 
+_OPENAI_TRACING = bool(os.environ.get("OPENAI_API_KEY"))
+
+
 async def lookup_product_handler(params: FunctionCallParams) -> None:
     """Pipecat tool handler. Offloads sync boto3 to a thread (Pitfall F)."""
-    result = await asyncio.to_thread(_kb_retrieve, params.arguments["query"])
+    query = params.arguments["query"]
+
+    if _OPENAI_TRACING:
+        from agents import custom_span
+        with custom_span(
+            name="kb_retrieve",
+            data={"query": query, "kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
+        ):
+            result = await asyncio.to_thread(_kb_retrieve, query)
+    else:
+        result = await asyncio.to_thread(_kb_retrieve, query)
+
     await params.result_callback({"product_info": result})
 
 

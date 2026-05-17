@@ -9,6 +9,8 @@ This single-app shape matches the AgentCore HTTP service contract verbatim, so
 Phase 3 deploys without a transport refactor.
 """
 
+import os
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -119,21 +121,31 @@ async def invocations() -> JSONResponse:
     })
 
 
+_OPENAI_TRACING = bool(os.environ.get("OPENAI_API_KEY"))
+
+
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket) -> None:
     """Per-connection Pipecat pipeline. Closes when the client disconnects."""
     await websocket.accept()
     logger.info("WS client connected")
-    # The only try/except in this module: WebSocketDisconnect is the normal
-    # disconnect path, not error suppression. All other exceptions bubble up so
-    # uvicorn logs them and the operator can root-cause (AGENTS.md mandate).
-    try:
-        await run_pipeline(websocket)
-    except WebSocketDisconnect:
-        logger.info("WS client disconnected")
-    except Exception:
-        logger.exception("WS pipeline failed")
-        raise
+    session_id = str(uuid.uuid4())
+
+    async def _run():
+        try:
+            await run_pipeline(websocket)
+        except WebSocketDisconnect:
+            logger.info("WS client disconnected")
+        except Exception:
+            logger.exception("WS pipeline failed")
+            raise
+
+    if _OPENAI_TRACING:
+        from agents import trace
+        with trace(workflow_name="hera-voice-session", group_id=session_id):
+            await _run()
+    else:
+        await _run()
 
 
 if __name__ == "__main__":
