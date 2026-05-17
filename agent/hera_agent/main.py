@@ -40,14 +40,81 @@ async def ping() -> dict:
 
 @app.post("/invocations")
 async def invocations() -> JSONResponse:
-    """AgentCore HTTP data-plane stub. Voice loop runs on /ws (D-31)."""
-    return JSONResponse(
-        {
-            "agent": "hera-pipecat-sonic",
-            "status": "running",
-            "model": "amazon.nova-sonic-v1:0",
-        }
+    """AgentCore HTTP data-plane stub + Sonic bidi probe."""
+    import asyncio
+    import json
+    import uuid
+
+    import boto3
+    from aws_sdk_bedrock_runtime.client import BedrockRuntimeClient, Config
+    from aws_sdk_bedrock_runtime.config import SigV4AuthScheme
+    from aws_sdk_bedrock_runtime.models import (
+        BidirectionalInputPayloadPart,
+        InvokeModelWithBidirectionalStreamInputChunk,
+        InvokeModelWithBidirectionalStreamOperationInput,
     )
+    from smithy_aws_core.identity.static import StaticCredentialsResolver
+
+    region = "ap-northeast-1"
+    frozen = boto3.Session().get_credentials().get_frozen_credentials()
+
+    cfg = Config(
+        endpoint_uri=f"https://bedrock-runtime.{region}.amazonaws.com",
+        region=region,
+        aws_access_key_id=frozen.access_key,
+        aws_secret_access_key=frozen.secret_key,
+        aws_session_token=frozen.token,
+        aws_credentials_identity_resolver=StaticCredentialsResolver(),
+        auth_schemes={"aws.auth#sigv4": SigV4AuthScheme(service="bedrock")},
+    )
+    client = BedrockRuntimeClient(config=cfg)
+
+    prompt_name = str(uuid.uuid4())
+    content_name = str(uuid.uuid4())
+    send_events = [
+        {"event": {"sessionStart": {"inferenceConfiguration": {"maxTokens": 256, "topP": 0.9, "temperature": 0.7}}}},
+        {"event": {"promptStart": {"promptName": prompt_name, "textOutputConfiguration": {"mediaType": "text/plain"}, "audioOutputConfiguration": {"mediaType": "audio/lpcm", "sampleRateHertz": 24000, "sampleSizeBits": 16, "channelCount": 1, "voiceId": "matthew", "encoding": "base64", "audioType": "SPEECH"}}}},
+        {"event": {"contentStart": {"promptName": prompt_name, "contentName": content_name, "type": "TEXT", "interactive": True, "role": "USER", "textInputConfiguration": {"mediaType": "text/plain"}}}},
+        {"event": {"textInput": {"promptName": prompt_name, "contentName": content_name, "content": "Hello."}}},
+        {"event": {"contentEnd": {"promptName": prompt_name, "contentName": content_name}}},
+    ]
+
+    received = []
+    try:
+        stream = await client.invoke_model_with_bidirectional_stream(
+            InvokeModelWithBidirectionalStreamOperationInput(model_id="amazon.nova-2-sonic-v1:0")
+        )
+        for ev in send_events:
+            await stream.input_stream.send(
+                InvokeModelWithBidirectionalStreamInputChunk(
+                    value=BidirectionalInputPayloadPart(bytes_=json.dumps(ev).encode())
+                )
+            )
+        logger.info(f"Probe: sent {len(send_events)} events, waiting 5s for replies...")
+
+        async def read_some():
+            async for event in stream.output_stream:
+                received.append(str(event)[:300])
+                if len(received) >= 5:
+                    break
+
+        try:
+            await asyncio.wait_for(read_some(), timeout=5.0)
+        except asyncio.TimeoutError:
+            logger.warning(f"Probe: timeout after 5s, received {len(received)} events")
+        await stream.input_stream.close()
+    except Exception as e:
+        logger.exception(f"Probe failed: {e}")
+        return JSONResponse({"probe_error": str(e), "received": received}, status_code=500)
+
+    logger.info(f"Probe: received {len(received)} events: {received[:2]}")
+    return JSONResponse({
+        "agent": "hera-pipecat-sonic",
+        "status": "running",
+        "probe_sent": len(send_events),
+        "probe_received": len(received),
+        "probe_samples": received,
+    })
 
 
 @app.websocket("/ws")
