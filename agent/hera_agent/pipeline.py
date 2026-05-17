@@ -50,11 +50,21 @@ def build_llm() -> AWSNovaSonicLLMService:
     Credential resolution: boto3 default chain (env vars -> ~/.aws -> IMDSv2).
     Resolved per-call so a long-running process picks up rotated IMDS creds.
     """
+    from loguru import logger as _log
+
     session = boto3.Session()
     credentials = session.get_credentials()
     if credentials is None:
         raise NoCredentialsError()
     frozen = credentials.get_frozen_credentials()
+
+    try:
+        ident = session.client("sts", region_name=AWS_REGION).get_caller_identity()
+        _log.info(
+            f"Pipeline identity: account={ident['Account']} arn={ident['Arn']}"
+        )
+    except Exception as e:
+        _log.exception(f"get_caller_identity failed: {e}")
 
     return AWSNovaSonicLLMService(
         access_key_id=frozen.access_key,
