@@ -144,12 +144,12 @@ Nếu bạn dùng SSO, nhớ chạy `aws sso login` trước khi mỗi session �
 
 ## Kỳ vọng chi phí
 
-- Toàn workshop session ~2 giờ (build + nói chuyện với agent + cleanup) tốn **~$2-5 USD** ballpark nếu bạn theo Phần 4 Cleanup ngay sau khi xong. Phần 5 Summary có post-launch update khi instructor pull được số liệu thực tế.
-- Hai cost driver chính: Bedrock Nova 2 Sonic streaming (charged per active conversation minute) + AgentCore Runtime (charged per active session-second). KB + S3 Vectors + CloudFront ở scale workshop dưới một cent.
-- **Quan trọng:** chạy Phần 4 Cleanup (cdk destroy → terraform destroy → `bin/cleanup-verify.sh`) ngay sau khi xong session để chi phí dừng lại. Cost Explorer cập nhật chậm 24 giờ — kiểm tra ngày hôm sau theo paste-line trong Phần 4.
+- Một buổi workshop khoảng 2 giờ (build + nói chuyện với agent + cleanup) ước tính tốn **~$2-5 USD** nếu bạn chạy Phần 4 Cleanup ngay sau khi xong. Số liệu chi tiết sẽ được cập nhật ở Phần 5 Summary.
+- Hai nguồn chi phí chính: Bedrock Nova 2 Sonic streaming (tính theo phút conversation) + AgentCore Runtime (tính theo giây session active). KB + S3 Vectors + CloudFront ở quy mô workshop chỉ dưới một cent.
+- **Quan trọng:** chạy Phần 4 Cleanup (cdk destroy → terraform destroy → `bin/cleanup-verify.sh`) ngay sau khi xong buổi để chi phí dừng lại. Cost Explorer cập nhật chậm 24 giờ — kiểm tra ngày hôm sau theo paste-line trong Phần 4.
 
 {{% notice info %}}
-**Số liệu cost được cập nhật post-launch:** ballpark `~$2-5 USD per 2-hour session` là khung định hướng (D-54). Số liệu chính xác per-service sẽ được instructor cập nhật vào Phần 5 Summary sau khi pull 24h Cost Explorer data từ một workshop session thực tế. AWS pricing thay đổi định kỳ — bookmark `https://aws.amazon.com/bedrock/pricing/` cho live numbers.
+**Số liệu chi phí sẽ cập nhật sau:** mức `~$2-5 USD cho buổi 2 tiếng` chỉ là ước tính khung. Số chi tiết theo từng service sẽ được bổ sung ở Phần 5 Summary sau khi rút data 24h từ Cost Explorer của 1 buổi workshop thực tế. Giá AWS thay đổi định kỳ — bookmark `https://aws.amazon.com/bedrock/pricing/` để check số mới nhất.
 {{% /notice %}}
 
 ## Sẵn sàng vào Phần 3 Hands-on
