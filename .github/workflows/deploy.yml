@@ -41,6 +41,9 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-create the Pages site on first run (no manual Settings click).
+          enablement: true
 
       - name: Build with Hugo
         env:
