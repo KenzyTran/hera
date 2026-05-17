@@ -171,6 +171,8 @@ Note: `update-agent-runtime` is REPLACE, not MERGE — you must repeat all exist
        |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
    ```
 
+![Langfuse Tracing — waterfall trace hera-voice-session with the kb_retrieve span](/images/3.5-observability/langfuse-trace-view.png)
+
 ### Disable / rotate keys
 
 - Disable: drop the `LANGFUSE_*` vars from `--environment-variables` (re-run update without them).

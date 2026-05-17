@@ -171,6 +171,8 @@ Lưu ý: `update-agent-runtime` là REPLACE chứ không MERGE — phải pass l
        |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
    ```
 
+![Langfuse Tracing — waterfall trace hera-voice-session với kb_retrieve span](/images/3.5-observability/langfuse-trace-view.png)
+
 ### Disable / rotate keys
 
 - Disable: drop `LANGFUSE_*` khỏi `--environment-variables` (chạy lại update với env list không có Langfuse).
