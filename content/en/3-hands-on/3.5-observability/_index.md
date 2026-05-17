@@ -48,8 +48,6 @@ Expected plan: 4 to add (1 dashboard + 3 alarms). Any in-place changes unrelated
 
 *Source: RUNBOOK.md (Phase 4 Dashboard walkthrough) — Phase 4 Plan 04-02*
 
-![CloudWatch Dashboard hera-prod — 5 panels populated](/images/3.5-observability/cloudwatch-dashboard-hera-prod.png)
-
 Five panels (left-to-right, top-to-bottom):
 
 | # | Panel | Metric | Visualization | Note |
