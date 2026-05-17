@@ -79,6 +79,11 @@ class HeraAgentCoreStack(cdk.Stack):
                     container_uri=image_uri,
                 ),
             ),
+            environment_variables={
+                "HERA_LOG_GROUP": "/aws/bedrock-agentcore/hera-agent",
+                "AWS_REGION": cdk.Aws.REGION,
+                "HERA_KB_ID": "BKXE19AH89",
+            },
             network_configuration=agentcore.CfnRuntime.NetworkConfigurationProperty(
                 network_mode="PUBLIC",
             ),

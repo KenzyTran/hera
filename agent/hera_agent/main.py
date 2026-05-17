@@ -15,7 +15,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from loguru import logger
 
+from hera_agent.logging_setup import configure_logging
 from hera_agent.pipeline import run_pipeline
+
+configure_logging()
 
 app = FastAPI(title="hera-agent", version="0.1.0")
 
@@ -59,6 +62,9 @@ async def ws_endpoint(websocket: WebSocket) -> None:
         await run_pipeline(websocket)
     except WebSocketDisconnect:
         logger.info("WS client disconnected")
+    except Exception:
+        logger.exception("WS pipeline failed")
+        raise
 
 
 if __name__ == "__main__":
