@@ -31,6 +31,10 @@ dist/
 .env
 .env.*
 
+# Claude Code project instructions (internal dev tooling, not part of public
+# workshop repo). Stays local so Claude Code reads it; never shipped to GitHub.
+CLAUDE.md
+
 # Phase 3 CDK project artifacts (Plan 03-04). Lockfile (uv.lock) IS committed.
 infra/cdk/.venv/
 infra/cdk/cdk.out/
