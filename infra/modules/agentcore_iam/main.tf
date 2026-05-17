@@ -55,18 +55,10 @@ resource "aws_cloudwatch_log_group" "agentcore" {
 data "aws_iam_policy_document" "agentcore_inline" {
 
   statement {
-    sid     = "BedrockSonicBidiStream"
-    effect  = "Allow"
-    actions = ["bedrock:InvokeModelWithBidirectionalStream"]
-    # Both Nova Sonic v1 (LEGACY) and Nova 2 Sonic (ACTIVE) allowed.
-    # Pipecat 1.1.0 default model is nova-2-sonic-v1:0; legacy nova-sonic-v1:0
-    # used as a fallback when v2 loops on tool-result acknowledgment (bug
-    # observed live 2026-05-16: Pipecat sends tool result via _send_tool_result
-    # but Sonic v2 never acknowledges, retries function call ~1/s indefinitely).
-    resources = [
-      var.sonic_model_arn,
-      replace(var.sonic_model_arn, "nova-2-sonic-v1:0", "nova-sonic-v1:0"),
-    ]
+    sid       = "BedrockSonicBidiStream"
+    effect    = "Allow"
+    actions   = ["bedrock:InvokeModelWithBidirectionalStream"]
+    resources = [var.sonic_model_arn]
   }
 
   # ECR pull for AgentCore container image. Required by AgentCore Runtime
