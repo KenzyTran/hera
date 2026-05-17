@@ -124,8 +124,20 @@ async def invocations() -> JSONResponse:
 _LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_SECRET_KEY"))
 _lf = None
 if _LANGFUSE_ENABLED:
-    from langfuse import Langfuse
-    _lf = Langfuse()  # reads LANGFUSE_PUBLIC_KEY/SECRET_KEY/HOST from env
+    try:
+        from langfuse import Langfuse
+        _lf = Langfuse()
+        logger.info(
+            f"Langfuse client initialized: host={os.environ.get('LANGFUSE_HOST')} "
+            f"public_key={os.environ.get('LANGFUSE_PUBLIC_KEY','')[:12]}... "
+            f"auth_check={_lf.auth_check()}"
+        )
+    except Exception as e:
+        logger.exception(f"Langfuse init failed: {e}")
+        _lf = None
+        _LANGFUSE_ENABLED = False
+else:
+    logger.info("Langfuse disabled (LANGFUSE_SECRET_KEY not set)")
 
 
 @app.websocket("/ws")
