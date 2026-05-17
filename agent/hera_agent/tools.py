@@ -58,12 +58,18 @@ async def lookup_product_handler(params: FunctionCallParams) -> None:
     query = params.arguments["query"]
 
     if _OPENAI_TRACING:
-        from agents import custom_span
-        with custom_span(
-            name="kb_retrieve",
-            data={"query": query, "kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
-        ):
-            result = await asyncio.to_thread(_kb_retrieve, query)
+        from agents import function_span, custom_span
+        # function_span = native OpenAI tool-call span (shows in trace UI as a
+        # function invocation). Nested custom_span captures the Bedrock KB
+        # Retrieve sub-call with knob values for diagnostics.
+        with function_span(name="lookup_product", input=query) as fspan:
+            with custom_span(
+                name="kb_retrieve",
+                data={"query": query, "kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
+            ):
+                result = await asyncio.to_thread(_kb_retrieve, query)
+            chunk_count = 0 if result == "no relevant product info" else result.count("Source:")
+            fspan.span_data.output = f"{chunk_count} chunks ({len(result)} chars)"
     else:
         result = await asyncio.to_thread(_kb_retrieve, query)
 
