@@ -49,7 +49,9 @@ aws bedrock list-foundation-models --region ap-northeast-1 \
 
 Repeat for `amazon.nova-sonic-v1:0`. Empty output means model access is not yet enabled.
 
-![Bedrock Console — Model Access for Nova 2 Sonic + Titan v2 (ap-northeast-1)](/images/2-preparation/console-bedrock-model-access.png)
+![Bedrock Console — Model access for Amazon Nova 2 Sonic (ap-northeast-1)](/images/2-preparation/bedrock-model-access-nova-sonic.png)
+
+![Bedrock Console — Model access for Titan Text Embeddings V2 (ap-northeast-1)](/images/2-preparation/bedrock-model-access-titan-v2.png)
 
 {{% notice warning %}}
 **Bedrock model access is per-region, per-model:** if you skip this, `terraform apply` in Section 3.1 still passes but `aws bedrock-agent start-ingestion-job` fails with `AccessDeniedException` on the model ARN — the error surfaces at sync time, not apply time. If you deploy in a different region (`us-east-1`, `us-west-2`, `eu-north-1`), you must enable each model again in that region — IAM in the original region does not carry over.

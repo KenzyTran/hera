@@ -28,8 +28,6 @@ The default AgentCore quota is 10 concurrent runtimes per account. **Your worksh
 2. Find "Concurrent runtime sessions" (or similar).
 3. Click "Request quota increase" → enter 2 → Submit. AWS approves within 1-2 days.
 
-![Service Quotas — request AgentCore concurrency 2 (D-30, instructor reference)](/images/3.3-deploy-agentcore/service-quotas-agentcore-concurrency.png)
-
 *Source: RUNBOOK.md + Phase 3 D-30 — Phase 3 Plan 03-04*
 {{% /notice %}}
 

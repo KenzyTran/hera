@@ -8,19 +8,23 @@ weight: 5
 
 Deploy CloudWatch dashboard `hera-prod` (5 panels) + 2 op alarms + 1 billing alarm cross-region (us-east-1) để theo dõi traffic, latency, error rate, Bedrock cost, và estimated charges của agent + widget. Module observability ship `infra/modules/observability/` (4-file shape) — region default `ap-northeast-1` cho mọi alarm/metric trừ billing alarm (us-east-1 cross-region constraint).
 
-## Pre-flight: bật Receive Billing Alerts (one-time)
+## Pre-flight: tạo AWS Budget có email alert (one-time)
 
-![CloudWatch Billing Preferences — Receive Billing Alerts toggle](/images/3.5-observability/billing-alerts-toggle.png)
+CloudWatch alarm trong Terraform chỉ hiện trên dashboard — không gửi email. Để có notification thực sự khi cost vượt ngưỡng, tạo **AWS Budget** với email subscriber. Free tier cho 2 budget đầu, không tốn phí.
+
+![AWS Budgets — alert qua email khi cost vượt ngưỡng (vd $5/tháng)](/images/3.5-observability/billing-alerts-toggle.png)
 
 Steps:
 
-1. Mở `https://console.aws.amazon.com/billing/home#/preferences`.
-2. Edit Alert preferences → tick "Receive CloudWatch Billing Alerts" → Save.
-3. Wait ~15 phút để billing data start flowing vào CloudWatch.
+1. Mở `https://console.aws.amazon.com/billing/home#/budgets/overview`.
+2. Click **Create budget** → chọn **Customize (advanced)** → Budget type **Cost budget**.
+3. Tên budget: vd `hera-monthly-cap`; Budget amount: vd `$5` (Monthly recurring).
+4. Configure **alert thresholds**: vd "Actual cost ≥ 80% of budgeted" → Notification: email anh.
+5. Save. AWS sẽ gửi email lần đầu khi cost chạm 80% ngưỡng.
 
 *Source: RUNBOOK.md (Phase 4 Pre-flight) — Phase 4 Plan 04-02*
 
-Note quan trọng: chưa tick → `terraform apply` vẫn pass và `hera-billing-prod` alarm vẫn được tạo, nhưng alarm sẽ ở `INSUFFICIENT_DATA` mãi (không phải bug). Đây là per-AWS-account toggle, không phải per-region. Một lần tick là xong cho mọi region/workshop session sau này.
+Note: budget là per-AWS-account, không phải per-region. Một lần tạo là cover mọi region. Terraform CloudWatch alarm `hera-billing-prod` vẫn được tạo song song (dashboard-visible, không email) — 2 layer alarm bổ sung nhau.
 
 ## Bước 1: terraform apply observability module
 

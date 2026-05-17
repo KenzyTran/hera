@@ -8,19 +8,23 @@ weight: 5
 
 Deploy the CloudWatch dashboard `hera-prod` (5 panels) + 2 operational alarms + 1 billing alarm cross-region (us-east-1) so you can monitor traffic, latency, error rate, Bedrock cost, and estimated charges of your agent + widget. The observability module ships from `infra/modules/observability/` (4-file shape) — region default `ap-northeast-1` for every alarm/metric except the billing alarm (us-east-1 cross-region constraint).
 
-## Pre-flight: enable Receive Billing Alerts (one-time)
+## Pre-flight: create an AWS Budget with email alert (one-time)
 
-![CloudWatch Billing Preferences — Receive Billing Alerts toggle](/images/3.5-observability/billing-alerts-toggle.png)
+The CloudWatch alarm created by Terraform is dashboard-only — it does not send email. To get a real notification when cost exceeds a threshold, create an **AWS Budget** with an email subscriber. Free tier covers the first 2 budgets.
+
+![AWS Budgets — email alert when cost exceeds threshold (e.g. $5/month)](/images/3.5-observability/billing-alerts-toggle.png)
 
 Steps:
 
-1. Open `https://console.aws.amazon.com/billing/home#/preferences`.
-2. Edit Alert preferences → tick "Receive CloudWatch Billing Alerts" → Save.
-3. Wait ~15 minutes for billing data to start flowing into CloudWatch.
+1. Open `https://console.aws.amazon.com/billing/home#/budgets/overview`.
+2. Click **Create budget** → choose **Customize (advanced)** → Budget type **Cost budget**.
+3. Name the budget, e.g. `hera-monthly-cap`; Budget amount, e.g. `$5` (Monthly recurring).
+4. Configure **alert thresholds**: e.g. "Actual cost ≥ 80% of budgeted" → Notification: your email.
+5. Save. AWS sends an email the first time cost hits the 80% threshold.
 
 *Source: RUNBOOK.md (Phase 4 Pre-flight) — Phase 4 Plan 04-02*
 
-Critical note: if you skip the toggle, `terraform apply` still passes and the `hera-billing-prod` alarm is still created — but it stays in `INSUFFICIENT_DATA` forever (this is not a bug). It is a per-AWS-account toggle, not per-region. Tick once and you are done for every region/workshop session afterwards.
+Note: budgets are per-AWS-account, not per-region. One budget covers every region. The Terraform CloudWatch alarm `hera-billing-prod` is still created alongside (dashboard-visible, no email) — the two layers complement each other.
 
 ## Step 1: terraform apply the observability module
 
