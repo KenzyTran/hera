@@ -12,10 +12,10 @@ Voice agent là một dịch vụ AI vận hành theo dạng real-time bidirecti
 
 ## Vì sao chọn stack này
 
-- **Amazon Nova 2 Sonic on Bedrock** (KHÔNG ElevenLabs / KHÔNG Gemini): pure-AWS, độ trễ thấp từ Việt Nam, billing theo phút, native tool-use cho Knowledge Base lookup.
-- **Amazon Bedrock AgentCore Runtime** (KHÔNG ECS Fargate / KHÔNG Lambda): managed runtime, không VPC / ALB / NAT để debug, image ARM64, credential injection qua IMDSv2 — đơn giản hơn nhiều cho workshop scope.
+- **Amazon Nova 2 Sonic on Bedrock**: pure-AWS, độ trễ thấp từ Việt Nam, billing theo phút, native tool-use cho Knowledge Base lookup.
+- **Amazon Bedrock AgentCore Runtime**: managed runtime, không VPC / ALB / NAT để debug, image ARM64, credential injection qua IMDSv2 — đơn giản hơn nhiều cho workshop scope.
 - **Pipecat 1.1.0**: orchestrator chuẩn cho voice loops, có sẵn `AWSNovaSonicLLMService`, tự động xử lý 8-min Sonic stream cap (rotate stream ~120s trước cap).
-- **S3 Vectors + Titan v2** (KHÔNG OpenSearch Serverless): cost-driven, khoảng $0.10/tháng cho catalog nhỏ vs $200-400/tháng nếu dùng OpenSearch Serverless.
+- **S3 Vectors + Titan v2**: cost-driven, khoảng $0.10/tháng cho catalog nhỏ vs $200-400/tháng nếu dùng OpenSearch Serverless.
 - **Terraform `~> 6.27` + CDK Python cho AgentCore Runtime**: hybrid IaC (D-24). Terraform 6.x đã hỗ trợ native `s3_vectors_storage_configuration` cho `aws_bedrockagent_knowledge_base`, nhưng AgentCore Runtime chưa có resource Terraform first-party đầy đủ — CDK Python lấp khoảng trống đó cho đúng một stack.
 
 ## Kiến trúc tổng thể

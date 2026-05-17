@@ -12,10 +12,10 @@ A voice agent is an AI service that runs as a real-time bidirectional audio stre
 
 ## Why this stack
 
-- **Amazon Nova 2 Sonic on Bedrock** (NOT ElevenLabs / NOT Gemini): pure-AWS, low latency from Vietnam, per-minute billing, native tool-use for Knowledge Base lookup.
-- **Amazon Bedrock AgentCore Runtime** (NOT ECS Fargate / NOT Lambda): managed runtime, no VPC / ALB / NAT to debug, ARM64 image, credential injection via IMDSv2 — significantly simpler for workshop scope.
+- **Amazon Nova 2 Sonic on Bedrock**: pure-AWS, low latency from Vietnam, per-minute billing, native tool-use for Knowledge Base lookup.
+- **Amazon Bedrock AgentCore Runtime**: managed runtime, no VPC / ALB / NAT to debug, ARM64 image, credential injection via IMDSv2 — significantly simpler for workshop scope.
 - **Pipecat 1.1.0**: the standard orchestrator for voice loops, ships `AWSNovaSonicLLMService`, transparently handles the 8-min Sonic stream cap (rotates the stream ~120s before the cap).
-- **S3 Vectors + Titan v2** (NOT OpenSearch Serverless): cost-driven, around $0.10/month for a small catalog vs $200-400/month with OpenSearch Serverless.
+- **S3 Vectors + Titan v2**: cost-driven, around $0.10/month for a small catalog vs $200-400/month with OpenSearch Serverless.
 - **Terraform `~> 6.27` + CDK Python for AgentCore Runtime**: hybrid IaC (D-24). Terraform 6.x already supports native `s3_vectors_storage_configuration` on `aws_bedrockagent_knowledge_base`, but AgentCore Runtime does not yet have full first-party Terraform resource coverage — CDK Python fills that gap for exactly one stack.
 
 ## High-level architecture
