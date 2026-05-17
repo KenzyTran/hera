@@ -23,9 +23,9 @@ Project gồm 2 mặt:
 
 ## Architecture
 
-![Architecture overview](docs/architecture-aws.drawio)
+![Architecture overview](static/images/architecture-aws.png)
 
-Source-of-truth diagram ở [`docs/architecture-aws.drawio`](docs/architecture-aws.drawio) (drawio AWS4 icons).
+Source-of-truth diagram ở [`docs/architecture-aws.drawio`](docs/architecture-aws.drawio) (drawio AWS4 icons). PNG render đặt ở [`static/images/architecture-aws.png`](static/images/architecture-aws.png) theo Hugo convention (`static/images/<slug>.png` → ref `/images/<slug>.png` từ workshop content).
 
 **Data plane (mỗi voice turn):**
 
@@ -161,7 +161,8 @@ infra/
   cdk/                CDK app — single resource (AgentCore Runtime)
 bin/                  Build / deploy / smoke / cleanup scripts
 content/              Workshop (vi + en, hugo-theme-learn)
-docs/                 architecture-aws.drawio, OBSERVABILITY.md
+docs/                 architecture-aws.drawio (source), OBSERVABILITY.md
+static/images/        Workshop-served images (architecture-aws.png, screenshots per chapter)
 .planning/            GSD planning artifacts (ROADMAP, REQUIREMENTS, phase plans, STATE)
 ```
 
