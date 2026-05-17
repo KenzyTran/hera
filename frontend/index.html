@@ -3,26 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hera Voice Agent</title>
+  <title>Hera — Apple Store voice assistant</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div role="region" aria-label="demo notice" class="banner">
-    <p class="banner-body">Instructor demo. Daily cost capped at $5/day. For your own deployment, <a href="#" aria-disabled="true" title="Workshop publishes in Phase 5">follow the workshop</a>.</p>
-  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
 
-  <main class="card">
-    <h1>Hera Voice Agent</h1>
-    <p class="subtitle">Apple Store assistant on Amazon Bedrock Nova 2 Sonic.</p>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#8b5cf6"/>
+              <stop offset="1" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#g)"/>
+          <path d="M11 11v10M16 8v16M21 11v10" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">Hera</span>
+          <span class="brand-tag">Voice agent · Bedrock Nova 2 Sonic</span>
+        </div>
+      </div>
+      <div role="region" aria-label="connection status" class="status-chip">
+        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        <span id="status" class="status" role="status" aria-live="polite">disconnected</span>
+      </div>
+    </div>
+  </header>
 
-    <p class="status-row">Status: <span id="status" class="status" role="status" aria-live="polite">disconnected</span></p>
+  <main class="page">
+    <div role="region" aria-label="demo notice" class="banner">
+      <svg class="banner-icon" viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 4a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1zm0 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+      <p class="banner-body">Instructor demo · daily cost capped at $5. Voice queries hit a live Apple-Store knowledge base on S3 Vectors.</p>
+    </div>
 
-    <button id="recordBtn" class="btn btn-idle" type="button" disabled aria-pressed="false">Click to allow mic</button>
-    <p id="micMuted" class="mic-muted-label" hidden>mic muted</p>
+    <section class="hero card">
+      <div class="hero-text">
+        <h1>Talk to the store.</h1>
+        <p class="subtitle">Ask about prices, specs, or stock. Answers come back as natural speech, grounded in a live knowledge base.</p>
+      </div>
 
-    <p class="hint">Allow microphone access, click Record, then ask: "Do you have MacBook Pro?" — the agent answers in under 3 seconds.</p>
+      <div class="mic-stage">
+        <div class="mic-rings" aria-hidden="true">
+          <span class="ring r1"></span>
+          <span class="ring r2"></span>
+          <span class="ring r3"></span>
+        </div>
+        <button id="recordBtn" class="btn btn-idle" type="button" disabled aria-pressed="false" aria-label="Record">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+          </span>
+          <span class="btn-label">Click to allow mic</span>
+        </button>
+        <p id="micMuted" class="mic-muted-label" hidden>microphone muted</p>
+      </div>
 
-    <div id="transcript" role="log" aria-live="polite" aria-atomic="false" class="transcript">(transcript will appear here once you start recording)</div>
+      <ul class="suggestions" aria-label="Try asking">
+        <li>"Do you have MacBook Pro?"</li>
+        <li>"What's the price of an iPhone 15?"</li>
+        <li>"Is the AirPods Pro 2 in stock?"</li>
+      </ul>
+    </section>
+
+    <section class="card transcript-card" aria-label="Conversation">
+      <div class="transcript-head">
+        <h2>Conversation</h2>
+        <span class="transcript-sub">Live transcript</span>
+      </div>
+      <div id="transcript" role="log" aria-live="polite" aria-atomic="false" class="transcript">
+        <span class="empty">Transcript appears here once you start recording.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span>Knowledge base: <code>BKXE19AH89</code> · ap-northeast-1</span>
+      <span>Sonic v2 · Pipecat 1.2.1 · AgentCore Runtime</span>
+    </footer>
   </main>
 
   <script src="app.js"></script>
