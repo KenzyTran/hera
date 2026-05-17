@@ -117,6 +117,65 @@ Trade-off accepted — the instructor monitors the dashboard manually with no ou
 - The Bedrock cost panel takes up to 24h to start populating after the first invoke — a fresh "No data available" is expected.
 - The instructor's billing alarm sits in `INSUFFICIENT_DATA` until the RESEARCH A1 toggle is ticked (carried in 04-HUMAN-UAT.md item #2).
 
+## Optional advanced: Langfuse waterfall trace
+
+The CloudWatch dashboard + alarms cover latency/error/cost at the metric level but do not give you a **waterfall trace** per voice session (session → tool call → KB Retrieve → S3 Vectors). This section adds Langfuse (free tier, 50k events/month) for per-session UI.
+
+Optional — the workshop core is complete even if you skip this.
+
+### Step 1: Create a Langfuse project and grab API keys
+
+1. Sign up at `https://cloud.langfuse.com/` (Google/GitHub/email).
+2. Create a new project → give it a name (e.g. `hera-voice-agent`) → pick the region:
+   - EU: `https://cloud.langfuse.com`
+   - US: `https://us.cloud.langfuse.com` (lower latency from `ap-northeast-1`)
+3. Project Settings → API Keys → Create new API keys → copy:
+   - `LANGFUSE_PUBLIC_KEY=pk-lf-...`
+   - `LANGFUSE_SECRET_KEY=sk-lf-...` (shown only once — store it)
+
+### Step 2: Set the 3 env vars on AgentCore Runtime
+
+```bash
+PUB="pk-lf-..."
+SEC="sk-lf-..."
+HOST="https://cloud.langfuse.com"   # or the US endpoint
+
+IMG=$(aws bedrock-agentcore-control get-agent-runtime \
+  --agent-runtime-id <your-runtime-id> --region ap-northeast-1 \
+  --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
+
+aws bedrock-agentcore-control update-agent-runtime \
+  --agent-runtime-id <your-runtime-id> \
+  --region ap-northeast-1 \
+  --agent-runtime-artifact "containerConfiguration={containerUri=$IMG}" \
+  --role-arn arn:aws:iam::<your-account-id>:role/hera-agentcore-exec-prod \
+  --network-configuration networkMode=PUBLIC \
+  --protocol-configuration serverProtocol=HTTP \
+  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,LANGFUSE_PUBLIC_KEY=$PUB,LANGFUSE_SECRET_KEY=$SEC,LANGFUSE_HOST=$HOST"
+```
+
+Note: `update-agent-runtime` is REPLACE, not MERGE — you must repeat all existing env vars together with the 3 new Langfuse vars. The runtime transitions `UPDATING` → `READY` in about 30 seconds.
+
+### Step 3: Test one voice round and view the trace
+
+1. Open the widget CloudFront URL → click record → ask "Do you have MacBook Pro?".
+2. Open `https://cloud.langfuse.com/` → your project → **Tracing** (left sidebar).
+3. You will see a new trace with this hierarchy:
+   ```
+   hera-voice-session  (root, metadata: session_id)
+   |__ lookup_product  (function span, input=query, output=N chunks)
+       |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
+   ```
+
+### Disable / rotate keys
+
+- Disable: drop the `LANGFUSE_*` vars from `--environment-variables` (re-run update without them).
+- Rotate: create a new key in Langfuse Settings, re-run update with the new key.
+
+The agent code skips the Langfuse wrappers when `LANGFUSE_SECRET_KEY` is unset — turning tracing off never breaks the voice loop.
+
+*Source: docs/OBSERVABILITY.md — out-of-band ops doc*
+
 ## What's next
 
 Deploy is complete and observability is running. Section 4 Cleanup tears the whole stack down to $0 (cdk destroy → terraform destroy → `bin/cleanup-verify.sh` with 19 read-only checks) + a 24h-deferred Cost Explorer paste-line so you can verify $0 ongoing cost.

@@ -117,6 +117,65 @@ Trade-off accepted — instructor monitor dashboard tay, không out-of-band noti
 - Bedrock cost panel mất tới 24h start populate sau invoke đầu — fresh "No data available" là expected.
 - Instructor's billing alarm sit `INSUFFICIENT_DATA` đến khi RESEARCH A1 toggle tick (carried trong 04-HUMAN-UAT.md item #2).
 
+## Tuỳ chọn nâng cao: Langfuse waterfall trace
+
+CloudWatch dashboard + alarm cover được latency/error/cost ở mức metric, nhưng không cho thấy **waterfall trace** cho từng voice session (session → tool call → KB Retrieve → S3 Vectors). Phần này thêm Langfuse (free tier 50k events/tháng) để có UI per-session.
+
+Không bắt buộc — workshop core hoàn chỉnh ngay cả khi skip phần này.
+
+### Bước 1: Tạo Langfuse project + lấy API keys
+
+1. Sign up tại `https://cloud.langfuse.com/` (Google/GitHub/email).
+2. Create new project → đặt tên (vd `hera-voice-agent`) → chọn region:
+   - EU: `https://cloud.langfuse.com`
+   - US: `https://us.cloud.langfuse.com` (latency gần `ap-northeast-1` hơn)
+3. Project Settings → API Keys → Create new API keys → copy:
+   - `LANGFUSE_PUBLIC_KEY=pk-lf-...`
+   - `LANGFUSE_SECRET_KEY=sk-lf-...` (chỉ hiện 1 lần — lưu lại)
+
+### Bước 2: Set 3 env vars trên AgentCore Runtime
+
+```bash
+PUB="pk-lf-..."
+SEC="sk-lf-..."
+HOST="https://cloud.langfuse.com"   # hoặc US endpoint
+
+IMG=$(aws bedrock-agentcore-control get-agent-runtime \
+  --agent-runtime-id <your-runtime-id> --region ap-northeast-1 \
+  --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
+
+aws bedrock-agentcore-control update-agent-runtime \
+  --agent-runtime-id <your-runtime-id> \
+  --region ap-northeast-1 \
+  --agent-runtime-artifact "containerConfiguration={containerUri=$IMG}" \
+  --role-arn arn:aws:iam::<your-account-id>:role/hera-agentcore-exec-prod \
+  --network-configuration networkMode=PUBLIC \
+  --protocol-configuration serverProtocol=HTTP \
+  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,LANGFUSE_PUBLIC_KEY=$PUB,LANGFUSE_SECRET_KEY=$SEC,LANGFUSE_HOST=$HOST"
+```
+
+Lưu ý: `update-agent-runtime` là REPLACE chứ không MERGE — phải pass lại tất cả env vars hiện có cộng thêm 3 Langfuse vars. Runtime sẽ `UPDATING` → `READY` trong ~30 giây.
+
+### Bước 3: Test 1 round voice → xem trace
+
+1. Mở widget CloudFront URL → click record → hỏi "Do you have MacBook Pro?".
+2. Vào `https://cloud.langfuse.com/` → project → **Tracing** (sidebar trái).
+3. Sẽ thấy 1 trace mới với hierarchy:
+   ```
+   hera-voice-session  (root, metadata: session_id)
+   |__ lookup_product  (function span, input=query, output=N chunks)
+       |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
+   ```
+
+### Disable / rotate keys
+
+- Disable: drop `LANGFUSE_*` khỏi `--environment-variables` (chạy lại update với env list không có Langfuse).
+- Rotate: tạo key mới ở Langfuse Settings, chạy lại update với key mới.
+
+Code agent tự skip Langfuse wrappers khi `LANGFUSE_SECRET_KEY` không có — không break voice loop khi tắt trace.
+
+*Source: docs/OBSERVABILITY.md — out-of-band ops doc*
+
 ## Tiếp theo
 
 Deploy đầy đủ + observability đã chạy. Phần 4 Cleanup sẽ tear down toàn bộ stack về $0 (cdk destroy → terraform destroy → `bin/cleanup-verify.sh` 19 read-only check) + 24h-deferred Cost Explorer paste-line để verify $0 ongoing cost.
