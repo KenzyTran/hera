@@ -22,7 +22,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.139.4
+      # Pinned to 0.135.0 -- hugo-theme-learn 2.5.x still uses .Site.IsMultiLingual
+      # which was promoted to a build error in Hugo 0.140+. Bump when migrating
+      # to hugo-theme-relearn (active fork; uses hugo.IsMultilingual).
+      HUGO_VERSION: 0.135.0
     steps:
       - name: Install Hugo CLI
         run: |
