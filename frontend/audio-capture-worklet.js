@@ -23,13 +23,22 @@ class CaptureProcessor extends AudioWorkletProcessor {
     // drifts. Carrying _cursor preserves exact spacing between output
     // samples regardless of native rate.
     this._cursor = 0;
+
+    // Batch samples into ~20 ms chunks (320 samples at 16 kHz) before
+    // posting. AudioWorklet process() fires every 128 samples (~2.67 ms at
+    // 48 kHz native), which yields ~375 fps -- well over the AgentCore
+    // Runtime 250 fps per-connection WebSocket frame rate limit, causing
+    // 1006 disconnects mid-conversation. Batching to 50 fps stays under
+    // the limit with comfortable headroom.
+    this._batchTargetSamples = 320;
+    this._batchBuf = new Int16Array(this._batchTargetSamples * 2);
+    this._batchLen = 0;
   }
 
   process(inputs) {
     const input = inputs[0];
     if (!input || input.length === 0) return true;
     const channel = input[0]; // mono
-    const ratio = sampleRate / this.targetRate;
 
     // Pass 1: anti-alias LPF over the whole quantum.
     const a = this._lpfCoeff;
@@ -45,16 +54,30 @@ class CaptureProcessor extends AudioWorkletProcessor {
     // fractional remainder carries into the next quantum (no drift on
     // non-integer ratios). Math.round is symmetric for negative samples
     // (Math.floor biased one step low).
-    const outSamples = [];
+    const ratio = sampleRate / this.targetRate;
     while (this._cursor < channel.length) {
       const s = filtered[Math.floor(this._cursor)];
-      outSamples.push(Math.max(-32768, Math.min(32767, Math.round(s * 32767))));
+      const i16 = Math.max(-32768, Math.min(32767, Math.round(s * 32767)));
+      if (this._batchLen >= this._batchBuf.length) {
+        const grown = new Int16Array(this._batchBuf.length * 2);
+        grown.set(this._batchBuf);
+        this._batchBuf = grown;
+      }
+      this._batchBuf[this._batchLen++] = i16;
       this._cursor += ratio;
     }
-    this._cursor -= channel.length; // carry fractional leftover into next quantum
+    this._cursor -= channel.length;
 
-    const out = new Int16Array(outSamples);
-    this.port.postMessage(out.buffer, [out.buffer]);
+    // Flush whenever batch reaches the target window; carry remainder into
+    // the next process() call so cadence stays stable across quanta.
+    while (this._batchLen >= this._batchTargetSamples) {
+      const chunk = new Int16Array(this._batchTargetSamples);
+      chunk.set(this._batchBuf.subarray(0, this._batchTargetSamples));
+      this.port.postMessage(chunk.buffer, [chunk.buffer]);
+      this._batchBuf.copyWithin(0, this._batchTargetSamples, this._batchLen);
+      this._batchLen -= this._batchTargetSamples;
+    }
+
     return true;
   }
 }
