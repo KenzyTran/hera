@@ -55,10 +55,32 @@ resource "aws_cloudwatch_log_group" "agentcore" {
 data "aws_iam_policy_document" "agentcore_inline" {
 
   statement {
-    sid       = "BedrockSonicBidiStream"
-    effect    = "Allow"
-    actions   = ["bedrock:InvokeModelWithBidirectionalStream"]
+    sid    = "BedrockSonicBidiStream"
+    effect = "Allow"
+    # AWS docs IAM sample for AgentCore execution role grants InvokeModel +
+    # InvokeModelWithResponseStream alongside the bidi action -- Sonic appears
+    # to require all three even though only bidi is the user-visible call.
+    actions = [
+      "bedrock:InvokeModel",
+      "bedrock:InvokeModelWithResponseStream",
+      "bedrock:InvokeModelWithBidirectionalStream",
+    ]
     resources = [var.sonic_model_arn]
+  }
+
+  # AgentCore workload identity tokens (AWS docs sample requirement).
+  statement {
+    sid    = "AgentCoreWorkloadIdentity"
+    effect = "Allow"
+    actions = [
+      "bedrock-agentcore:GetWorkloadAccessToken",
+      "bedrock-agentcore:GetWorkloadAccessTokenForJWT",
+      "bedrock-agentcore:GetWorkloadAccessTokenForUserId",
+    ]
+    resources = [
+      "arn:aws:bedrock-agentcore:${var.region}:${var.account_id}:workload-identity-directory/default",
+      "arn:aws:bedrock-agentcore:${var.region}:${var.account_id}:workload-identity-directory/default/workload-identity/hera_agent-*",
+    ]
   }
 
   # ECR pull for AgentCore container image. Required by AgentCore Runtime
