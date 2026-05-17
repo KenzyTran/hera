@@ -2,6 +2,12 @@ baseURL = "https://KenzyTran.github.io/hera/"
 title = "Hera — AWS Voice Agent Workshop"
 theme = "hugo-theme-learn"
 
+# Hugo serves the site under the /hera/ subdir but Markdown image refs use
+# absolute paths like `/images/x.png` -- without this flag the browser hits
+# `/images/x.png` (404) instead of `/hera/images/x.png`. canonifyURLs rewrites
+# all absolute paths at build time so they include the baseURL prefix.
+canonifyURLs = true
+
 defaultContentLanguage = "vi"
 defaultContentLanguageInSubdir = true
 
