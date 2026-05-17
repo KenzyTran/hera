@@ -83,6 +83,14 @@ class HeraAgentCoreStack(cdk.Stack):
                 "HERA_LOG_GROUP": "/aws/bedrock-agentcore/hera-agent",
                 "AWS_REGION": cdk.Aws.REGION,
                 "HERA_KB_ID": "BKXE19AH89",
+                # ADOT OpenTelemetry auto-instrumentation env vars per AWS docs:
+                # https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-configure.html
+                "AGENT_OBSERVABILITY_ENABLED": "true",
+                "OTEL_PYTHON_DISTRO": "aws_distro",
+                "OTEL_PYTHON_CONFIGURATOR": "aws_configurator",
+                "OTEL_TRACES_EXPORTER": "otlp",
+                "OTEL_RESOURCE_ATTRIBUTES": "service.name=hera_agent",
+                "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
             },
             network_configuration=agentcore.CfnRuntime.NetworkConfigurationProperty(
                 network_mode="PUBLIC",
