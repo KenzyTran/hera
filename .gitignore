@@ -27,6 +27,10 @@ infra/modules/*/.terraform.lock.hcl
 # Phase 3 widget deploy artifact (bin/build-widget.sh writes here; never source).
 dist/
 
+# Local secrets (never commit). Langfuse keys, OpenAI keys, scratch env files.
+.env
+.env.*
+
 # Phase 3 CDK project artifacts (Plan 03-04). Lockfile (uv.lock) IS committed.
 infra/cdk/.venv/
 infra/cdk/cdk.out/
