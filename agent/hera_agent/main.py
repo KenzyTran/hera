@@ -93,10 +93,12 @@ async def invocations() -> JSONResponse:
         logger.info(f"Probe: sent {len(send_events)} events, waiting 5s for replies...")
 
         async def read_some():
-            async for event in stream.output_stream:
-                received.append(str(event)[:300])
-                if len(received) >= 5:
-                    break
+            output = await stream.await_output()
+            output_stream = output[1]
+            for _ in range(5):
+                result = await output_stream.receive()
+                if result.value and result.value.bytes_:
+                    received.append(result.value.bytes_.decode("utf-8")[:300])
 
         try:
             await asyncio.wait_for(read_some(), timeout=5.0)
