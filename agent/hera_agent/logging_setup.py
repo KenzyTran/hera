@@ -32,14 +32,14 @@ def configure_logging() -> None:
         create_log_group=False,
         send_interval=2,
     )
-    handler.setLevel(logging.INFO)
+    handler.setLevel(logging.DEBUG)
 
-    logger.add(handler, level="INFO", serialize=False)
+    logger.add(handler, level="DEBUG", serialize=False)
 
     for name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
         std_logger = logging.getLogger(name)
         std_logger.addHandler(handler)
-        std_logger.setLevel(logging.INFO)
+        std_logger.setLevel(logging.DEBUG)
 
     logger.info(f"CloudWatch logging enabled: group={log_group} stream={stream}")
     sys.stderr.write(f"CloudWatch logging enabled: group={log_group} stream={stream}\n")
