@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude Code" version="25.0.3">
   <diagram name="Hera Architecture" id="hera-aws">
-    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1050" math="0" shadow="0">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2080" pageHeight="1050" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
@@ -17,7 +17,7 @@
         </mxCell>
 
         <mxCell id="aws_cloud" value="AWS Cloud" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=14;fontStyle=1;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;" vertex="1" parent="1">
-          <mxGeometry x="320" y="80" width="1300" height="900" as="geometry"/>
+          <mxGeometry x="320" y="80" width="1480" height="900" as="geometry"/>
         </mxCell>
 
         <mxCell id="edge_zone" value="Global edge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8EC;strokeColor=#FF9900;strokeWidth=1;dashed=1;fontSize=12;fontStyle=1;fontColor=#FF9900;verticalAlign=top;spacingTop=6;align=left;spacingLeft=15;" vertex="1" parent="aws_cloud">
@@ -148,24 +148,38 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="langfuse_box" value="Langfuse Cloud&#10;(3rd-party SaaS · optional)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F0FF;strokeColor=#5A3DCF;strokeWidth=1.5;dashed=1;fontSize=12;fontStyle=1;fontColor=#3A1F8C;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="1680" y="380" width="200" height="240" as="geometry"/>
+        <mxCell id="aws_obs_box" value="AWS observability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEAF5;strokeColor=#E7157B;strokeWidth=1.5;dashed=1;fontSize=12;fontStyle=1;fontColor=#9A0E54;verticalAlign=top;spacingTop=8;" vertex="1" parent="aws_cloud">
+          <mxGeometry x="1250" y="320" width="200" height="240" as="geometry"/>
         </mxCell>
-        <mxCell id="langfuse_icon" value="&lt;b&gt;Langfuse&lt;/b&gt;&lt;br&gt;trace dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5A3DCF;strokeColor=#ffffff;fontColor=#ffffff;fontSize=12;fontStyle=0;align=center;verticalAlign=middle;shadow=1;" vertex="1" parent="1">
-          <mxGeometry x="1710" y="430" width="140" height="60" as="geometry"/>
+        <mxCell id="cw_logs" value="CloudWatch" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch_2;" vertex="1" parent="aws_cloud">
+          <mxGeometry x="1290" y="370" width="58" height="58" as="geometry"/>
         </mxCell>
-        <mxCell id="langfuse_caption" value="hera-voice-session&#10;→ lookup_product&#10;→ kb_retrieve" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#3A1F8C;fillColor=none;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1690" y="500" width="180" height="55" as="geometry"/>
+        <mxCell id="xray" value="X-Ray" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#ffffff;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;shadow=1;" vertex="1" parent="aws_cloud">
+          <mxGeometry x="1360" y="378" width="56" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="langfuse_disclaimer" value="data leaves AWS" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=9;fontStyle=2;fontColor=#5A3DCF;fillColor=none;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1690" y="570" width="180" height="20" as="geometry"/>
+        <mxCell id="aws_obs_caption" value="container log · spans · metrics" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#9A0E54;fillColor=none;strokeColor=none;" vertex="1" parent="aws_cloud">
+          <mxGeometry x="1260" y="480" width="180" height="20" as="geometry"/>
         </mxCell>
 
-        <mxCell id="e_agentcore_langfuse" value="trace upload&#10;(HTTPS)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#5A3DCF;strokeWidth=1.5;dashed=1;fontSize=10;fontColor=#3A1F8C;labelBackgroundColor=#ffffff;" parent="1" source="model_orchestration" target="langfuse_icon" edge="1">
+        <mxCell id="langfuse_box" value="External observability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F0FF;strokeColor=#5A3DCF;strokeWidth=1.5;dashed=1;fontSize=12;fontStyle=1;fontColor=#3A1F8C;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1860" y="400" width="180" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="langfuse_icon" value="&lt;b&gt;Langfuse&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5A3DCF;strokeColor=#ffffff;fontColor=#ffffff;fontSize=13;fontStyle=0;align=center;verticalAlign=middle;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="450" width="100" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="langfuse_caption" value="optional trace cloud" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#3A1F8C;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1870" y="515" width="160" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_agentcore_cw" value="logs + spans" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#E7157B;strokeWidth=1.5;dashed=1;fontSize=10;fontColor=#9A0E54;labelBackgroundColor=#ffffff;" parent="1" source="model_orchestration" target="cw_logs" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_agentcore_langfuse" value="trace upload (HTTPS)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#5A3DCF;strokeWidth=1.5;dashed=1;fontSize=10;fontColor=#3A1F8C;labelBackgroundColor=#ffffff;" parent="1" source="model_orchestration" target="langfuse_icon" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="700" y="290"/>
-              <mxPoint x="1640" y="290"/>
+              <mxPoint x="1830" y="290"/>
             </Array>
           </mxGeometry>
         </mxCell>
