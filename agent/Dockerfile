@@ -49,8 +49,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping').read()"]
 
-# opentelemetry-instrument wraps the process with ADOT auto-instrumentation.
-# AgentCore Runtime sets OTEL_* env vars automatically so spans + metrics flow
-# to CloudWatch GenAI Observability without further config. Local docker has no
-# OTEL endpoint -- the SDK no-ops gracefully when telemetry endpoint is unset.
-CMD ["opentelemetry-instrument", "uvicorn", "hera_agent.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "hera_agent.main:app", "--host", "0.0.0.0", "--port", "8080"]

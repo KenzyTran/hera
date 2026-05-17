@@ -9,7 +9,6 @@ dependencies = [
     "fastapi>=0.115.6,<1",
     "uvicorn[standard]",
     "watchtower>=3.3,<4",
-    "aws-opentelemetry-distro>=0.10.0",
     "langfuse>=3.0,<4",
 ]
 
