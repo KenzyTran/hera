@@ -4,9 +4,7 @@ A voice-first Apple Store assistant. Người dùng nói qua microphone trên tr
 
 Project gồm 2 mặt:
 - **Demo voice agent** chạy được end-to-end trên AWS Bedrock AgentCore Runtime.
-- **Workshop song ngữ vi/en** (5 chương, theo format FCJ) hướng dẫn build lại từ đầu.
-
-> Live demo bị destroy sau buổi build để tiết kiệm chi phí. Re-deploy lại trong khoảng 5 phút theo guide bên dưới.
+- **Workshop song ngữ vi/en** (5 chương) hướng dẫn build lại từ đầu.
 
 ---
 
@@ -24,8 +22,6 @@ Project gồm 2 mặt:
 ## Architecture
 
 ![Architecture overview](static/images/architecture-aws.png)
-
-Source-of-truth diagram ở [`docs/architecture-aws.drawio`](docs/architecture-aws.drawio) (drawio AWS4 icons). PNG render đặt ở [`static/images/architecture-aws.png`](static/images/architecture-aws.png) theo Hugo convention (`static/images/<slug>.png` → ref `/images/<slug>.png` từ workshop content).
 
 **Data plane (mỗi voice turn):**
 
