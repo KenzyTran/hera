@@ -20,6 +20,7 @@ boto3 ships with the python3.12 Lambda runtime so no deps are packaged.
 
 import json
 import os
+import uuid
 from urllib.parse import quote
 
 from botocore.auth import SigV4QueryAuth
@@ -38,8 +39,6 @@ HOST = f"bedrock-agentcore.{REGION}.amazonaws.com"
 # `quote(arn, safe="")` percent-encodes EVERYTHING (including `:` and `/`).
 ENCODED_ARN = quote(RUNTIME_ARN, safe="")
 WSS_PATH = f"/runtimes/{ENCODED_ARN}/ws"
-WSS_URL_BASE = f"wss://{HOST}{WSS_PATH}?qualifier=DEFAULT"
-HTTPS_URL_BASE = f"https://{HOST}{WSS_PATH}?qualifier=DEFAULT"
 
 _session = Session()
 
@@ -63,9 +62,21 @@ def _presign_wss_url() -> str:
     SigV4 signs the HTTPS form (the host is the same; only the scheme differs).
     After signing we swap https:// -> wss:// for the browser. AWS accepts both
     schemes for the data-plane WebSocket upgrade.
+
+    A fresh runtime-session-id (UUID, 36 chars >= 33 char minimum) is included
+    so each browser session gets its own isolated AgentCore session. AWS docs
+    say WebSocket idle timeout is reset on message activity within the session,
+    so explicit session_id helps avoid premature 1006 closes that occurred when
+    using the default unidentified session.
     """
+    session_id = str(uuid.uuid4())
+    https_url = (
+        f"https://{HOST}{WSS_PATH}"
+        f"?qualifier=DEFAULT"
+        f"&X-Amzn-Bedrock-AgentCore-Runtime-Session-Id={session_id}"
+    )
     creds = _session.get_credentials().get_frozen_credentials()
-    request = AWSRequest(method="GET", url=HTTPS_URL_BASE)
+    request = AWSRequest(method="GET", url=https_url)
     signer = SigV4QueryAuth(creds, SERVICE, REGION, expires=PRESIGN_TTL_SECONDS)
     signer.add_auth(request)
     signed_https = request.url
