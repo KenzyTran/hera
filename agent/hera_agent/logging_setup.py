@@ -41,5 +41,10 @@ def configure_logging() -> None:
         std_logger.addHandler(handler)
         std_logger.setLevel(logging.DEBUG)
 
+    for name in ("aws_sdk_bedrock_runtime", "smithy_aws_event_stream", "smithy_http"):
+        std_logger = logging.getLogger(name)
+        std_logger.addHandler(handler)
+        std_logger.setLevel(logging.DEBUG)
+
     logger.info(f"CloudWatch logging enabled: group={log_group} stream={stream}")
     sys.stderr.write(f"CloudWatch logging enabled: group={log_group} stream={stream}\n")
