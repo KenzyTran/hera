@@ -121,6 +121,43 @@ Trade-off accepted — instructor monitor dashboard tay, không out-of-band noti
 - Bedrock cost panel mất tới 24h start populate sau invoke đầu — fresh "No data available" là expected.
 - Instructor's billing alarm sit `INSUFFICIENT_DATA` đến khi RESEARCH A1 toggle tick (carried trong 04-HUMAN-UAT.md item #2).
 
+## X-Ray Service Map (AWS-native trace)
+
+AgentCore Runtime tự emit 1 span/WS session vào log group `aws/spans` khi anh enable CloudWatch Transaction Search + tracing delivery. Spans tự xuất hiện trong CloudWatch Trace Map (nguyên là X-Ray Service Map) — không cần code instrumentation thêm.
+
+![CloudWatch Trace Map — node hera_agent.DEFAULT (BedrockAgentCore Runtime) nhận traffic từ Client](/images/3.5-observability/xray-service-map.jpeg)
+
+Setup (one-time per account):
+
+```bash
+# 1. Enable Transaction Search (cho phép X-Ray spans ingest vào CloudWatch Logs)
+aws logs put-resource-policy --policy-name TransactionSearchXRayAccess --policy-document '{
+  "Version":"2012-10-17","Statement":[{
+    "Sid":"TransactionSearchXRayAccess","Effect":"Allow",
+    "Principal":{"Service":"xray.amazonaws.com"},
+    "Action":"logs:PutLogEvents",
+    "Resource":["arn:aws:logs:ap-northeast-1:<account-id>:log-group:aws/spans:*"]
+  }]}'
+aws xray update-trace-segment-destination --destination CloudWatchLogs --region ap-northeast-1
+
+# 2. Bật trace delivery cho runtime (mỗi runtime 1 lần)
+aws logs put-delivery-source --name hera-runtime-traces-source --log-type TRACES \
+  --resource-arn arn:aws:bedrock-agentcore:ap-northeast-1:<account-id>:runtime/<runtime-id> \
+  --region ap-northeast-1
+aws logs put-delivery-destination --name hera-runtime-traces-destination \
+  --delivery-destination-type XRAY --region ap-northeast-1
+aws logs create-delivery --delivery-source-name hera-runtime-traces-source \
+  --delivery-destination-arn arn:aws:logs:ap-northeast-1:<account-id>:delivery-destination:hera-runtime-traces-destination \
+  --region ap-northeast-1
+
+# 3. Bump indexing sampling lên 100% để mọi span đều search được trên console
+aws xray update-indexing-rule --name Default --rule 'Probabilistic={DesiredSamplingPercentage=100}' --region ap-northeast-1
+```
+
+Sau ~1 phút khi anh test 1 voice round, mở [CloudWatch Trace Map console](https://ap-northeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-1#xray:service-map/map) → thấy node `hera_agent.DEFAULT` với traffic + latency averages. Click node → "View traces" để xem từng span (name `AgentCore.Runtime.Invoke`, attribute `session.id`, `latency_ms`, `http.response.status_code`).
+
+Lưu ý: AgentCore chỉ emit **root span** mỗi session, không có nested child span cho KB Retrieve / Sonic bidi. Nếu cần waterfall sâu hơn, dùng Langfuse phía dưới.
+
 ## Tuỳ chọn nâng cao: Langfuse waterfall trace
 
 CloudWatch dashboard + alarm cover được latency/error/cost ở mức metric, nhưng không cho thấy **waterfall trace** cho từng voice session (session → tool call → KB Retrieve → S3 Vectors). Phần này thêm Langfuse (free tier 50k events/tháng) để có UI per-session.

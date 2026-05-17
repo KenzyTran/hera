@@ -121,6 +121,43 @@ Trade-off accepted — the instructor monitors the dashboard manually with no ou
 - The Bedrock cost panel takes up to 24h to start populating after the first invoke — a fresh "No data available" is expected.
 - The instructor's billing alarm sits in `INSUFFICIENT_DATA` until the RESEARCH A1 toggle is ticked (carried in 04-HUMAN-UAT.md item #2).
 
+## X-Ray Service Map (AWS-native trace)
+
+AgentCore Runtime emits one span per WS session into the `aws/spans` log group when you enable CloudWatch Transaction Search + tracing delivery. The spans show up in the CloudWatch Trace Map (formerly X-Ray Service Map) automatically — no application instrumentation required.
+
+![CloudWatch Trace Map — node hera_agent.DEFAULT (BedrockAgentCore Runtime) receiving traffic from Client](/images/3.5-observability/xray-service-map.jpeg)
+
+Setup (one-time per account):
+
+```bash
+# 1. Enable Transaction Search (lets X-Ray spans ingest into CloudWatch Logs)
+aws logs put-resource-policy --policy-name TransactionSearchXRayAccess --policy-document '{
+  "Version":"2012-10-17","Statement":[{
+    "Sid":"TransactionSearchXRayAccess","Effect":"Allow",
+    "Principal":{"Service":"xray.amazonaws.com"},
+    "Action":"logs:PutLogEvents",
+    "Resource":["arn:aws:logs:ap-northeast-1:<account-id>:log-group:aws/spans:*"]
+  }]}'
+aws xray update-trace-segment-destination --destination CloudWatchLogs --region ap-northeast-1
+
+# 2. Enable trace delivery for the runtime (once per runtime)
+aws logs put-delivery-source --name hera-runtime-traces-source --log-type TRACES \
+  --resource-arn arn:aws:bedrock-agentcore:ap-northeast-1:<account-id>:runtime/<runtime-id> \
+  --region ap-northeast-1
+aws logs put-delivery-destination --name hera-runtime-traces-destination \
+  --delivery-destination-type XRAY --region ap-northeast-1
+aws logs create-delivery --delivery-source-name hera-runtime-traces-source \
+  --delivery-destination-arn arn:aws:logs:ap-northeast-1:<account-id>:delivery-destination:hera-runtime-traces-destination \
+  --region ap-northeast-1
+
+# 3. Bump indexing sampling to 100% so every span is searchable in the console
+aws xray update-indexing-rule --name Default --rule 'Probabilistic={DesiredSamplingPercentage=100}' --region ap-northeast-1
+```
+
+After ~1 minute of testing one voice round, open the [CloudWatch Trace Map console](https://ap-northeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-1#xray:service-map/map) → you'll see the `hera_agent.DEFAULT` node with traffic and latency averages. Click the node → "View traces" to inspect individual spans (name `AgentCore.Runtime.Invoke`, attributes `session.id`, `latency_ms`, `http.response.status_code`).
+
+Note: AgentCore only emits the **root span** per session — no nested child spans for KB Retrieve / Sonic bidi. For a deeper waterfall, use Langfuse below.
+
 ## Optional advanced: Langfuse waterfall trace
 
 The CloudWatch dashboard + alarms cover latency/error/cost at the metric level but do not give you a **waterfall trace** per voice session (session → tool call → KB Retrieve → S3 Vectors). This section adds Langfuse (free tier, 50k events/month) for per-session UI.
