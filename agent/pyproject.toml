@@ -10,7 +10,7 @@ dependencies = [
     "uvicorn[standard]",
     "watchtower>=3.3,<4",
     "aws-opentelemetry-distro>=0.10.0",
-    "openai-agents>=0.0.10",
+    "langfuse>=3.0,<4",
 ]
 
 [build-system]

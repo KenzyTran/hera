@@ -50,26 +50,34 @@ def _kb_retrieve(query: str) -> str:
     )
 
 
-_OPENAI_TRACING = bool(os.environ.get("OPENAI_API_KEY"))
+_LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_SECRET_KEY"))
+_lf = None
+if _LANGFUSE_ENABLED:
+    from langfuse import get_client
+    _lf = get_client()
 
 
 async def lookup_product_handler(params: FunctionCallParams) -> None:
     """Pipecat tool handler. Offloads sync boto3 to a thread (Pitfall F)."""
     query = params.arguments["query"]
 
-    if _OPENAI_TRACING:
-        from agents import function_span, custom_span
-        # function_span = native OpenAI tool-call span (shows in trace UI as a
-        # function invocation). Nested custom_span captures the Bedrock KB
-        # Retrieve sub-call with knob values for diagnostics.
-        with function_span(name="lookup_product", input=query) as fspan:
-            with custom_span(
-                name="kb_retrieve",
-                data={"query": query, "kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
-            ):
+    if _LANGFUSE_ENABLED and _lf is not None:
+        # Outer span = the tool call as the agent sees it.
+        with _lf.start_as_current_span(name="lookup_product") as outer:
+            outer.update(input={"query": query}, metadata={"tool": "lookup_product"})
+            # Inner span = the Bedrock KB Retrieve sub-call (S3 Vectors backend).
+            with _lf.start_as_current_span(name="kb_retrieve") as inner:
+                inner.update(
+                    input={"query": query},
+                    metadata={"kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
+                )
                 result = await asyncio.to_thread(_kb_retrieve, query)
-            chunk_count = 0 if result == "no relevant product info" else result.count("Source:")
-            fspan.span_data.output = f"{chunk_count} chunks ({len(result)} chars)"
+                chunk_count = (
+                    0 if result == "no relevant product info"
+                    else result.count("Source:")
+                )
+                inner.update(output={"chunks": chunk_count, "chars": len(result)})
+            outer.update(output={"chunks": chunk_count})
     else:
         result = await asyncio.to_thread(_kb_retrieve, query)
 

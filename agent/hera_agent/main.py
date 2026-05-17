@@ -121,7 +121,11 @@ async def invocations() -> JSONResponse:
     })
 
 
-_OPENAI_TRACING = bool(os.environ.get("OPENAI_API_KEY"))
+_LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_SECRET_KEY"))
+_lf = None
+if _LANGFUSE_ENABLED:
+    from langfuse import Langfuse
+    _lf = Langfuse()  # reads LANGFUSE_PUBLIC_KEY/SECRET_KEY/HOST from env
 
 
 @app.websocket("/ws")
@@ -140,10 +144,13 @@ async def ws_endpoint(websocket: WebSocket) -> None:
             logger.exception("WS pipeline failed")
             raise
 
-    if _OPENAI_TRACING:
-        from agents import trace
-        with trace(workflow_name="hera-voice-session", group_id=session_id):
-            await _run()
+    if _LANGFUSE_ENABLED and _lf is not None:
+        with _lf.start_as_current_span(name="hera-voice-session") as span:
+            span.update(metadata={"session_id": session_id, "agent": "hera"})
+            try:
+                await _run()
+            finally:
+                _lf.flush()
     else:
         await _run()
 
