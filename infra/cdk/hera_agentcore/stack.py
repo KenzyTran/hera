@@ -83,13 +83,13 @@ class HeraAgentCoreStack(cdk.Stack):
                 "HERA_LOG_GROUP": "/aws/bedrock-agentcore/hera-agent",
                 "AWS_REGION": cdk.Aws.REGION,
                 "HERA_KB_ID": "BKXE19AH89",
-                # ADOT auto-instrumentation disabled: aws_configurator caused
-                # Sonic bidi stream to time out (boto3 calls slowed enough to
-                # exceed widget 30s heartbeat). Container image still wraps
-                # uvicorn with opentelemetry-instrument; OTEL_SDK_DISABLED
-                # makes the wrapper no-op. Re-enable only with verified OTLP
-                # endpoint config (Application Signals OTLP intake) + load test.
-                "OTEL_SDK_DISABLED": "true",
+                # Langfuse tracing env vars (LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
+                # LANGFUSE_HOST) are intentionally NOT set here: secrets are managed out
+                # of band via the aws bedrock-agentcore-control update-agent-runtime CLI
+                # invocation documented in docs/OBSERVABILITY.md. Setting them in CDK
+                # would either commit secrets to git or force every `cdk deploy` to
+                # know them. Operator runs the CLI once after deploy to (re)set them.
+                # Trace SDK code in main.py / tools.py no-ops when the secret is unset.
             },
             network_configuration=agentcore.CfnRuntime.NetworkConfigurationProperty(
                 network_mode="PUBLIC",
