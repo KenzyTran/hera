@@ -152,8 +152,13 @@ bin/                  Build / deploy / smoke / cleanup scripts
 content/              Workshop (vi + en, hugo-theme-learn)
 docs/                 architecture-aws.drawio (source), OBSERVABILITY.md
 static/images/        Workshop-served images (architecture-aws.png, screenshots per chapter)
-.planning/            GSD planning artifacts (ROADMAP, REQUIREMENTS, phase plans, STATE)
 ```
+
+---
+
+## Author
+
+**Kiet Tran** · <nguyenthanhcllhp@gmail.com> · [@KenzyTran](https://github.com/KenzyTran)
 
 ---
 

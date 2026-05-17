@@ -61,8 +61,6 @@ A DynamoDB per-user session store for returning users; v1 is in-memory only (D-2
 - Knowledge Base with RAG re-ranking (ADV-02 — extra Bedrock invocation per retrieve, latency vs precision trade-off).
 - Bedrock Guardrails PII redaction (PROJECT.md Out of Scope v1 — the workshop uses demo Apple catalog data, no real PII).
 
-Full tracking lives in `.planning/REQUIREMENTS.md` § v2 Requirements.
-
 ## Thanks
 
 This workshop was built for AWS Cloud Clubs Vietnam, with the goal of helping Cloud Clubs members deploy a voice chatbot to their own AWS account end-to-end — not watching a demo, but actually shipping.
@@ -74,9 +72,9 @@ Issues / improvements: PR into the workshop repo on GitHub (URL from `config.tom
 ## References
 
 - `RUNBOOK.md` — full operator runbook (paste-style ops; each workshop chapter section points back to it).
-- `.planning/PROJECT.md` — core value + locked stack rationale.
-- `.planning/REQUIREMENTS.md` — 46 v1 requirements + v2 deferred backlog.
-- `.planning/ROADMAP.md` — 5-phase plan + per-phase success criteria.
-- AWS Bedrock pricing: `https://aws.amazon.com/bedrock/pricing/`.
-- AgentCore Runtime docs: `https://docs.aws.amazon.com/bedrock-agentcore/`.
-- Pipecat 1.1.0: `https://docs.pipecat.ai/`.
+- `docs/OBSERVABILITY.md` — detailed log/trace stack + how to set/rotate Langfuse keys.
+- AWS blog Pipecat + AgentCore: <https://aws.amazon.com/blogs/machine-learning/deploy-voice-agents-with-pipecat-and-amazon-bedrock-agentcore-runtime-part-1/>.
+- AWS Bedrock pricing: <https://aws.amazon.com/bedrock/pricing/>.
+- AgentCore Runtime docs: <https://docs.aws.amazon.com/bedrock-agentcore/>.
+- Pipecat docs: <https://docs.pipecat.ai/>.
+- Langfuse docs: <https://langfuse.com/docs>.

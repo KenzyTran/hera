@@ -20,44 +20,24 @@ Voice agent là một dịch vụ AI vận hành theo dạng real-time bidirecti
 
 ## Kiến trúc tổng thể
 
-```mermaid
-flowchart LR
-    Browser["Browser<br/>(Web Widget)"] -->|"GET /index.html"| CDN[CloudFront]
-    Browser -->|"POST / (presign)"| Presign["Presigner<br/>Lambda"]
-    Presign -->|"presigned WSS URL"| Browser
-    Browser -->|"WSS upgrade<br/>(SigV4 presigned)"| Runtime["AgentCore<br/>Runtime"]
-    Runtime -->|"bidi audio stream"| Sonic["Nova 2 Sonic<br/>(Bedrock)"]
-    Runtime -->|"bedrock:Retrieve"| KB["Bedrock KB<br/>(S3 Vectors + Titan v2)"]
-    Sonic -.->|"audio chunks 24kHz"| Runtime
-    KB -.->|"top-3 chunks"| Runtime
-```
+![Kiến trúc Hera — Pipecat trên AgentCore Runtime + Bedrock Nova 2 Sonic + KB S3 Vectors](/images/architecture-aws.png)
 
 Browser ghi audio 16 kHz Int16 mono qua AudioWorklet. CloudFront serve widget tĩnh (HTML/JS/CSS) từ S3. Presigner Lambda mint một URL WSS có chữ ký SigV4 sống ngắn (300s) vì browser không tự ký được WebSocket upgrade. AgentCore Runtime chạy Pipecat container, mở bidirectional stream tới Nova 2 Sonic, gọi Bedrock Knowledge Base qua `bedrock:Retrieve` khi Sonic phát tool_use, và stream audio 24 kHz về trình duyệt.
 
 ## Voice loop một-vòng
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant Browser
-    participant Presign as Presigner Lambda
-    participant Runtime as AgentCore Runtime
-    participant Sonic as Nova 2 Sonic
-    participant KB as Bedrock KB
-    User->>Browser: click "record" + speak
-    Browser->>Presign: POST / (mint WSS URL)
-    Presign-->>Browser: { "url": "wss://..." }
-    Browser->>Runtime: WSS upgrade
-    Browser->>Runtime: audio frames (16kHz Int16)
-    Runtime->>Sonic: bidi stream open
-    Sonic->>Runtime: tool_use(lookup_product)
-    Runtime->>KB: bedrock-agent-runtime retrieve
-    KB-->>Runtime: top-3 chunks
-    Runtime->>Sonic: tool_result
-    Sonic-->>Runtime: audio chunks (24kHz)
-    Runtime-->>Browser: audio frames
-    Browser->>User: speak response
-```
+1. **User** click "record" trên widget và nói câu hỏi.
+2. **Browser** → **Presigner Lambda**: `POST /` xin URL WSS có ký SigV4.
+3. **Presigner Lambda** → **Browser**: trả `{"url": "wss://..."}` (TTL 300 s).
+4. **Browser** → **AgentCore Runtime**: WSS upgrade qua URL vừa nhận; sau đó stream audio frame 16 kHz Int16 lên.
+5. **AgentCore Runtime (Pipecat)** → **Nova 2 Sonic**: mở bidirectional stream, forward audio.
+6. **Sonic** → **Runtime**: emit `tool_use(lookup_product)` khi nhận diện câu hỏi liên quan sản phẩm.
+7. **Runtime** → **Bedrock KB** (`bedrock-agent-runtime.retrieve`): query top-3 chunks từ S3 Vectors.
+8. **KB** → **Runtime**: trả về chunks (text + score + source).
+9. **Runtime** → **Sonic**: gửi `tool_result` vào stream.
+10. **Sonic** → **Runtime**: stream audio reply 24 kHz về.
+11. **Runtime** → **Browser**: forward audio frames.
+12. **Browser** → **User**: phát loa, kết thúc 1 turn (~3 s end-to-end).
 
 ## Region mặc định
 

@@ -61,8 +61,6 @@ DynamoDB per-user session store cho returning users; v1 in-memory only (D-21 Pha
 - Knowledge Base với RAG re-ranking (ADV-02 — extra Bedrock invocation per retrieve, trade-off latency vs precision).
 - Bedrock Guardrails PII redaction (PROJECT.md Out of Scope v1 — workshop dùng demo data Apple catalog, không xử lý PII thật).
 
-Tracking đầy đủ ở `.planning/REQUIREMENTS.md` § v2 Requirements.
-
 ## Cảm ơn
 
 Workshop được build cho AWS Cloud Clubs Vietnam, mục tiêu giúp Cloud Clubs members tự deploy được voice chatbot trên AWS account của mình end-to-end — không phải xem demo, mà thực sự ship.
@@ -74,9 +72,9 @@ Issues / improvements: PR vào repo workshop trên GitHub (URL từ `config.toml
 ## Tài liệu tham khảo
 
 - `RUNBOOK.md` — operator runbook đầy đủ (paste-style ops; mỗi section workshop chapter có pointer tới đó).
-- `.planning/PROJECT.md` — core value + locked stack rationale.
-- `.planning/REQUIREMENTS.md` — 46 v1 requirements + v2 deferred backlog.
-- `.planning/ROADMAP.md` — 5-phase plan + per-phase success criteria.
-- AWS Bedrock pricing: `https://aws.amazon.com/bedrock/pricing/`.
-- AgentCore Runtime docs: `https://docs.aws.amazon.com/bedrock-agentcore/`.
-- Pipecat 1.1.0: `https://docs.pipecat.ai/`.
+- `docs/OBSERVABILITY.md` — log/trace stack chi tiết + cách set/rotate Langfuse keys.
+- AWS blog Pipecat + AgentCore: <https://aws.amazon.com/blogs/machine-learning/deploy-voice-agents-with-pipecat-and-amazon-bedrock-agentcore-runtime-part-1/>.
+- AWS Bedrock pricing: <https://aws.amazon.com/bedrock/pricing/>.
+- AgentCore Runtime docs: <https://docs.aws.amazon.com/bedrock-agentcore/>.
+- Pipecat docs: <https://docs.pipecat.ai/>.
+- Langfuse docs: <https://langfuse.com/docs>.

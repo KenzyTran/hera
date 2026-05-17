@@ -20,44 +20,24 @@ A voice agent is an AI service that runs as a real-time bidirectional audio stre
 
 ## High-level architecture
 
-```mermaid
-flowchart LR
-    Browser["Browser<br/>(Web Widget)"] -->|"GET /index.html"| CDN[CloudFront]
-    Browser -->|"POST / (presign)"| Presign["Presigner<br/>Lambda"]
-    Presign -->|"presigned WSS URL"| Browser
-    Browser -->|"WSS upgrade<br/>(SigV4 presigned)"| Runtime["AgentCore<br/>Runtime"]
-    Runtime -->|"bidi audio stream"| Sonic["Nova 2 Sonic<br/>(Bedrock)"]
-    Runtime -->|"bedrock:Retrieve"| KB["Bedrock KB<br/>(S3 Vectors + Titan v2)"]
-    Sonic -.->|"audio chunks 24kHz"| Runtime
-    KB -.->|"top-3 chunks"| Runtime
-```
+![Hera architecture — Pipecat on AgentCore Runtime + Bedrock Nova 2 Sonic + KB on S3 Vectors](/images/architecture-aws.png)
 
 The browser captures 16 kHz Int16 mono audio via AudioWorklet. CloudFront serves the static widget (HTML/JS/CSS) from S3. The presigner Lambda mints a short-lived (300s) SigV4-signed WSS URL because browsers cannot sign WebSocket upgrades themselves. AgentCore Runtime runs the Pipecat container, opens a bidirectional stream to Nova 2 Sonic, calls the Bedrock Knowledge Base via `bedrock:Retrieve` when Sonic emits a tool_use, and streams 24 kHz audio back to the browser.
 
 ## Voice loop end-to-end
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant Browser
-    participant Presign as Presigner Lambda
-    participant Runtime as AgentCore Runtime
-    participant Sonic as Nova 2 Sonic
-    participant KB as Bedrock KB
-    User->>Browser: click "record" + speak
-    Browser->>Presign: POST / (mint WSS URL)
-    Presign-->>Browser: { "url": "wss://..." }
-    Browser->>Runtime: WSS upgrade
-    Browser->>Runtime: audio frames (16kHz Int16)
-    Runtime->>Sonic: bidi stream open
-    Sonic->>Runtime: tool_use(lookup_product)
-    Runtime->>KB: bedrock-agent-runtime retrieve
-    KB-->>Runtime: top-3 chunks
-    Runtime->>Sonic: tool_result
-    Sonic-->>Runtime: audio chunks (24kHz)
-    Runtime-->>Browser: audio frames
-    Browser->>User: speak response
-```
+1. **User** clicks "record" on the widget and speaks.
+2. **Browser** → **Presigner Lambda**: `POST /` to mint a SigV4-signed WSS URL.
+3. **Presigner Lambda** → **Browser**: returns `{"url": "wss://..."}` (TTL 300 s).
+4. **Browser** → **AgentCore Runtime**: WSS upgrade with that URL, then streams 16 kHz Int16 audio frames.
+5. **AgentCore Runtime (Pipecat)** → **Nova 2 Sonic**: opens a bidirectional stream and forwards the audio.
+6. **Sonic** → **Runtime**: emits `tool_use(lookup_product)` when it detects a product question.
+7. **Runtime** → **Bedrock KB** (`bedrock-agent-runtime.retrieve`): queries top-3 chunks from S3 Vectors.
+8. **KB** → **Runtime**: returns chunks (text + score + source).
+9. **Runtime** → **Sonic**: sends `tool_result` back into the stream.
+10. **Sonic** → **Runtime**: streams the 24 kHz audio reply.
+11. **Runtime** → **Browser**: forwards audio frames.
+12. **Browser** → **User**: plays the audio, ending one turn (~3 s end-to-end).
 
 ## Default region
 
