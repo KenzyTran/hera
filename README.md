@@ -6,6 +6,8 @@ Project gồm 2 mặt:
 - **Demo voice agent** chạy được end-to-end trên AWS Bedrock AgentCore Runtime.
 - **Workshop song ngữ vi/en** (5 chương) hướng dẫn build lại từ đầu.
 
+![Hera voice agent demo](static/images/demo.gif)
+
 ---
 
 ## Highlights
