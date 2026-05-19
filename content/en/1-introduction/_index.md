@@ -77,7 +77,6 @@ Chapter 2 Preparation has detailed paste-block installers per platform.
 - Source snippets carry a footer line `*Source: <repo-relative-path> — Phase X Plan XX-XX*` (D-42). If drift happens, grep the footer and re-paste from the source file.
 - AWS Console screenshots are annotated (red box + arrow + label) at the choke points where the UI is unavoidable (D-44 — Bedrock model access, Billing Alerts toggle, AgentCore quota request).
 - Chatbot speech is English (Sonic is strongest in en); workshop documentation is bilingual vi/en.
-- Code and logs contain no emoji (keeps grep/diff clean across terminals and rendering tools).
 - Chapter 4 Cleanup is mandatory — if you don't tear down, the AgentCore Runtime + Bedrock KB keep accruing per-hour-active charges.
 
 {{% notice warning %}}

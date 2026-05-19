@@ -77,7 +77,6 @@ Phần 2 Preparation có installer paste-blocks chi tiết cho từng nền tả
 - Snippet mã nguồn ghi rõ source dưới dạng `*Source: <repo-relative-path> — Phase X Plan XX-XX*` (D-42). Nếu có drift, grep footer là re-paste lại được.
 - Screenshot AWS Console được chụp với annotation (red box + arrow + label) tại các choke point bắt buộc dùng UI (D-44 — Bedrock model access, Billing Alerts toggle, AgentCore quota request).
 - Chatbot speech là tiếng Anh (Sonic mạnh nhất ở en); workshop documentation song ngữ vi/en.
-- Code và log không có emoji (giữ grep/diff sạch trên các terminal và công cụ render khác nhau).
 - Phần 4 Cleanup là bắt buộc — nếu không dọn, AgentCore Runtime + Bedrock KB tiếp tục tính phí theo giờ active.
 
 {{% notice warning %}}
