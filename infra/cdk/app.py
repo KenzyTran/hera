@@ -57,6 +57,10 @@ HeraAgentCoreStack(
     ecr_repo_url=tf["ecr_repo_url"],
     image_tag=image_tag,
     exec_role_arn=tf["agentcore_exec_role_arn"],
+    kb_id=tf["kb_id"],
+    langfuse_public_key=os.environ.get("LANGFUSE_PUBLIC_KEY", ""),
+    langfuse_secret_key=os.environ.get("LANGFUSE_SECRET_KEY", ""),
+    langfuse_host=os.environ.get("LANGFUSE_HOST", ""),
 )
 
 app.synth()

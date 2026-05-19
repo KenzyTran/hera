@@ -21,63 +21,70 @@ Tổng hợp các nơi xem log + trace + cách quản lý OpenAI API key cho tra
 
 ## Langfuse Keys — Setup
 
-Tracing via Langfuse SDK dùng 3 env vars để upload spans lên `cloud.langfuse.com`. Keys set ở env var của AgentCore Runtime container.
+Tracing via Langfuse SDK dùng 3 env vars để upload spans lên `cloud.langfuse.com`. Keys được bake vào AgentCore Runtime tại thời điểm `cdk deploy` (KHÔNG patch sau bằng `update-agent-runtime` — config-only update không recycle container nên patch không có tác dụng).
 
 ### Lấy keys từ Langfuse Cloud
 
 1. https://cloud.langfuse.com → Sign up (free tier 50k events/month)
-2. Create project → đặt tên
+2. Create project → đặt tên (hera-voice-agent)
 3. Project Settings → API Keys → Create new API keys
 4. Copy `pk-lf-...` (public) + `sk-lf-...` (secret) — secret chỉ hiện 1 lần
 5. Host: `https://cloud.langfuse.com` (EU) hoặc `https://us.cloud.langfuse.com` (US)
 
-### Set / rotate keys
+### Lưu keys vào `.env.langfuse` (gitignored)
 
 ```bash
-# Replace with real values
-PUB="pk-lf-..."
-SEC="sk-lf-..."
-HOST="https://cloud.langfuse.com"
-
-aws bedrock-agentcore-control update-agent-runtime \
-  --agent-runtime-id hera_agent-SCPFxK4PDa \
-  --region ap-northeast-1 \
-  --agent-runtime-artifact "containerConfiguration={containerUri=851725411875.dkr.ecr.ap-northeast-1.amazonaws.com/hera-agent:CURRENT_TAG}" \
-  --role-arn arn:aws:iam::851725411875:role/hera-agentcore-exec-prod \
-  --network-configuration networkMode=PUBLIC \
-  --protocol-configuration serverProtocol=HTTP \
-  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,OTEL_SDK_DISABLED=true,LANGFUSE_PUBLIC_KEY=$PUB,LANGFUSE_SECRET_KEY=$SEC,LANGFUSE_HOST=$HOST"
+# Tạo file ở repo root (KHÔNG commit).
+cat > .env.langfuse <<'EOF'
+export LANGFUSE_PUBLIC_KEY=pk-lf-...
+export LANGFUSE_SECRET_KEY=sk-lf-...
+export LANGFUSE_HOST=https://cloud.langfuse.com
+EOF
 ```
 
-Lưu ý:
-- `CURRENT_TAG` = git SHA của image đang chạy. Xem bằng:
-  ```bash
-  aws bedrock-agentcore-control get-agent-runtime \
-    --agent-runtime-id hera_agent-SCPFxK4PDa --region ap-northeast-1 \
-    --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text
-  ```
-- Update là REPLACE chứ không MERGE — toàn bộ env vars phải pass lại.
-- Runtime `UPDATING` → `READY` trong ~30s.
-
-### Disable tracing (remove keys)
+### Set keys lên runtime — chỉ qua `cdk deploy`
 
 ```bash
-# Drop LANGFUSE_* from --environment-variables
-aws bedrock-agentcore-control update-agent-runtime ... \
-  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,OTEL_SDK_DISABLED=true"
+source .env.langfuse
+(cd infra/envs/prod && terraform output -json > terraform-outputs.json)
+(cd infra/cdk && cdk deploy hera-agentcore \
+  --context image_tag=$(git rev-parse --short HEAD) \
+  --outputs-file ../../dist/cdk-outputs.json \
+  --require-approval never)
 ```
 
-Code tự skip Langfuse wrappers khi `LANGFUSE_SECRET_KEY` không có.
+CDK đọc 3 env var (`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`) từ shell và bake vào CFn `EnvironmentVariables` của runtime. Container restart trong ~20s và đọc keys mới ngay. RUNBOOK Phase 3 Step 3 là single source of truth cho lệnh deploy đầy đủ.
 
-### Verify keys are set
+### Disable tracing
+
+Mở shell mới (không source `.env.langfuse`) rồi re-deploy. CDK thấy 3 env var rỗng → skip không set vào CFn. Code trong `main.py` / `tools.py` no-op SDK wrappers khi `LANGFUSE_SECRET_KEY` không có.
+
+### Verify tracing đã active
 
 ```bash
+# 1. Config plane: keys có trong runtime
 aws bedrock-agentcore-control get-agent-runtime \
-  --agent-runtime-id hera_agent-SCPFxK4PDa --region ap-northeast-1 \
+  --agent-runtime-id <runtime-id> --region ap-northeast-1 \
   --query 'environmentVariables.LANGFUSE_SECRET_KEY' --output text | head -c 10
+# Trả "sk-lf-..." = OK config plane.
+
+# 2. Container đã pickup + SDK init thành công
+aws logs filter-log-events \
+  --log-group-name /aws/bedrock-agentcore/hera-agent \
+  --start-time $(($(date +%s)*1000 - 300000)) \
+  --region ap-northeast-1 \
+  --filter-pattern '"Langfuse client initialized"' \
+  --query 'events[-1].message' --output text
+# Trả ".. Langfuse client initialized: ... auth_check=True" = container đã ship traces được.
+
+# 3. Trace thật xuất hiện ở UI
+# Mở https://cloud.langfuse.com -> project -> Traces, refresh sau khi /ws session đóng.
 ```
 
-Trả `sk-lf-efc4` = key đang set. Trả `None` = chưa set.
+### Đừng làm
+
+- KHÔNG set `OTEL_SDK_DISABLED=true` trong env vars của runtime. Biến này tắt OpenTelemetry toàn cục, mà Langfuse SDK chạy trên OTel — trace sẽ không bao giờ rời container dù `auth_check=True`. Container log sẽ in `OTEL_SDK_DISABLED is set. Langfuse tracing will be disabled and no traces will appear in the UI.` Nếu thấy log đó, mở `infra/cdk/hera_agentcore/stack.py` và xác nhận `OTEL_SDK_DISABLED` không nằm trong `env_vars` dict, rồi re-deploy.
+- KHÔNG patch keys bằng `aws bedrock-agentcore-control update-agent-runtime` sau khi deploy. Config-only update KHÔNG recycle container; container đang chạy giữ env vars cũ tới khi natural recycle (có thể hàng giờ). Luôn re-deploy qua CDK.
 
 ---
 

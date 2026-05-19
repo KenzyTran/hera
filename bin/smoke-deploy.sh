@@ -17,12 +17,13 @@
 set -euo pipefail
 
 # --- Preflight ---
-for tool in aws docker git terraform jq curl uv; do
+for tool in aws docker git terraform jq curl uv cdk; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "ERROR: required tool '$tool' is not on PATH." >&2
     case "$tool" in
-      uv) echo "Install: https://docs.astral.sh/uv/getting-started/installation/" >&2 ;;
-      *)  : ;;
+      uv)  echo "Install: https://docs.astral.sh/uv/getting-started/installation/" >&2 ;;
+      cdk) echo "Install: npm install -g aws-cdk (>=2.150.0)" >&2 ;;
+      *)   : ;;
     esac
     exit 2
   fi
@@ -37,14 +38,27 @@ export AWS_REGION="$REGION"
 
 mkdir -p "$DIST_DIR"
 
+# Source Langfuse keys if .env.langfuse exists. CDK reads LANGFUSE_* from
+# process env and bakes them into the runtime's EnvironmentVariables so
+# tracing works on first connect. If the file is absent we deploy without
+# tracing and the SDK wrappers no-op (this is fine, just no Langfuse traces).
+if [ -f "$REPO_ROOT/.env.langfuse" ]; then
+  echo "[0/8] sourcing .env.langfuse (tracing on)"
+  set -a; . "$REPO_ROOT/.env.langfuse"; set +a
+else
+  echo "[0/8] .env.langfuse not found -- deploying without Langfuse tracing"
+fi
+
 # --- Step 1: dump terraform outputs (CDK reads them) ---
 echo "[1/8] terraform output -json > terraform-outputs.json ..."
 (cd "$TF_DIR" && terraform output -json > terraform-outputs.json)
 
 # --- Step 2: cdk deploy hera-agentcore ---
+# `cdk` is the Node CLI on PATH; do NOT prefix `uv run` (uv does not proxy
+# Node binaries -- spawns fail with "program not found").
 GIT_SHA="$(cd "$REPO_ROOT" && git rev-parse --short HEAD)"
 echo "[2/8] cdk deploy hera-agentcore --context image_tag=$GIT_SHA ..."
-(cd "$CDK_DIR" && uv run cdk deploy hera-agentcore \
+(cd "$CDK_DIR" && cdk deploy hera-agentcore \
   --context "image_tag=$GIT_SHA" \
   --outputs-file "$DIST_DIR/cdk-outputs.json" \
   --require-approval never)

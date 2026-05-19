@@ -392,18 +392,36 @@ Output ends with the `cdk deploy` line you paste into Step 3. Re-run is safe: pu
 
 ### Step 3: Deploy AgentCore (CDK)
 
-```bash
-# Dump terraform outputs so the CDK app can read them (TF -> CDK bridge).
-cd infra/envs/prod
-terraform output -json > terraform-outputs.json
-cd ../../..
+The CDK stack reads `kb_id` from `terraform-outputs.json` and reads `LANGFUSE_*` from the operator's shell env. If `LANGFUSE_SECRET_KEY` is set in the shell, CDK bakes the keys into the runtime's `EnvironmentVariables` so the container starts with tracing on; otherwise the runtime starts without tracing (main.py / tools.py no-op the SDK wrappers). Do NOT run `aws bedrock-agentcore-control update-agent-runtime` to patch env vars after `cdk deploy` — config-only updates do NOT recycle the container, so post-deploy env-var patches do not take effect.
 
-# Provision/replace the AgentCore Runtime resource. Captures the runtime ARN
-# in dist/cdk-outputs.json under hera-agentcore.AgentCoreRuntimeArn.
-cd infra/cdk
-GIT_SHA=$(git rev-parse --short HEAD)
-uv run cdk deploy hera-agentcore --context image_tag=${GIT_SHA} --outputs-file ../../dist/cdk-outputs.json --require-approval never
-cd ../..
+```bash
+# 1. Source Langfuse keys (skip this line for tracing-off deploys).
+#    .env.langfuse is gitignored and ships keys via `export LANGFUSE_PUBLIC_KEY=...` etc.
+source .env.langfuse
+
+# 2. Dump terraform outputs so the CDK app can read them (TF -> CDK bridge).
+(cd infra/envs/prod && terraform output -json > terraform-outputs.json)
+
+# 3. Deploy. `cdk` is the Node CLI on PATH — do NOT prefix `uv run`
+#    (uv does not proxy Node binaries; the call errors out program-not-found).
+(cd infra/cdk && cdk deploy hera-agentcore \
+  --context image_tag=$(git rev-parse --short HEAD) \
+  --outputs-file ../../dist/cdk-outputs.json \
+  --require-approval never)
+```
+
+Verify the new container actually picked up Langfuse keys (each `cdk deploy` restarts the container; the init log should print once per instance):
+
+```bash
+aws logs filter-log-events \
+  --log-group-name /aws/bedrock-agentcore/hera-agent \
+  --start-time $(($(date +%s)*1000 - 300000)) \
+  --region ap-northeast-1 \
+  --filter-pattern '"Langfuse client initialized"' \
+  --query 'events[-1].message' --output text
+# Expect: "... Langfuse client initialized: host=https://cloud.langfuse.com public_key=pk-lf-... auth_check=True"
+# If you see "Langfuse disabled (LANGFUSE_SECRET_KEY not set)" instead: re-source .env.langfuse and re-run cdk deploy.
+# If you see "OTEL_SDK_DISABLED is set. Langfuse tracing will be disabled ...": that env var is in the runtime config; drop it from the CDK stack and redeploy (Langfuse rides OpenTelemetry under the hood).
 ```
 
 Plan 03-04 owns the `infra/cdk/` stack and the `dist/cdk-outputs.json` shape.

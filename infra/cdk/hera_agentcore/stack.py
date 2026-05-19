@@ -63,11 +63,32 @@ class HeraAgentCoreStack(cdk.Stack):
         ecr_repo_url: str,
         image_tag: str,
         exec_role_arn: str,
+        kb_id: str,
+        langfuse_public_key: str = "",
+        langfuse_secret_key: str = "",
+        langfuse_host: str = "",
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         image_uri = f"{ecr_repo_url}:{image_tag}"
+
+        env_vars: dict[str, str] = {
+            "HERA_LOG_GROUP": "/aws/bedrock-agentcore/hera-agent",
+            "AWS_REGION": cdk.Aws.REGION,
+            "HERA_KB_ID": kb_id,
+            # OTEL_SDK_DISABLED is intentionally NOT set: it disables OpenTelemetry
+            # globally, which Langfuse SDK uses internally to ship traces. Setting
+            # it makes `Langfuse client initialized` log but no spans reach the UI
+            # (commit f7381b0 dropped this var; OBSERVABILITY.md is stale).
+        }
+        # Langfuse tracing — operator must `source .env.langfuse` before `cdk deploy`
+        # so these env vars are present in process env. If absent, tracing stays
+        # off and main.py / tools.py no-op the SDK wrappers.
+        if langfuse_secret_key:
+            env_vars["LANGFUSE_PUBLIC_KEY"] = langfuse_public_key
+            env_vars["LANGFUSE_SECRET_KEY"] = langfuse_secret_key
+            env_vars["LANGFUSE_HOST"] = langfuse_host or "https://cloud.langfuse.com"
 
         runtime = agentcore.CfnRuntime(
             self,
@@ -79,18 +100,7 @@ class HeraAgentCoreStack(cdk.Stack):
                     container_uri=image_uri,
                 ),
             ),
-            environment_variables={
-                "HERA_LOG_GROUP": "/aws/bedrock-agentcore/hera-agent",
-                "AWS_REGION": cdk.Aws.REGION,
-                "HERA_KB_ID": "BKXE19AH89",
-                # Langfuse tracing env vars (LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
-                # LANGFUSE_HOST) are intentionally NOT set here: secrets are managed out
-                # of band via the aws bedrock-agentcore-control update-agent-runtime CLI
-                # invocation documented in docs/OBSERVABILITY.md. Setting them in CDK
-                # would either commit secrets to git or force every `cdk deploy` to
-                # know them. Operator runs the CLI once after deploy to (re)set them.
-                # Trace SDK code in main.py / tools.py no-ops when the secret is unset.
-            },
+            environment_variables=env_vars,
             network_configuration=agentcore.CfnRuntime.NetworkConfigurationProperty(
                 network_mode="PUBLIC",
             ),
