@@ -22,3 +22,7 @@ AWS_REGION: str = os.environ.get("AWS_REGION", "ap-northeast-1")
 
 # Optional: Sonic voice id. Default matthew (masculine US neutral).
 HERA_VOICE: str = os.environ.get("HERA_VOICE", "matthew")
+
+# Twilio credentials (optional — only needed for /twilio phone channel).
+TWILIO_ACCOUNT_SID: str = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN: str = os.environ.get("TWILIO_AUTH_TOKEN", "")

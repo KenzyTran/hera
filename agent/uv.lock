@@ -579,6 +579,7 @@ name = "hera-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aiohttp" },
     { name = "boto3" },
     { name = "fastapi" },
     { name = "langfuse" },
@@ -597,6 +598,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiohttp", specifier = ">=3.9,<4" },
     { name = "boto3" },
     { name = "fastapi", specifier = ">=0.115.6,<1" },
     { name = "langfuse", specifier = ">=3.0,<4" },

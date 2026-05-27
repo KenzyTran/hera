@@ -1,14 +1,12 @@
 """Pipecat pipeline assembly for the Hera voice agent.
 
 One PipelineTask per WebSocket connection (Pattern P1). The LLM is constructed
-inside run_pipeline so that each connection gets its own AWSNovaSonicLLMService
-instance and its own bidi stream to Sonic.
+inside the pipeline builder so that each connection gets its own
+AWSNovaSonicLLMService instance and its own bidi stream to Sonic.
 
-CRITICAL: AWSNovaSonicLLMService uses StaticCredentialsResolver internally. It
-does NOT follow the boto3 default credential chain (Pitfall B). However, we DO
-follow the boto3 default chain ourselves (env -> ~/.aws -> IMDSv2) and pass
-the resolved credentials in as static kwargs. This makes the same code work in
-both local docker-compose (env vars) and AgentCore Runtime (IMDSv2).
+Supports two transports:
+- Browser (raw PCM via RawPCMSerializer on /ws)
+- Twilio (mu-law 8kHz via TwilioFrameSerializer on /twilio)
 """
 
 import boto3
@@ -26,6 +24,7 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
     LLMUserAggregatorParams,
 )
+from pipecat.serializers.twilio import TwilioFrameSerializer
 from pipecat.services.aws.nova_sonic.llm import AWSNovaSonicLLMService
 from pipecat.services.aws.nova_sonic.session_continuation import (
     SessionContinuationParams,
@@ -35,7 +34,12 @@ from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
 )
 
-from hera_agent.config import AWS_REGION, HERA_VOICE
+from hera_agent.config import (
+    AWS_REGION,
+    HERA_VOICE,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+)
 from hera_agent.prompts import SYSTEM_PROMPT
 from hera_agent.serializer import RawPCMSerializer
 from hera_agent.tools import TOOLS, lookup_product_handler
@@ -81,44 +85,15 @@ def build_llm() -> AWSNovaSonicLLMService:
     )
 
 
-async def run_pipeline(websocket: WebSocket) -> None:
-    """Build and run a Pipecat pipeline for one WebSocket connection.
-
-    AudioConfig defaults already satisfy AGT-07: 16 kHz mono Int16 input,
-    24 kHz mono Int16 output. No explicit override needed.
-    """
-    transport = FastAPIWebsocketTransport(
-        websocket=websocket,
-        params=FastAPIWebsocketParams(
-            audio_in_enabled=True,
-            audio_out_enabled=True,
-            add_wav_header=False,
-            # Pipecat 1.1.0's FastAPIWebsocketTransport silently drops every
-            # frame in both directions when serializer is None. Plan 02-02's
-            # wire contract is raw 16 kHz Int16 LE PCM in / raw 24 kHz Int16
-            # LE PCM out (Pattern 6 + Pattern 7), so we wire a pass-through
-            # serializer that maps WS bytes <-> {Input,Output}AudioRawFrame.
-            serializer=RawPCMSerializer(),
-        ),
-    )
-
+async def _build_and_run(transport) -> None:
+    """Build and run a Pipecat pipeline with the given transport."""
     llm = build_llm()
-    # cancel_on_interruption=False so barge-in does not waste an in-flight KB
-    # call (Pitfall H). The KB call is cheap but the round-trip is ~400ms;
-    # canceling and re-firing on every barge-in adds up.
     llm.register_function(
         "lookup_product",
         lookup_product_handler,
         cancel_on_interruption=False,
     )
 
-    # Seed the context with a user-role kickoff message BEFORE the pipeline
-    # starts. AWSNovaSonicLLMService._finish_connecting_if_context_available
-    # only triggers an assistant response when the context already ends in a
-    # user-role message at session-setup time (sent as interactive=True);
-    # adding it from on_client_connected races with Sonic's connection setup
-    # and the greeting never fires. Plan 02-02 AGT-04 latency probe revealed
-    # this race.
     context = LLMContext(
         messages=[{"role": "user", "content": "Hello."}],
         tools=TOOLS,
@@ -146,8 +121,6 @@ async def run_pipeline(websocket: WebSocket) -> None:
 
     @transport.event_handler("on_client_connected")
     async def _on_connected(_t, _c) -> None:
-        # Context already has a kickoff user message (seeded at construction).
-        # LLMRunFrame triggers Sonic to consume the queued context and respond.
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
@@ -155,3 +128,39 @@ async def run_pipeline(websocket: WebSocket) -> None:
         await task.cancel()
 
     await PipelineRunner(handle_sigint=False).run(task)
+
+
+async def run_pipeline(websocket: WebSocket) -> None:
+    """Browser channel: raw 16 kHz Int16 LE PCM in / 24 kHz out."""
+    transport = FastAPIWebsocketTransport(
+        websocket=websocket,
+        params=FastAPIWebsocketParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            add_wav_header=False,
+            serializer=RawPCMSerializer(),
+        ),
+    )
+    await _build_and_run(transport)
+
+
+async def run_twilio_pipeline(
+    websocket: WebSocket, stream_sid: str, call_sid: str
+) -> None:
+    """Twilio channel: mu-law 8 kHz from Twilio, resampled by TwilioFrameSerializer."""
+    serializer = TwilioFrameSerializer(
+        stream_sid=stream_sid,
+        call_sid=call_sid,
+        account_sid=TWILIO_ACCOUNT_SID,
+        auth_token=TWILIO_AUTH_TOKEN,
+    )
+    transport = FastAPIWebsocketTransport(
+        websocket=websocket,
+        params=FastAPIWebsocketParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            add_wav_header=False,
+            serializer=serializer,
+        ),
+    )
+    await _build_and_run(transport)

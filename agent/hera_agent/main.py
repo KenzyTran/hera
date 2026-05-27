@@ -1,24 +1,24 @@
 """FastAPI entrypoint for the Hera Pipecat agent.
 
-Exposes three routes on port 8080:
-- GET  /ping        : AgentCore Runtime health check (returns {"status":"Healthy"}).
-- POST /invocations : AgentCore HTTP data-plane stub. Voice loop runs on /ws.
-- WebSocket /ws     : Pipecat voice pipeline. One pipeline per connection.
-
-This single-app shape matches the AgentCore HTTP service contract verbatim, so
-Phase 3 deploys without a transport refactor.
+Exposes routes on port 8080:
+- GET  /ping          : AgentCore Runtime health check (returns {"status":"Healthy"}).
+- POST /invocations   : AgentCore HTTP data-plane stub. Voice loop runs on /ws.
+- WebSocket /ws       : Browser voice pipeline (raw PCM). One pipeline per connection.
+- POST /twiml         : Twilio voice webhook — returns TwiML to open a Media Stream.
+- WebSocket /twilio   : Twilio Media Streams pipeline. One pipeline per phone call.
 """
 
+import json
 import os
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, Response
 from loguru import logger
 
 from hera_agent.logging_setup import configure_logging
-from hera_agent.pipeline import run_pipeline
+from hera_agent.pipeline import run_pipeline, run_twilio_pipeline
 
 configure_logging()
 
@@ -88,6 +88,67 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     if _LANGFUSE_ENABLED and _lf is not None:
         with _lf.start_as_current_span(name="hera-voice-session") as span:
             span.update(metadata={"session_id": session_id, "agent": "hera"})
+            try:
+                await _run()
+            finally:
+                _lf.flush()
+    else:
+        await _run()
+
+
+async def _parse_twilio_start(websocket: WebSocket) -> dict:
+    """Read initial Twilio Media Streams events to extract stream_sid and call_sid."""
+    while True:
+        msg = await websocket.receive_text()
+        payload = json.loads(msg)
+        if payload.get("event") == "start":
+            return {
+                "stream_sid": payload["start"]["streamSid"],
+                "call_sid": payload["start"]["callSid"],
+            }
+
+
+@app.post("/twiml")
+async def twiml_webhook(request: Request) -> Response:
+    """Return TwiML instructing Twilio to open a Media Stream to /twilio."""
+    host = request.headers.get("host", "localhost:8080")
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    ws_scheme = "wss" if proto == "https" else "ws"
+    twiml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        "<Response>"
+        f'<Connect><Stream url="{ws_scheme}://{host}/twilio" /></Connect>'
+        "</Response>"
+    )
+    return Response(content=twiml, media_type="application/xml")
+
+
+@app.websocket("/twilio")
+async def twilio_ws_endpoint(websocket: WebSocket) -> None:
+    """Per-call Twilio Media Streams handler. One Pipecat pipeline per phone call."""
+    await websocket.accept()
+    logger.info("Twilio WS connected")
+    call_data = await _parse_twilio_start(websocket)
+    call_sid = call_data["call_sid"]
+    stream_sid = call_data["stream_sid"]
+    logger.info(f"Twilio call started: call_sid={call_sid} stream_sid={stream_sid}")
+
+    async def _run():
+        try:
+            await run_twilio_pipeline(websocket, stream_sid, call_sid)
+        except WebSocketDisconnect:
+            logger.info("Twilio WS disconnected")
+        except Exception:
+            logger.exception("Twilio pipeline failed")
+            raise
+
+    if _LANGFUSE_ENABLED and _lf is not None:
+        with _lf.start_as_current_span(name="hera-twilio-session") as span:
+            span.update(metadata={
+                "session_id": call_sid,
+                "agent": "hera",
+                "channel": "twilio",
+            })
             try:
                 await _run()
             finally:
