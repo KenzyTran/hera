@@ -37,7 +37,7 @@ def init_tracing() -> bool:
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from pipecat.utils.tracing.setup import setup_tracing
 
     pk = os.environ["LANGFUSE_PUBLIC_KEY"]
@@ -50,30 +50,34 @@ def init_tracing() -> bool:
         headers={"Authorization": f"Basic {auth}"},
     )
 
-    # Two paths, both leaving the Langfuse exporter on the GLOBAL provider that
-    # Pipecat's enable_tracing emits into:
-    #  - If a real SDK provider already owns the global slot (AgentCore's ADOT
-    #    layer got there first), just add our exporter as an extra processor so
-    #    spans fan out to BOTH CloudWatch and Langfuse.
-    #  - Otherwise (global is the no-op Proxy at import time) let Pipecat's
-    #    setup_tracing() install a properly-configured provider with our
-    #    exporter. Do NOT hand-roll a bare TracerProvider here: that path
-    #    produced a provider Langfuse silently dropped spans from.
+    # Ensure a real SDK TracerProvider owns the global slot -- Pipecat's
+    # enable_tracing emits into the global provider. If AgentCore's ADOT layer
+    # already installed one, keep it (our spans then fan out to CloudWatch too);
+    # otherwise let Pipecat's setup_tracing install one (it also wires Pipecat's
+    # own tracing). setup_tracing uses a BatchSpanProcessor internally, which we
+    # deliberately do NOT rely on for export (see below) -- we pass no exporter.
     provider = trace.get_tracer_provider()
-    if isinstance(provider, TracerProvider):
-        provider.add_span_processor(BatchSpanProcessor(exporter))
-        _ENABLED = True
-    else:
-        _ENABLED = setup_tracing("hera-agent", exporter=exporter)
+    if not isinstance(provider, TracerProvider):
+        setup_tracing("hera-agent")
+        provider = trace.get_tracer_provider()
 
-    _PROVIDER = trace.get_tracer_provider()
-    if _ENABLED:
-        logger.info(
-            f"Tracing enabled: Pipecat OTEL -> Langfuse ({host}) "
-            f"provider={type(_PROVIDER).__name__}"
-        )
-    else:
-        logger.warning("Pipecat setup_tracing returned False")
+    if not isinstance(provider, TracerProvider):
+        logger.warning("Tracing disabled: no SDK TracerProvider available")
+        return False
+
+    # SimpleSpanProcessor exports each span synchronously the instant it ends.
+    # BatchSpanProcessor (setup_tracing's default) batches and ships on a 5s
+    # timer / on shutdown -- but AgentCore freezes the microVM the moment the WS
+    # closes, so batched spans only reach Langfuse when the VM next wakes (the
+    # "previous session's trace appears only after a redeploy" symptom). Synchronous
+    # export ships every span while the VM is still running the session.
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    _PROVIDER = provider
+    _ENABLED = True
+    logger.info(
+        f"Tracing enabled: Pipecat OTEL -> Langfuse ({host}) "
+        f"provider={type(provider).__name__} processor=SimpleSpanProcessor"
+    )
     return _ENABLED
 
 
