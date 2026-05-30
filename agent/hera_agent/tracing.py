@@ -38,6 +38,7 @@ def init_tracing() -> bool:
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from pipecat.utils.tracing.setup import setup_tracing
 
     pk = os.environ["LANGFUSE_PUBLIC_KEY"]
     sk = os.environ["LANGFUSE_SECRET_KEY"]
@@ -49,25 +50,30 @@ def init_tracing() -> bool:
         headers={"Authorization": f"Basic {auth}"},
     )
 
-    # The Langfuse exporter MUST land on the SAME global TracerProvider that
-    # Pipecat's enable_tracing uses, regardless of init ordering. On AgentCore
-    # the ADOT layer may install the global SDK provider before OR after this
-    # runs. The old setup_tracing() fallback created a SEPARATE provider that
-    # lost the global slot when ADOT initialized later, so Pipecat spans never
-    # reached Langfuse (flaky, ordering-dependent). Here: attach to the existing
-    # SDK provider if there is one; otherwise install one now and win the global
-    # slot at import time. Either way Pipecat + our spans share this provider.
+    # Two paths, both leaving the Langfuse exporter on the GLOBAL provider that
+    # Pipecat's enable_tracing emits into:
+    #  - If a real SDK provider already owns the global slot (AgentCore's ADOT
+    #    layer got there first), just add our exporter as an extra processor so
+    #    spans fan out to BOTH CloudWatch and Langfuse.
+    #  - Otherwise (global is the no-op Proxy at import time) let Pipecat's
+    #    setup_tracing() install a properly-configured provider with our
+    #    exporter. Do NOT hand-roll a bare TracerProvider here: that path
+    #    produced a provider Langfuse silently dropped spans from.
     provider = trace.get_tracer_provider()
-    if not isinstance(provider, TracerProvider):
-        provider = TracerProvider()
-        trace.set_tracer_provider(provider)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    _PROVIDER = provider
-    _ENABLED = True
-    logger.info(
-        f"Tracing enabled: Pipecat OTEL -> Langfuse ({host}) "
-        f"provider={type(provider).__name__}"
-    )
+    if isinstance(provider, TracerProvider):
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+        _ENABLED = True
+    else:
+        _ENABLED = setup_tracing("hera-agent", exporter=exporter)
+
+    _PROVIDER = trace.get_tracer_provider()
+    if _ENABLED:
+        logger.info(
+            f"Tracing enabled: Pipecat OTEL -> Langfuse ({host}) "
+            f"provider={type(_PROVIDER).__name__}"
+        )
+    else:
+        logger.warning("Pipecat setup_tracing returned False")
     return _ENABLED
 
 
