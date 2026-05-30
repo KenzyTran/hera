@@ -61,9 +61,33 @@ module "widget_presigner" {
   cors_allow_origin     = module.widget_hosting.cloudfront_url
 }
 
+# Bedrock Prompt Management: stores the Hera system prompt as a versioned
+# AWS-managed resource. Read from agent/hera_agent/prompts.py — same literal
+# the runtime agent passes to Sonic via settings.system_instruction.
+module "bedrock_prompt" {
+  source = "../../modules/bedrock_prompt"
+
+  name_prefix = var.name_prefix
+  env         = var.env
+  region      = var.region
+}
+
+# Bedrock Evaluation: S3 bucket + IAM role for RAG eval jobs. The job itself
+# is launched on-demand via bin/run-kb-eval.sh, which reads outputs from this
+# stack and calls bedrock:CreateEvaluationJob.
+module "bedrock_eval" {
+  source = "../../modules/bedrock_eval"
+
+  name_prefix = var.name_prefix
+  env         = var.env
+  region      = var.region
+  kb_arn      = module.knowledge_base.kb_arn
+}
+
 # Observability: CloudWatch dashboard + 2 operational alarms (ap-northeast-1)
 # + 1 billing alarm (us-east-1, AWS/Billing service constraint). Zero new
 # IAM (D-13). Wires existing module outputs as live ARNs / IDs.
+#
 module "observability" {
   source = "../../modules/observability"
 
