@@ -160,7 +160,7 @@ static/images/        Workshop-served images (architecture-aws.png, screenshots 
 
 ## Author
 
-**Kiet Tran** · <trantankiet140401@gmail.com> · [@KenzyTran](https://github.com/KenzyTran)
+**Kiet Tran** · <trantankiet140401@gmail.com>
 
 ---
 
