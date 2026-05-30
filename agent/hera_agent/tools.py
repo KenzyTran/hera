@@ -12,10 +12,12 @@ gracefully tells the user there was a problem.
 """
 
 import asyncio
+import json
 import os
 from pathlib import PurePosixPath
 
 import boto3
+from opentelemetry import trace
 
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
@@ -51,33 +53,50 @@ def _kb_retrieve(query: str) -> str:
 
 
 _LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_SECRET_KEY"))
-_lf = None
-if _LANGFUSE_ENABLED:
-    from langfuse import get_client
-    _lf = get_client()
+
+# Manual tool spans go through the GLOBAL OpenTelemetry tracer -- the same
+# provider Pipecat's enable_tracing uses -- NOT the Langfuse SDK client. The
+# Langfuse SDK keeps its own isolated TracerProvider, so spans created with it
+# land in a SEPARATE trace from the Pipecat conversation/turn spans (that was
+# the cause of the fragmented standalone "lookup_product" trace). Using the
+# global tracer makes lookup_product / kb_retrieve nest under the active turn
+# span -> one end-to-end waterfall. The Langfuse OTLP exporter is attached to
+# this provider in tracing.init_tracing().
+_tracer = trace.get_tracer("hera.tools")
+
+
+def _lf_attrs(span, *, input=None, output=None, metadata=None, obs_type=None) -> None:
+    """Set Langfuse-recognised OTel span attributes (input / output / metadata)."""
+    if obs_type is not None:
+        span.set_attribute("langfuse.observation.type", obs_type)
+    if input is not None:
+        span.set_attribute("langfuse.observation.input", json.dumps(input))
+    if output is not None:
+        span.set_attribute("langfuse.observation.output", json.dumps(output))
+    for key, value in (metadata or {}).items():
+        span.set_attribute(f"langfuse.observation.metadata.{key}", value)
 
 
 async def lookup_product_handler(params: FunctionCallParams) -> None:
     """Pipecat tool handler. Offloads sync boto3 to a thread (Pitfall F)."""
     query = params.arguments["query"]
 
-    if _LANGFUSE_ENABLED and _lf is not None:
-        # Outer span = the tool call as the agent sees it.
-        with _lf.start_as_current_span(name="lookup_product") as outer:
-            outer.update(input={"query": query}, metadata={"tool": "lookup_product"})
+    if _LANGFUSE_ENABLED:
+        # Outer span = the tool call as the agent sees it; nests under the turn.
+        with _tracer.start_as_current_span("lookup_product") as outer:
+            _lf_attrs(outer, obs_type="tool", input={"query": query},
+                      metadata={"tool": "lookup_product"})
             # Inner span = the Bedrock KB Retrieve sub-call (S3 Vectors backend).
-            with _lf.start_as_current_span(name="kb_retrieve") as inner:
-                inner.update(
-                    input={"query": query},
-                    metadata={"kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD},
-                )
+            with _tracer.start_as_current_span("kb_retrieve") as inner:
+                _lf_attrs(inner, input={"query": query},
+                          metadata={"kb_id": KB_ID, "threshold": KB_SCORE_THRESHOLD})
                 result = await asyncio.to_thread(_kb_retrieve, query)
                 chunk_count = (
                     0 if result == "no relevant product info"
                     else result.count("Source:")
                 )
-                inner.update(output={"chunks": chunk_count, "chars": len(result)})
-            outer.update(output={"chunks": chunk_count})
+                _lf_attrs(inner, output={"chunks": chunk_count, "chars": len(result)})
+            _lf_attrs(outer, output={"chunks": chunk_count})
     else:
         result = await asyncio.to_thread(_kb_retrieve, query)
 
