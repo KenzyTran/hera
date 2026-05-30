@@ -63,9 +63,10 @@ infra/modules/twilio_bridge/.ruff_cache/
 __pycache__/
 *.pyc
 
-# Local Claude Code config
-.claude/scheduled_tasks.lock
-.claude/settings.local.json
+# Local Claude Code config + GSD planning + editor settings (local tooling, not shipped)
+.claude/
+.planning/
+.vscode/
 .mcp.json
 .agents/
 skills-lock.json
