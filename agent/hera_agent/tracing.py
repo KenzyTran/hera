@@ -16,6 +16,7 @@ from loguru import logger
 
 _INITIALIZED = False
 _ENABLED = False
+_PROVIDER = None
 
 
 def init_tracing() -> bool:
@@ -24,7 +25,7 @@ def init_tracing() -> bool:
     Reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST from env.
     Must be called once at process boot before instantiating Langfuse().
     """
-    global _INITIALIZED, _ENABLED
+    global _INITIALIZED, _ENABLED, _PROVIDER
     if _INITIALIZED:
         return _ENABLED
     _INITIALIZED = True
@@ -37,7 +38,6 @@ def init_tracing() -> bool:
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from pipecat.utils.tracing.setup import setup_tracing
 
     pk = os.environ["LANGFUSE_PUBLIC_KEY"]
     sk = os.environ["LANGFUSE_SECRET_KEY"]
@@ -49,24 +49,25 @@ def init_tracing() -> bool:
         headers={"Authorization": f"Basic {auth}"},
     )
 
-    # On AgentCore Runtime the platform's ADOT layer already owns the global
-    # TracerProvider (spans export to CloudWatch). OTel forbids overriding it,
-    # so setup_tracing's set_tracer_provider() is a silent no-op there and the
-    # Langfuse exporter never attaches. When a real SDK provider already exists,
-    # add our exporter as an extra span processor so spans fan out to BOTH
-    # CloudWatch and Langfuse. Fall back to setup_tracing locally (docker
-    # compose), where no provider is installed yet.
+    # The Langfuse exporter MUST land on the SAME global TracerProvider that
+    # Pipecat's enable_tracing uses, regardless of init ordering. On AgentCore
+    # the ADOT layer may install the global SDK provider before OR after this
+    # runs. The old setup_tracing() fallback created a SEPARATE provider that
+    # lost the global slot when ADOT initialized later, so Pipecat spans never
+    # reached Langfuse (flaky, ordering-dependent). Here: attach to the existing
+    # SDK provider if there is one; otherwise install one now and win the global
+    # slot at import time. Either way Pipecat + our spans share this provider.
     provider = trace.get_tracer_provider()
-    if isinstance(provider, TracerProvider):
-        provider.add_span_processor(BatchSpanProcessor(exporter))
-        _ENABLED = True
-    else:
-        _ENABLED = setup_tracing("hera-agent", exporter=exporter)
-
-    if _ENABLED:
-        logger.info(f"Tracing enabled: Pipecat OTEL -> Langfuse ({host})")
-    else:
-        logger.warning("Pipecat setup_tracing returned False")
+    if not isinstance(provider, TracerProvider):
+        provider = TracerProvider()
+        trace.set_tracer_provider(provider)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    _PROVIDER = provider
+    _ENABLED = True
+    logger.info(
+        f"Tracing enabled: Pipecat OTEL -> Langfuse ({host}) "
+        f"provider={type(provider).__name__}"
+    )
     return _ENABLED
 
 
@@ -84,10 +85,8 @@ def flush() -> None:
     the active TracerProvider (which holds the Langfuse OTLP exporter attached
     in init_tracing) drains the queue synchronously before the VM suspends.
     """
-    if not _ENABLED:
+    if not _ENABLED or _PROVIDER is None:
         return
-    from opentelemetry import trace
-
-    provider = trace.get_tracer_provider()
-    if hasattr(provider, "force_flush"):
-        provider.force_flush()
+    if hasattr(_PROVIDER, "force_flush"):
+        ok = _PROVIDER.force_flush()
+        logger.info(f"Tracing flush: force_flush returned {ok}")
