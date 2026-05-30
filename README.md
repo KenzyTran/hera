@@ -77,7 +77,7 @@ Container agent ở `localhost:8080`, widget ở `localhost:8000`. Mic → Sonic
 | [`4-cleanup`](content/vi/4-cleanup/) | `cdk destroy` + `terraform destroy` + `bin/cleanup-verify.sh` (20 read-only checks) |
 | [`5-summary`](content/vi/5-summary/) | Recap + extension ideas |
 
-Workshop auto-publish lên GitHub Pages khi push `master` (GitHub Actions workflow ở [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). CI enforce parity vi/en bằng `bin/check-i18n-parity.sh` (DOC-12) trước khi build.
+Workshop auto-publish lên GitHub Pages khi push `main` (GitHub Actions workflow ở [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). CI enforce parity vi/en bằng `bin/check-i18n-parity.sh` (DOC-12) trước khi build.
 
 ---
 
