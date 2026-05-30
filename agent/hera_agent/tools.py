@@ -14,6 +14,7 @@ gracefully tells the user there was a problem.
 import asyncio
 import json
 import os
+from contextvars import ContextVar
 from pathlib import PurePosixPath
 
 import boto3
@@ -64,6 +65,12 @@ _LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_SECRET_KEY"))
 # this provider in tracing.init_tracing().
 _tracer = trace.get_tracer("hera.tools")
 
+# Per-connection session id. Set in pipeline._build_and_run (propagates into the
+# Pipecat task tree via contextvars) and read here so the tool span carries the
+# same langfuse.session.id as the conversation span -> Langfuse groups both
+# traces under one session even though they are separate trace ids.
+session_var: ContextVar[str | None] = ContextVar("hera_session_id", default=None)
+
 
 def _lf_attrs(span, *, input=None, output=None, metadata=None, obs_type=None) -> None:
     """Set Langfuse-recognised OTel span attributes (input / output / metadata)."""
@@ -84,6 +91,9 @@ async def lookup_product_handler(params: FunctionCallParams) -> None:
     if _LANGFUSE_ENABLED:
         # Outer span = the tool call as the agent sees it; nests under the turn.
         with _tracer.start_as_current_span("lookup_product") as outer:
+            sid = session_var.get()
+            if sid:
+                outer.set_attribute("langfuse.session.id", sid)
             _lf_attrs(outer, obs_type="tool", input={"query": query},
                       metadata={"tool": "lookup_product"})
             # Inner span = the Bedrock KB Retrieve sub-call (S3 Vectors backend).

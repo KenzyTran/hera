@@ -42,7 +42,7 @@ from hera_agent.config import (
 )
 from hera_agent.prompts import SYSTEM_PROMPT
 from hera_agent.serializer import RawPCMSerializer
-from hera_agent.tools import TOOLS, lookup_product_handler
+from hera_agent.tools import TOOLS, lookup_product_handler, session_var
 
 
 def build_llm() -> AWSNovaSonicLLMService:
@@ -85,8 +85,21 @@ def build_llm() -> AWSNovaSonicLLMService:
     )
 
 
-async def _build_and_run(transport) -> None:
-    """Build and run a Pipecat pipeline with the given transport."""
+async def _build_and_run(
+    transport, session_id: str | None = None, channel: str = "websocket"
+) -> None:
+    """Build and run a Pipecat pipeline with the given transport.
+
+    session_id maps to OTEL conversation span; channel ("websocket" or
+    "twilio") is recorded as a span attribute for filtering in Langfuse.
+    """
+    # Publish the session id into the contextvar so the tool handler (which
+    # does not receive session_id) can tag its span with the same
+    # langfuse.session.id as the conversation span. Set here before the Pipecat
+    # task tree is created so child tasks inherit it.
+    if session_id:
+        session_var.set(session_id)
+
     llm = build_llm()
     llm.register_function(
         "lookup_product",
@@ -117,6 +130,14 @@ async def _build_and_run(transport) -> None:
             enable_metrics=True,
             enable_usage_metrics=True,
         ),
+        enable_tracing=True,
+        conversation_id=session_id,
+        additional_span_attributes={
+            "agent": "hera",
+            "channel": channel,
+            # Same key Langfuse reads to group traces into one session.
+            **({"langfuse.session.id": session_id} if session_id else {}),
+        },
     )
 
     @transport.event_handler("on_client_connected")
@@ -130,7 +151,7 @@ async def _build_and_run(transport) -> None:
     await PipelineRunner(handle_sigint=False).run(task)
 
 
-async def run_pipeline(websocket: WebSocket) -> None:
+async def run_pipeline(websocket: WebSocket, session_id: str | None = None) -> None:
     """Browser channel: raw 16 kHz Int16 LE PCM in / 24 kHz out."""
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
@@ -141,7 +162,7 @@ async def run_pipeline(websocket: WebSocket) -> None:
             serializer=RawPCMSerializer(),
         ),
     )
-    await _build_and_run(transport)
+    await _build_and_run(transport, session_id=session_id, channel="websocket")
 
 
 async def run_twilio_pipeline(
@@ -163,4 +184,4 @@ async def run_twilio_pipeline(
             serializer=serializer,
         ),
     )
-    await _build_and_run(transport)
+    await _build_and_run(transport, session_id=call_sid, channel="twilio")
