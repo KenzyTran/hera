@@ -19,8 +19,12 @@ from loguru import logger
 
 from hera_agent.logging_setup import configure_logging
 from hera_agent.pipeline import run_pipeline, run_twilio_pipeline
+from hera_agent.tracing import flush as flush_tracing, init_tracing
 
 configure_logging()
+# Must run BEFORE Langfuse() so both Pipecat and Langfuse SDK share the
+# global OTEL TracerProvider.
+init_tracing()
 
 app = FastAPI(title="hera-agent", version="0.1.0")
 
@@ -76,24 +80,21 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     logger.info("WS client connected")
     session_id = str(uuid.uuid4())
 
-    async def _run():
-        try:
-            await run_pipeline(websocket)
-        except WebSocketDisconnect:
-            logger.info("WS client disconnected")
-        except Exception:
-            logger.exception("WS pipeline failed")
-            raise
-
-    if _LANGFUSE_ENABLED and _lf is not None:
-        with _lf.start_as_current_span(name="hera-voice-session") as span:
-            span.update(metadata={"session_id": session_id, "agent": "hera"})
-            try:
-                await _run()
-            finally:
-                _lf.flush()
-    else:
-        await _run()
+    try:
+        await run_pipeline(websocket, session_id=session_id)
+    except WebSocketDisconnect:
+        logger.info("WS client disconnected")
+    except Exception:
+        logger.exception("WS pipeline failed")
+        raise
+    finally:
+        # Flush the global OTEL provider (holds the Langfuse OTLP exporter and
+        # ALL spans: conversation / turn / lookup_product / kb_retrieve) before
+        # the AgentCore microVM freezes. _lf.flush() only drains the separate
+        # Langfuse SDK provider, which no longer carries any spans.
+        flush_tracing()
+        if _LANGFUSE_ENABLED and _lf is not None:
+            _lf.flush()
 
 
 async def _parse_twilio_start(websocket: WebSocket) -> dict:
@@ -133,28 +134,21 @@ async def twilio_ws_endpoint(websocket: WebSocket) -> None:
     stream_sid = call_data["stream_sid"]
     logger.info(f"Twilio call started: call_sid={call_sid} stream_sid={stream_sid}")
 
-    async def _run():
-        try:
-            await run_twilio_pipeline(websocket, stream_sid, call_sid)
-        except WebSocketDisconnect:
-            logger.info("Twilio WS disconnected")
-        except Exception:
-            logger.exception("Twilio pipeline failed")
-            raise
-
-    if _LANGFUSE_ENABLED and _lf is not None:
-        with _lf.start_as_current_span(name="hera-twilio-session") as span:
-            span.update(metadata={
-                "session_id": call_sid,
-                "agent": "hera",
-                "channel": "twilio",
-            })
-            try:
-                await _run()
-            finally:
-                _lf.flush()
-    else:
-        await _run()
+    try:
+        await run_twilio_pipeline(websocket, stream_sid, call_sid)
+    except WebSocketDisconnect:
+        logger.info("Twilio WS disconnected")
+    except Exception:
+        logger.exception("Twilio pipeline failed")
+        raise
+    finally:
+        # Flush the global OTEL provider (holds the Langfuse OTLP exporter and
+        # ALL spans: conversation / turn / lookup_product / kb_retrieve) before
+        # the AgentCore microVM freezes. _lf.flush() only drains the separate
+        # Langfuse SDK provider, which no longer carries any spans.
+        flush_tracing()
+        if _LANGFUSE_ENABLED and _lf is not None:
+            _lf.flush()
 
 
 if __name__ == "__main__":

@@ -73,3 +73,21 @@ def init_tracing() -> bool:
 def is_enabled() -> bool:
     """Whether OTEL tracing was successfully initialized."""
     return _ENABLED
+
+
+def flush() -> None:
+    """Force-flush pending spans to Langfuse.
+
+    Call at session end. AgentCore Runtime is a microVM that gets frozen /
+    reaped shortly after a session goes idle, so the BatchSpanProcessor's
+    timed export may never fire and queued spans are lost. force_flush() on
+    the active TracerProvider (which holds the Langfuse OTLP exporter attached
+    in init_tracing) drains the queue synchronously before the VM suspends.
+    """
+    if not _ENABLED:
+        return
+    from opentelemetry import trace
+
+    provider = trace.get_tracer_provider()
+    if hasattr(provider, "force_flush"):
+        provider.force_flush()
