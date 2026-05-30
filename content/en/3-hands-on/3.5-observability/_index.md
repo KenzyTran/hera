@@ -172,46 +172,62 @@ Optional — the workshop core is complete even if you skip this.
    - `LANGFUSE_PUBLIC_KEY=pk-lf-...`
    - `LANGFUSE_SECRET_KEY=sk-lf-...` (shown only once — store it)
 
-### Step 2: Set the 3 env vars on AgentCore Runtime
+### Step 2: Set the Langfuse keys and redeploy the runtime (cdk deploy)
+
+The Langfuse keys are **baked into the container at `cdk deploy` time** (CDK reads `LANGFUSE_*` from your shell env). This is the easiest thing to get wrong: **do NOT** use `aws bedrock-agentcore-control update-agent-runtime` to set the keys — that is a config-only update that **does not recycle the container**, so tracing stays OFF even though the env vars changed. You must export the keys and `cdk deploy` again so the container restarts with them.
 
 ```bash
-PUB="pk-lf-..."
-SEC="sk-lf-..."
-HOST="https://cloud.langfuse.com"   # or the US endpoint
+# 1. Export the 3 keys into the current shell (or save them in a .env.langfuse file and `source .env.langfuse`)
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="https://cloud.langfuse.com"   # or the US endpoint
 
-IMG=$(aws bedrock-agentcore-control get-agent-runtime \
-  --agent-runtime-id <your-runtime-id> --region ap-northeast-1 \
-  --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
-
-aws bedrock-agentcore-control update-agent-runtime \
-  --agent-runtime-id <your-runtime-id> \
-  --region ap-northeast-1 \
-  --agent-runtime-artifact "containerConfiguration={containerUri=$IMG}" \
-  --role-arn arn:aws:iam::<your-account-id>:role/hera-agentcore-exec-prod \
-  --network-configuration networkMode=PUBLIC \
-  --protocol-configuration serverProtocol=HTTP \
-  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,LANGFUSE_PUBLIC_KEY=$PUB,LANGFUSE_SECRET_KEY=$SEC,LANGFUSE_HOST=$HOST"
+# 2. Redeploy the runtime — CDK bakes the keys into the container env; the
+#    container restarts with them. Same image tag (current git SHA); only env
+#    vars change, the runtime ARN stays the same.
+(cd infra/envs/prod && terraform output -json > terraform-outputs.json)
+(cd infra/cdk && uv run cdk deploy hera-agentcore \
+  --context image_tag=$(git rev-parse --short HEAD) \
+  --outputs-file ../../dist/cdk-outputs.json \
+  --require-approval never)
 ```
 
-Note: `update-agent-runtime` is REPLACE, not MERGE — you must repeat all existing env vars together with the 3 new Langfuse vars. The runtime transitions `UPDATING` → `READY` in about 30 seconds.
+Confirm the container picked up the keys (the init log prints once per instance):
+
+```bash
+aws logs filter-log-events --log-group-name /aws/bedrock-agentcore/hera-agent \
+  --start-time $(($(date +%s)*1000 - 300000)) --region ap-northeast-1 \
+  --filter-pattern "Tracing enabled" --query 'events[-1].message' --output text
+# Expect: ...Tracing enabled: Pipecat OTEL -> Langfuse (...)
+```
+
+{{% notice warning %}}
+**Git Bash on Windows:** AWS commands with an argument starting with `/` (like `/aws/bedrock-agentcore/...`) get rewritten into a Windows path by Git Bash → `InvalidParameterException`. Prefix the command with `MSYS_NO_PATHCONV=1`: `MSYS_NO_PATHCONV=1 aws logs filter-log-events ...`. PowerShell is not affected.
+{{% /notice %}}
 
 ### Step 3: Test one voice round and view the trace
 
-1. Open the widget CloudFront URL → click record → ask "Do you have MacBook Pro?".
-2. Open `https://cloud.langfuse.com/` → your project → **Tracing** (left sidebar).
-3. You will see a new trace with this hierarchy:
+1. Open the widget CloudFront URL → click record → ask a **specific product question** to trigger the tool, e.g. "Do you have iPhone 13 Pro Max in stock?". (A generic greeting will NOT call `lookup_product`, so you get no tool span.)
+2. Finish speaking → **close the browser tab** (the `conversation` span only closes when the session ends) → wait **~30-60 seconds** (the Langfuse free tier has ingest lag).
+3. Open `https://cloud.langfuse.com/` → your project → **Tracing** (left sidebar). You will see **two traces** for the same conversation:
    ```
-   hera-voice-session  (root, metadata: session_id)
-   |__ lookup_product  (function span, input=query, output=N chunks)
-       |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
+   conversation        (Trace Name: conversation)
+   └─ turn (xN)
+   lookup_product      (Trace Name: lookup_product)
+   └─ kb_retrieve       (input: query, output: {chunks, chars})
    ```
+4. To see them **grouped as one conversation** (by `session_id`), open the **Sessions** tab instead of Tracing.
 
-![Langfuse Tracing — waterfall trace hera-voice-session with the kb_retrieve span](/images/3.5-observability/langfuse-trace-view.png)
+![Langfuse Tracing — conversation + lookup_product/kb_retrieve traces grouped by session](/images/3.5-observability/langfuse-trace-view.png)
+
+{{% notice info %}}
+**Why two traces, not one nested waterfall?** Pipecat dispatches the tool handler outside the turn span's OTel context, so `lookup_product` becomes its own root trace instead of a child of `conversation`. The agent code tags both with `langfuse.session.id` so the **Sessions** tab groups them back into one conversation. Also: a trace only shows up fully after the session closes (the root `conversation` span closes at teardown) plus ingest lag — don't worry if the first few seconds show nothing.
+{{% /notice %}}
 
 ### Disable / rotate keys
 
-- Disable: drop the `LANGFUSE_*` vars from `--environment-variables` (re-run update without them).
-- Rotate: create a new key in Langfuse Settings, re-run update with the new key.
+- **Disable:** redeploy WITHOUT exporting `LANGFUSE_SECRET_KEY` (open a new shell, or `unset LANGFUSE_SECRET_KEY`, then re-run the `cdk deploy` from Step 2). CDK drops the key from the container env → the container restarts with tracing off.
+- **Rotate:** create a new key in Langfuse Settings, export the new key, re-run the `cdk deploy` from Step 2.
 
 The agent code skips the Langfuse wrappers when `LANGFUSE_SECRET_KEY` is unset — turning tracing off never breaks the voice loop.
 

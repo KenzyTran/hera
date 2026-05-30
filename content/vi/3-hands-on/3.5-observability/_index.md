@@ -172,46 +172,61 @@ Không bắt buộc — workshop core hoàn chỉnh ngay cả khi skip phần n�
    - `LANGFUSE_PUBLIC_KEY=pk-lf-...`
    - `LANGFUSE_SECRET_KEY=sk-lf-...` (chỉ hiện 1 lần — lưu lại)
 
-### Bước 2: Set 3 env vars trên AgentCore Runtime
+### Bước 2: Set Langfuse keys + redeploy runtime (cdk deploy)
+
+Key Langfuse được **bake vào container lúc `cdk deploy`** (CDK đọc `LANGFUSE_*` từ shell env). Đây là điểm dễ sai nhất: **đừng** dùng `aws bedrock-agentcore-control update-agent-runtime` để set key — đó là config-only update, **không recycle container**, nên tracing sẽ KHÔNG bật dù env var đã đổi. Phải export key rồi `cdk deploy` lại để container khởi động lại kèm key.
 
 ```bash
-PUB="pk-lf-..."
-SEC="sk-lf-..."
-HOST="https://cloud.langfuse.com"   # hoặc US endpoint
+# 1. Export 3 key vào shell hiện tại (hoặc lưu vào file .env.langfuse rồi `source .env.langfuse`)
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="https://cloud.langfuse.com"   # hoặc US endpoint
 
-IMG=$(aws bedrock-agentcore-control get-agent-runtime \
-  --agent-runtime-id <your-runtime-id> --region ap-northeast-1 \
-  --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
-
-aws bedrock-agentcore-control update-agent-runtime \
-  --agent-runtime-id <your-runtime-id> \
-  --region ap-northeast-1 \
-  --agent-runtime-artifact "containerConfiguration={containerUri=$IMG}" \
-  --role-arn arn:aws:iam::<your-account-id>:role/hera-agentcore-exec-prod \
-  --network-configuration networkMode=PUBLIC \
-  --protocol-configuration serverProtocol=HTTP \
-  --environment-variables "HERA_LOG_GROUP=/aws/bedrock-agentcore/hera-agent,AWS_REGION=ap-northeast-1,HERA_KB_ID=BKXE19AH89,LANGFUSE_PUBLIC_KEY=$PUB,LANGFUSE_SECRET_KEY=$SEC,LANGFUSE_HOST=$HOST"
+# 2. Redeploy runtime — CDK bake key vào container env; container restart kèm key.
+#    Dùng cùng image tag (git SHA hiện tại); chỉ env vars thay đổi, runtime ARN giữ nguyên.
+(cd infra/envs/prod && terraform output -json > terraform-outputs.json)
+(cd infra/cdk && uv run cdk deploy hera-agentcore \
+  --context image_tag=$(git rev-parse --short HEAD) \
+  --outputs-file ../../dist/cdk-outputs.json \
+  --require-approval never)
 ```
 
-Lưu ý: `update-agent-runtime` là REPLACE chứ không MERGE — phải pass lại tất cả env vars hiện có cộng thêm 3 Langfuse vars. Runtime sẽ `UPDATING` → `READY` trong ~30 giây.
+Xác nhận container đã nuốt key (log init in 1 lần mỗi instance):
+
+```bash
+aws logs filter-log-events --log-group-name /aws/bedrock-agentcore/hera-agent \
+  --start-time $(($(date +%s)*1000 - 300000)) --region ap-northeast-1 \
+  --filter-pattern "Tracing enabled" --query 'events[-1].message' --output text
+# Mong đợi: ...Tracing enabled: Pipecat OTEL -> Langfuse (...)
+```
+
+{{% notice warning %}}
+**Git Bash trên Windows:** lệnh AWS có tham số bắt đầu bằng `/` (như `/aws/bedrock-agentcore/...`) bị Git Bash đổi thành đường dẫn Windows → lỗi `InvalidParameterException`. Thêm `MSYS_NO_PATHCONV=1` trước lệnh: `MSYS_NO_PATHCONV=1 aws logs filter-log-events ...`. PowerShell không bị lỗi này.
+{{% /notice %}}
 
 ### Bước 3: Test 1 round voice → xem trace
 
-1. Mở widget CloudFront URL → click record → hỏi "Do you have MacBook Pro?".
-2. Vào `https://cloud.langfuse.com/` → project → **Tracing** (sidebar trái).
-3. Sẽ thấy 1 trace mới với hierarchy:
+1. Mở widget CloudFront URL → click record → hỏi **câu cụ thể về sản phẩm** để kích hoạt tool, ví dụ "Do you have iPhone 13 Pro Max in stock?". (Câu chào chung chung sẽ không gọi `lookup_product` → không có span tool.)
+2. Nói xong → **đóng hẳn tab** (span `conversation` chỉ đóng khi phiên kết thúc) → đợi **~30-60 giây** (Langfuse free tier có ingest lag).
+3. Vào `https://cloud.langfuse.com/` → project → **Tracing** (sidebar trái). Bạn sẽ thấy **2 trace** cho cùng một cuộc hội thoại:
    ```
-   hera-voice-session  (root, metadata: session_id)
-   |__ lookup_product  (function span, input=query, output=N chunks)
-       |__ kb_retrieve  (custom span, metadata: kb_id, threshold)
+   conversation        (Trace Name: conversation)
+   └─ turn (xN)
+   lookup_product      (Trace Name: lookup_product)
+   └─ kb_retrieve       (input: query, output: {chunks, chars})
    ```
+4. Để xem chúng **gộp thành một cuộc hội thoại** (theo `session_id`), mở tab **Sessions** thay vì Tracing.
 
-![Langfuse Tracing — waterfall trace hera-voice-session với kb_retrieve span](/images/3.5-observability/langfuse-trace-view.png)
+![Langfuse Tracing — trace conversation + lookup_product/kb_retrieve theo session](/images/3.5-observability/langfuse-trace-view.png)
+
+{{% notice info %}}
+**Vì sao là 2 trace, không phải 1 waterfall lồng nhau?** Pipecat dispatch tool handler ngoài OTel context của turn span, nên `lookup_product` thành trace gốc riêng thay vì span con của `conversation`. Code agent gắn `langfuse.session.id` lên cả hai để tab **Sessions** gom chúng lại đúng một cuộc hội thoại. Ngoài ra trace chỉ hiện đầy đủ sau khi phiên đóng (span gốc `conversation` đóng lúc teardown) cộng ingest lag — đừng sốt ruột nếu vài giây đầu chưa thấy.
+{{% /notice %}}
 
 ### Disable / rotate keys
 
-- Disable: drop `LANGFUSE_*` khỏi `--environment-variables` (chạy lại update với env list không có Langfuse).
-- Rotate: tạo key mới ở Langfuse Settings, chạy lại update với key mới.
+- **Disable:** deploy lại mà **không** export `LANGFUSE_SECRET_KEY` (mở shell mới, hoặc `unset LANGFUSE_SECRET_KEY` rồi chạy lại `cdk deploy` ở Bước 2). CDK bỏ key khỏi container env → container restart không tracing.
+- **Rotate:** tạo key mới ở Langfuse Settings, export key mới, chạy lại `cdk deploy` ở Bước 2.
 
 Code agent tự skip Langfuse wrappers khi `LANGFUSE_SECRET_KEY` không có — không break voice loop khi tắt trace.
 

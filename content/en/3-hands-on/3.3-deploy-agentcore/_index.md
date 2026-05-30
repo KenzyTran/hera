@@ -33,17 +33,25 @@ The default AgentCore quota is 10 concurrent runtimes per account. **Your worksh
 
 ## Step 1: Apply Terraform (KB + IAM + ECR + widget hosting)
 
-The Wave-1 apply creates every resource except the AgentCore Runtime. On a fresh deploy, `agentcore_runtime_arn` uses the empty-string default (placeholder ARN in the presigner IAM policy) — it is swapped at Step 3.5.
+The Wave-1 apply creates the foundation resources needed BEFORE the AgentCore Runtime exists: ECR, widget hosting (S3 + CloudFront), the AgentCore exec IAM role, and the `widget_presigner` Lambda. On a fresh deploy, `agentcore_runtime_arn` uses the empty-string default (placeholder ARN in the presigner IAM policy) — it is swapped at Step 3.5.
 
 ```bash
 cd infra/envs/prod
 terraform init
-terraform plan -out plan.out
-terraform apply plan.out
+terraform apply \
+  -target=module.kb_consumer_policy \
+  -target=module.ecr \
+  -target=module.widget_hosting \
+  -target=module.agentcore_iam \
+  -target=module.widget_presigner
 cd ../../..
 ```
 
 *Source: RUNBOOK.md (Phase 3 Step 1) — Phase 3 Plan 03-01*
+
+{{% notice warning %}}
+**Why still `-target`, not a full apply?** The `observability` module (and `bedrock_prompt`/`bedrock_eval` if present) needs the AgentCore Runtime ARN — and the runtime is only created in Step 3 below. A bare apply now makes observability fail with the empty-dimension CloudWatch error. So here we apply only the foundation modules; the **second-pass apply in Step 3.5** (no `-target`, with the real `agentcore_runtime_arn`) creates observability cleanly. Terraform's yellow `-target` warning is expected.
+{{% /notice %}}
 
 Phase 3 outputs added: `ecr_repo_url`, `agentcore_exec_role_arn`, `agentcore_log_group_arn`, `agentcore_log_group_name`, `widget_cloudfront_url`, `widget_s3_bucket_name`, `widget_cloudfront_distribution_id`. Section 3.4 uses the widget outputs to deploy the frontend.
 

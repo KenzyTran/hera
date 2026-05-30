@@ -33,17 +33,25 @@ AgentCore default account quota = 10 concurrent runtimes/account. **Workshop c�
 
 ## Bước 1: Apply Terraform (KB + IAM + ECR + widget hosting)
 
-Wave-1 apply tạo toàn bộ resource trừ AgentCore Runtime. Trên fresh deploy, `agentcore_runtime_arn` dùng giá trị empty-string default (placeholder ARN trong IAM policy của presigner) — sẽ được swap ở Bước 3.5.
+Wave-1 apply tạo các resource foundation cần TRƯỚC khi có AgentCore Runtime: ECR, widget hosting (S3 + CloudFront), AgentCore exec IAM role, và `widget_presigner` Lambda. Trên fresh deploy, `agentcore_runtime_arn` dùng giá trị empty-string default (placeholder ARN trong IAM policy của presigner) — sẽ được swap ở Bước 3.5.
 
 ```bash
 cd infra/envs/prod
 terraform init
-terraform plan -out plan.out
-terraform apply plan.out
+terraform apply \
+  -target=module.kb_consumer_policy \
+  -target=module.ecr \
+  -target=module.widget_hosting \
+  -target=module.agentcore_iam \
+  -target=module.widget_presigner
 cd ../../..
 ```
 
 *Source: RUNBOOK.md (Phase 3 Step 1) — Phase 3 Plan 03-01*
+
+{{% notice warning %}}
+**Vì sao vẫn `-target`, chưa apply hết?** Module `observability` (và `bedrock_prompt`/`bedrock_eval` nếu có) cần AgentCore Runtime ARN — runtime mới được tạo ở Bước 3 bên dưới. Apply trần ngay bây giờ sẽ fail observability với lỗi CloudWatch dimension rỗng. Vì vậy ở đây ta chỉ apply các module foundation; **lần apply thứ hai ở Bước 3.5** (không `-target`, có `agentcore_runtime_arn` thật) mới tạo nốt observability sạch sẽ. Cảnh báo vàng `-target` của Terraform là đúng dự kiến.
+{{% /notice %}}
 
 Outputs Phase 3 thêm: `ecr_repo_url`, `agentcore_exec_role_arn`, `agentcore_log_group_arn`, `agentcore_log_group_name`, `widget_cloudfront_url`, `widget_s3_bucket_name`, `widget_cloudfront_distribution_id`. Phần 3.4 sẽ dùng các widget output để deploy frontend.
 

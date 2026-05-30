@@ -26,12 +26,16 @@ Module `infra/modules/knowledge_base/` tạo S3 source bucket + S3 Vectors bucke
 ```bash
 cd infra/envs/prod
 terraform init
-terraform apply
+terraform apply -target=module.knowledge_base
 # Review the plan (about 9 resources). Type 'yes' to apply.
 cd ../../..
 ```
 
 *Source: RUNBOOK.md (First deploy) — Phase 1 Plan 01-02*
+
+{{% notice warning %}}
+**Vì sao có `-target=module.knowledge_base`?** Root `infra/envs/prod` gom toàn bộ module của dự án (KB, ECR, widget, IAM, presigner, observability...). Module `observability` cần **AgentCore Runtime ARN** — runtime này CHƯA tồn tại ở bước này (mãi Phần 3.3 mới tạo bằng `cdk deploy`). Nếu chạy `terraform apply` trần ngay bây giờ, observability sẽ fail với lỗi CloudWatch `Member must have length greater than or equal to 1` (dimension rỗng). `-target=module.knowledge_base` chỉ tạo KB cho phần này; các module còn lại được apply ở Phần 3.3 (foundation) và lần apply thứ hai (sau khi có runtime ARN). Terraform sẽ in cảnh báo vàng về `-target` — đúng dự kiến, không phải lỗi.
+{{% /notice %}}
 
 Hoàn tất trong ~30-60 giây. Outputs: `kb_id`, `kb_arn`, `source_bucket_name`, `data_source_id`. Cả 2 bucket lúc này đang rỗng — bước tiếp theo upload catalog content.
 

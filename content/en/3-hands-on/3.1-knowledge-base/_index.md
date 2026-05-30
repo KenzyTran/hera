@@ -26,12 +26,16 @@ The `infra/modules/knowledge_base/` module creates the S3 source bucket + S3 Vec
 ```bash
 cd infra/envs/prod
 terraform init
-terraform apply
+terraform apply -target=module.knowledge_base
 # Review the plan (about 9 resources). Type 'yes' to apply.
 cd ../../..
 ```
 
 *Source: RUNBOOK.md (First deploy) — Phase 1 Plan 01-02*
+
+{{% notice warning %}}
+**Why `-target=module.knowledge_base`?** The `infra/envs/prod` root aggregates every module in the project (KB, ECR, widget, IAM, presigner, observability...). The `observability` module needs the **AgentCore Runtime ARN** — and that runtime does NOT exist yet (it is created in Section 3.3 via `cdk deploy`). Running a bare `terraform apply` now makes observability fail with the CloudWatch error `Member must have length greater than or equal to 1` (empty dimension). `-target=module.knowledge_base` creates only the KB for this section; the remaining modules are applied in Section 3.3 (foundation) and the second-pass apply (once the runtime ARN exists). Terraform prints a yellow `-target` warning — expected, not an error.
+{{% /notice %}}
 
 Completes in ~30-60 seconds. Outputs: `kb_id`, `kb_arn`, `source_bucket_name`, `data_source_id`. Both buckets are empty at this point — the next step uploads catalog content.
 
